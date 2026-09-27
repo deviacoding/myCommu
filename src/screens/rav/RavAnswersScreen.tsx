@@ -14,7 +14,7 @@ type Props = NativeStackScreenProps<RavStackParamList, 'RavAnswers'>;
 export function RavAnswersScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { questions } = useAppState();
+  const { myQuestions: questions } = useAppState();
   const pending = questions.filter((q) => q.status === 'pending');
   const answered = questions.filter((q) => q.status === 'answered');
 

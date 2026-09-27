@@ -35,4 +35,5 @@ export type AppStackParamList = {
   AskQuestion: undefined;
   Donate: { type: DonationType; amount?: number; pledgeId?: string };
   Receipt: { format: ReceiptFormat; year: number };
+  JoinCommunity: { onboarding: boolean };
 };

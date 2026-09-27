@@ -25,7 +25,8 @@ export function AccountScreen() {
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
   const { user, signOut, updateUser } = useAuth();
-  const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions } = useAppState();
+  const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation } = useAppState();
+  const mine = congregations.filter((k) => myCongregations.includes(k.id));
   const [notif, setNotif] = useState(true);
   const [shabbatMode, setShabbatMode] = useState(true);
 
@@ -35,6 +36,7 @@ export function AccountScreen() {
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader
         title="Mon compte"
+        communitySwitch
         right={
           <Pressable hitSlop={8}>
             <Ionicons name="create-outline" size={22} color={c.primary} />
@@ -99,12 +101,30 @@ export function AccountScreen() {
           <Stat icon="star-david" label="Niveau" value={`${levelIndex + 1}/5`} />
         </View>
 
+        <SectionTitle title="Mes communautés" action="Rejoindre" onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
+        <Card style={{ gap: 10 }}>
+          {mine.map((k) => {
+            const active = k.id === congregation.id;
+            return (
+              <Pressable key={k.id} onPress={() => setCongregation(k.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Avatar source={k.rav.photo} name={k.rav.name} size={40} ring={active} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.text, fontWeight: '700' }}>{k.name}</Text>
+                  <Muted>{k.rite} · {k.rav.name}</Muted>
+                </View>
+                <Ionicons name={active ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={active ? c.primary : c.border} />
+              </Pressable>
+            );
+          })}
+          <Muted style={{ fontSize: 12 }}>Touchez une communauté pour l’afficher. Le bouton en haut de chaque écran permet aussi de basculer.</Muted>
+        </Card>
+
         <SectionTitle title="Mes informations" />
         <Card style={{ gap: 12 }}>
           <Info icon="mail-outline" label="Email" value={user.email} />
           <Info icon="call-outline" label="Téléphone" value={user.phone ?? '—'} />
           <Info icon="location-outline" label="Ville" value={user.city ?? '—'} />
-          <Info icon="business-outline" label="Synagogue" value={user.synagogue ?? '—'} />
+          <Info icon="business-outline" label="Communauté affichée" value={`${congregation.name} · ${congregation.rite}`} />
           <Info icon="gift-outline" label="Date de naissance" value={user.birthDate ? `${formatNumeric(user.birthDate)} · ${user.hebrewBirthDate ?? ''}` : '—'} />
         </Card>
 

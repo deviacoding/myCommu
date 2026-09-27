@@ -2,15 +2,17 @@ import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
+import { CommunitySwitcher } from './CommunitySwitcher';
 
 interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  communitySwitch?: boolean;
 }
 
-export function ScreenHeader({ title, subtitle, onBack, right }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, onBack, right, communitySwitch }: ScreenHeaderProps) {
   const { theme } = useTheme();
   return (
     <View style={[styles.wrap, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
@@ -30,6 +32,7 @@ export function ScreenHeader({ title, subtitle, onBack, right }: ScreenHeaderPro
             </Text>
           ) : null}
         </View>
+        {communitySwitch ? <CommunitySwitcher /> : null}
         {right}
       </View>
     </View>

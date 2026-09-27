@@ -24,7 +24,7 @@ const categories: { value: CourseCategory; label: string }[] = [
 export function RavDvarTorahScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { addCourse, courses } = useAppState();
+  const { addCourse, myCourses: courses } = useAppState();
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<CourseCategory>('Paracha');

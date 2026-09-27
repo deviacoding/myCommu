@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
 import { Avatar } from './Avatar';
 import { Muted, Pill } from './ui';
-import { rav } from '../mocks/rav';
+import { useAppState } from '../state/AppState';
 import { Course } from '../types';
 import { capitalize, formatLong } from '../utils/time';
 import { renderRich } from './RichText';
@@ -13,6 +13,8 @@ import { renderRich } from './RichText';
 export function RavByline({ date, size = 52 }: { date?: string; size?: number }) {
   const { theme } = useTheme();
   const c = theme.colors;
+  const { congregation } = useAppState();
+  const rav = { ...congregation.rav, synagogue: congregation.name };
   return (
     <View style={styles.byline}>
       <Avatar source={rav.photo} name={rav.name} size={size} ring />

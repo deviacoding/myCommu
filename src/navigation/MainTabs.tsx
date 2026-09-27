@@ -24,7 +24,7 @@ const icons: Record<keyof MainTabsParamList, [IoniconName, IoniconName]> = {
 
 export function MainTabs() {
   const { theme } = useTheme();
-  const { pledges } = useAppState();
+  const { myPledges: pledges } = useAppState();
   const due = pledges.filter((p) => p.status === 'due').length;
   return (
     <Tab.Navigator

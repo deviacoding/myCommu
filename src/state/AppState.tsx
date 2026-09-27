@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 import {
   AgendaEvent,
+  Congregation,
   Course,
   CourseCategory,
   DailyService,
@@ -18,7 +19,8 @@ import { initialDonations, initialPledges, soulLevels, initialCategories } from 
 import { initialQuestions } from '../mocks/questions';
 import { courses as initialCourses } from '../mocks/courses';
 import { tishreiHolidays, dailyServices as initialServices, agendaEvents, initialDayEntries } from '../mocks/schedule';
-import { rav } from '../mocks/rav';
+import { habadAgenda, habadCourses, habadDayEntries, habadPledges, habadQuestions } from '../mocks/habad';
+import { congregations, DEFAULT_CONGREGATION, findCongregation } from '../mocks/congregations';
 import { todayISO } from '../utils/time';
 
 interface DonateInput {
@@ -70,6 +72,15 @@ export interface NewPledgeInput {
 }
 
 interface AppStateValue {
+  // Communautés
+  congregations: Congregation[];
+  congregation: Congregation; // communauté affichée
+  congregationId: string;
+  myCongregations: string[]; // adhésions du fidèle
+  setCongregation: (id: string) => void;
+  joinCongregation: (id: string) => void;
+  leaveCongregation: (id: string) => void;
+  // Données brutes (toutes communautés)
   donations: Donation[];
   pledges: Pledge[];
   questions: Question[];
@@ -77,8 +88,16 @@ interface AppStateValue {
   holidays: Holiday[];
   services: DailyService[];
   agenda: AgendaEvent[];
+  dayEntries: DayEntry[];
+  // Données de la communauté affichée
+  myPledges: Pledge[];
+  myQuestions: Question[];
+  myCourses: Course[];
+  myAgenda: AgendaEvent[];
+  myDayEntries: DayEntry[];
   readCourses: string[];
   maasserInput: MaasserInput;
+  categories: DonationCategory[];
   totalGiven: number;
   givenThisMonth: number;
   maasserGivenThisMonth: number;
@@ -103,10 +122,8 @@ interface AppStateValue {
   updatePledgeNote: (id: string, note: string) => void;
   sendReminder: (id: string) => void;
   settlePledge: (id: string) => void;
-  categories: DonationCategory[];
   addCategory: (name: string) => DonationCategory;
   addSubcategory: (categoryId: string, name: string, amount: number) => void;
-  dayEntries: DayEntry[];
   addDayEntry: (date: string, name: string, time: string) => void;
   removeDayEntry: (id: string) => void;
 }
@@ -114,6 +131,8 @@ interface AppStateValue {
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
 
 let seq = 100;
+
+const ofCongregation = (id: string) => (item: { congregationId?: string }) => (item.congregationId ?? DEFAULT_CONGREGATION) === id;
 
 // Découpe un texte libre en sections : une ligne seule courte devient un titre de section.
 function textToSections(text: string): Course['sections'] {
@@ -136,17 +155,35 @@ function textToSections(text: string): Course['sections'] {
 }
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
+  const [congregationId, setCongregation] = useState<string>(DEFAULT_CONGREGATION);
+  const [myCongregations, setMyCongregations] = useState<string[]>([]);
   const [donations, setDonations] = useState<Donation[]>(initialDonations);
-  const [pledges, setPledges] = useState<Pledge[]>(initialPledges);
-  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
+  const [pledges, setPledges] = useState<Pledge[]>([...initialPledges, ...habadPledges]);
+  const [questions, setQuestions] = useState<Question[]>([...initialQuestions, ...habadQuestions]);
+  const [courses, setCourses] = useState<Course[]>([...initialCourses, ...habadCourses]);
   const [holidays, setHolidays] = useState<Holiday[]>(tishreiHolidays);
   const [services, setServices] = useState<DailyService[]>(initialServices);
-  const [agenda, setAgenda] = useState<AgendaEvent[]>(agendaEvents);
-  const [readCourses, setReadCourses] = useState<string[]>(['souccot-refuge']);
+  const [agenda, setAgenda] = useState<AgendaEvent[]>([...agendaEvents, ...habadAgenda]);
   const [categories, setCategories] = useState<DonationCategory[]>(initialCategories);
-  const [dayEntries, setDayEntries] = useState<DayEntry[]>(initialDayEntries);
+  const [dayEntries, setDayEntries] = useState<DayEntry[]>([...initialDayEntries, ...habadDayEntries]);
+  const [readCourses, setReadCourses] = useState<string[]>(['souccot-refuge']);
   const [maasserInput, setMaasserInput] = useState<MaasserInput>({ salary: 12000, school: 2500, talmudTorah: 300, other: 0 });
+
+  const joinCongregation = useCallback((id: string) => {
+    setMyCongregations((list) => (list.includes(id) ? list : [...list, id]));
+    setCongregation(id);
+  }, []);
+
+  const leaveCongregation = useCallback(
+    (id: string) => {
+      setMyCongregations((list) => {
+        const next = list.filter((x) => x !== id);
+        if (congregationId === id && next.length) setCongregation(next[0]);
+        return next;
+      });
+    },
+    [congregationId]
+  );
 
   const donate = useCallback(({ type, amount, cause, dedication, pledgeId }: DonateInput) => {
     const id = `d${seq++}`;
@@ -157,61 +194,73 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return amount;
   }, []);
 
-  const askQuestion = useCallback(({ subject, category, text, anonymous, askedBy }: AskInput) => {
-    const id = `q${seq++}`;
-    const date = todayISO();
-    const name = anonymous ? 'Anonyme' : askedBy;
-    const q: Question = {
-      id,
-      subject,
-      category,
-      status: 'pending',
-      askedBy: name,
-      anonymous,
-      date,
-      messages: [{ id: `${id}-m1`, author: 'member', name, text, date }],
-    };
-    setQuestions((list) => [q, ...list]);
-    return q;
-  }, []);
+  const askQuestion = useCallback(
+    ({ subject, category, text, anonymous, askedBy }: AskInput) => {
+      const id = `q${seq++}`;
+      const date = todayISO();
+      const name = anonymous ? 'Anonyme' : askedBy;
+      const q: Question = {
+        id,
+        congregationId,
+        subject,
+        category,
+        status: 'pending',
+        askedBy: name,
+        anonymous,
+        date,
+        messages: [{ id: `${id}-m1`, author: 'member', name, text, date }],
+      };
+      setQuestions((list) => [q, ...list]);
+      return q;
+    },
+    [congregationId]
+  );
 
-  const answerQuestion = useCallback((id: string, text: string, sources: string[]) => {
-    setQuestions((list) =>
-      list.map((q) =>
-        q.id === id
-          ? {
-              ...q,
-              status: 'answered',
-              messages: [
-                ...q.messages,
-                { id: `${id}-a${seq++}`, author: 'rav', name: rav.name, text, sources: sources.length ? sources : undefined, date: todayISO() },
-              ],
-            }
-          : q
-      )
-    );
-  }, []);
+  const answerQuestion = useCallback(
+    (id: string, text: string, sources: string[]) => {
+      const ravName = findCongregation(congregationId).rav.name;
+      setQuestions((list) =>
+        list.map((q) =>
+          q.id === id
+            ? {
+                ...q,
+                status: 'answered',
+                messages: [
+                  ...q.messages,
+                  { id: `${id}-a${seq++}`, author: 'rav', name: ravName, text, sources: sources.length ? sources : undefined, date: todayISO() },
+                ],
+              }
+            : q
+        )
+      );
+    },
+    [congregationId]
+  );
 
   const markCourseRead = useCallback((id: string) => {
     setReadCourses((list) => (list.includes(id) ? list : [...list, id]));
   }, []);
 
-  const addCourse = useCallback(({ title, subtitle, category, text }: NewCourseInput) => {
-    const course: Course = {
-      id: `c${seq++}`,
-      title,
-      subtitle,
-      category,
-      teacher: rav.name,
-      duration: `${Math.max(2, Math.round(text.split(/\s+/).length / 150))} min`,
-      level: 'Tous niveaux',
-      date: todayISO(),
-      featured: true,
-      sections: textToSections(text),
-    };
-    setCourses((list) => [course, ...list.map((c) => ({ ...c, featured: false }))]);
-    return course;
-  }, []);
+  const addCourse = useCallback(
+    ({ title, subtitle, category, text }: NewCourseInput) => {
+      const course: Course = {
+        id: `c${seq++}`,
+        congregationId,
+        title,
+        subtitle,
+        category,
+        teacher: findCongregation(congregationId).rav.name,
+        duration: `${Math.max(2, Math.round(text.split(/\s+/).length / 150))} min`,
+        level: 'Tous niveaux',
+        date: todayISO(),
+        featured: true,
+        sections: textToSections(text),
+      };
+      setCourses((list) => [course, ...list.map((c) => (ofCongregation(congregationId)(c) ? { ...c, featured: false } : c))]);
+      return course;
+    },
+    [congregationId]
+  );
 
   const updateHolidayTime = useCallback((holidayId: string, index: number, value: string) => {
     setHolidays((list) =>
@@ -223,39 +272,27 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setServices((list) => list.map((s) => (s.name === name ? { ...s, [field]: value } : s)));
   }, []);
 
-  const addEvent = useCallback((input: NewEventInput) => {
-    setAgenda((list) => [...list, { id: `a${seq++}`, ...input }].sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1)));
-  }, []);
+  const addEvent = useCallback(
+    (input: NewEventInput) => {
+      setAgenda((list) => [...list, { id: `a${seq++}`, congregationId, ...input }].sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1)));
+    },
+    [congregationId]
+  );
 
   const removeEvent = useCallback((id: string) => setAgenda((list) => list.filter((e) => e.id !== id)), []);
 
-  const addPledge = useCallback(({ member, category, label, amount, dueDate, origin }: NewPledgeInput) => {
-    setPledges((list) => [{ id: `p${seq++}`, member, category, label, amount, dueDate, origin, status: 'due' }, ...list]);
-  }, []);
+  const addPledge = useCallback(
+    ({ member, category, label, amount, dueDate, origin }: NewPledgeInput) => {
+      setPledges((list) => [{ id: `p${seq++}`, congregationId, member, category, label, amount, dueDate, origin, status: 'due' }, ...list]);
+    },
+    [congregationId]
+  );
 
   const removePledge = useCallback((id: string) => setPledges((list) => list.filter((p) => p.id !== id)), []);
 
   const updatePledgeNote = useCallback((id: string, note: string) => {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, note } : p)));
   }, []);
-
-  const addCategory = useCallback((name: string) => {
-    const cat: DonationCategory = { id: 'cat' + seq++, name, icon: 'folder-star', items: [] };
-    setCategories((list) => [...list, cat]);
-    return cat;
-  }, []);
-
-  const addSubcategory = useCallback((categoryId: string, name: string, amount: number) => {
-    setCategories((list) =>
-      list.map((c) => (c.id === categoryId ? { ...c, items: [...c.items, { id: 'item' + seq++, name, amount }] } : c))
-    );
-  }, []);
-
-  const addDayEntry = useCallback((date: string, name: string, time: string) => {
-    setDayEntries((list) => [...list, { id: 'e' + seq++, date, name, time }]);
-  }, []);
-
-  const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
 
   // Le Rav marque un don comme acquitté : il passe dans « Réglés » et entre dans l'historique des dons.
   const settlePledge = useCallback((id: string) => {
@@ -268,11 +305,31 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const addCategory = useCallback((name: string) => {
+    const cat: DonationCategory = { id: 'cat' + seq++, name, icon: 'folder-star', items: [] };
+    setCategories((list) => [...list, cat]);
+    return cat;
+  }, []);
+
+  const addSubcategory = useCallback((categoryId: string, name: string, amount: number) => {
+    setCategories((list) => list.map((c) => (c.id === categoryId ? { ...c, items: [...c.items, { id: 'item' + seq++, name, amount }] } : c)));
+  }, []);
+
+  const addDayEntry = useCallback(
+    (date: string, name: string, time: string) => {
+      setDayEntries((list) => [...list, { id: 'e' + seq++, congregationId, date, name, time }]);
+    },
+    [congregationId]
+  );
+
+  const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
+
   const sendReminder = useCallback((id: string) => {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, lastReminder: todayISO() } : p)));
   }, []);
 
   const value = useMemo<AppStateValue>(() => {
+    const mine = ofCongregation(congregationId);
     const month = todayISO().slice(0, 7);
     const totalGiven = donations.reduce((s, d) => s + d.amount, 0);
     const thisMonth = donations.filter((d) => d.date.startsWith(month));
@@ -297,6 +354,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
 
     return {
+      congregations,
+      congregation: findCongregation(congregationId),
+      congregationId,
+      myCongregations,
+      setCongregation,
+      joinCongregation,
+      leaveCongregation,
       donations,
       pledges,
       questions,
@@ -304,8 +368,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       holidays,
       services,
       agenda,
+      dayEntries,
+      myPledges: pledges.filter(mine),
+      myQuestions: questions.filter(mine),
+      myCourses: courses.filter(mine),
+      myAgenda: agenda.filter(mine),
+      myDayEntries: dayEntries.filter(mine),
       readCourses,
       maasserInput,
+      categories,
       totalGiven,
       givenThisMonth,
       maasserGivenThisMonth,
@@ -330,14 +401,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       updatePledgeNote,
       sendReminder,
       settlePledge,
-      categories,
       addCategory,
       addSubcategory,
-      dayEntries,
       addDayEntry,
       removeDayEntry,
     };
   }, [
+    congregationId,
+    myCongregations,
+    joinCongregation,
+    leaveCongregation,
     donations,
     pledges,
     questions,
@@ -345,8 +418,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     holidays,
     services,
     agenda,
+    dayEntries,
     readCourses,
     maasserInput,
+    categories,
     donate,
     askQuestion,
     answerQuestion,
@@ -361,10 +436,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     updatePledgeNote,
     sendReminder,
     settlePledge,
-    categories,
     addCategory,
     addSubcategory,
-    dayEntries,
     addDayEntry,
     removeDayEntry,
   ]);

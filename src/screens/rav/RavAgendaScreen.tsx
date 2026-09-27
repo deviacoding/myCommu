@@ -22,7 +22,7 @@ const categories: { value: AgendaCategory; label: string }[] = [
 export function RavAgendaScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { agenda, addEvent, removeEvent } = useAppState();
+  const { myAgenda: agenda, addEvent, removeEvent } = useAppState();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');

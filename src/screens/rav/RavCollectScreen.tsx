@@ -21,7 +21,7 @@ const SHORT: Record<string, string> = {
 export function RavCollectScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { pledges, categories, removePledge, updatePledgeNote, sendReminder, settlePledge } = useAppState();
+  const { myPledges: pledges, categories, removePledge, updatePledgeNote, sendReminder, settlePledge } = useAppState();
   const [mode, setMode] = useState<ViewMode>('dons');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);

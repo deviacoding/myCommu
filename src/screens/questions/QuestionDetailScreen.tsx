@@ -9,7 +9,6 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Pill, Muted, Button } from '../../components/ui';
-import { rav } from '../../mocks/rav';
 import { formatLong, capitalize } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
@@ -17,7 +16,8 @@ type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
 export function QuestionDetailScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { questions } = useAppState();
+  const { questions, congregation } = useAppState();
+  const rav = congregation.rav;
   const q = questions.find((x) => x.id === route.params.questionId);
   if (!q) return null;
 

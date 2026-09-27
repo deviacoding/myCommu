@@ -19,7 +19,7 @@ export function RavHomeScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { signOut, switchRole } = useAuth();
-  const { questions, courses, pledges, agenda } = useAppState();
+  const { myQuestions: questions, myCourses: courses, myPledges: pledges, myAgenda: agenda, joinCongregation } = useAppState();
   const pending = questions.filter((q) => q.status === 'pending').length;
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
@@ -68,7 +68,10 @@ export function RavHomeScreen({ navigation }: Props) {
       </View>
 
       <View style={{ marginTop: 20, gap: 12 }}>
-        <BigButton label="Voir l’application comme un fidèle" icon="eye" color={c.primaryLight} textColor={c.primary} onPress={() => switchRole('member')} />
+        <BigButton label="Voir l’application comme un fidèle" icon="eye" color={c.primaryLight} textColor={c.primary} onPress={() => {
+            joinCongregation('sefarade');
+            switchRole('member');
+          }} />
         <BigButton label="Quitter la démo" icon="log-out-outline" color={c.surface} textColor={c.textMuted} onPress={signOut} style={{ borderWidth: 1, borderColor: c.border }} />
       </View>
     </RavScreen>

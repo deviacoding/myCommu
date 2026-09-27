@@ -39,7 +39,7 @@ export function ScheduleScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const { user } = useAuth();
-  const { holidays: tishreiHolidays, services: dailyServices, agenda: agendaEvents, dayEntries } = useAppState();
+  const { holidays: tishreiHolidays, services: dailyServices, myAgenda: agendaEvents, myDayEntries: dayEntries, congregation } = useAppState();
   const [mode, setMode] = useState<Mode>('horaires');
   const [saved, setSaved] = useState<string[]>(['a3', 'a7']);
   const today = useMemo(() => new Date(), []);
@@ -86,11 +86,7 @@ export function ScheduleScreen() {
       <ScreenHeader
         title="Horaires"
         subtitle={`${capitalize(formatLong(todayISO(today)))}${hebrew ? ` · ${hebrew}` : ''}`}
-        right={
-          <View style={[styles.avatarDot, { backgroundColor: c.primaryLight }]}>
-            <MaterialCommunityIcons name="star-david" size={18} color={c.primary} />
-          </View>
-        }
+        communitySwitch
       />
       <ScrollView contentContainerStyle={styles.content}>
         <Segmented<Mode>
@@ -136,7 +132,7 @@ export function ScheduleScreen() {
             })}
 
             <SectionTitle title="Tichri 5787" />
-            <Muted style={{ marginTop: -6, marginBottom: 10 }}>Horaires indicatifs pour Paris · {user.synagogue}</Muted>
+            <Muted style={{ marginTop: -6, marginBottom: 10 }}>Horaires indicatifs pour Paris · {congregation.name}</Muted>
 
             {tishreiHolidays.map((h) => {
               const st = holidayStatus(h, today);
@@ -191,7 +187,7 @@ export function ScheduleScreen() {
                   <Text style={[styles.col, { color: isShabbat ? c.text : c.textMuted }]}>{s.shabbat}</Text>
                 </View>
               ))}
-              <Muted style={{ marginTop: 10 }}>{user.synagogue} · {user.city}</Muted>
+              <Muted style={{ marginTop: 10 }}>{congregation.name} · {congregation.address}, {congregation.city}</Muted>
             </Card>
           </>
         ) : (

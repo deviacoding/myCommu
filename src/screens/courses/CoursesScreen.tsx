@@ -11,7 +11,6 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { DvarTorahBody, RavByline } from '../../components/DvarTorah';
 import { Card, Chip, SectionTitle, Pill, Muted } from '../../components/ui';
-import { rav } from '../../mocks/rav';
 import { CourseCategory } from '../../types';
 import { formatShort } from '../../utils/time';
 
@@ -24,7 +23,7 @@ export function CoursesScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { readCourses, markCourseRead, courses } = useAppState();
+  const { readCourses, markCourseRead, myCourses: courses, congregation } = useAppState();
   const [filter, setFilter] = useState<Filter>('Tous');
   const [liked, setLiked] = useState(false);
 
@@ -40,8 +39,8 @@ export function CoursesScreen() {
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader
         title="Dvar Torah"
-        subtitle={`Paroles de Torah de ${rav.name}`}
-        right={<Avatar source={rav.photo} name={rav.name} size={36} />}
+        subtitle={`Paroles de Torah de ${congregation.rav.name}`}
+        communitySwitch
       />
       <ScrollView contentContainerStyle={styles.content}>
         <SectionTitle title="Dernier dvar Torah" action={`${readCourses.length} lus`} />
@@ -76,7 +75,7 @@ export function CoursesScreen() {
           const read = readCourses.includes(course.id);
           return (
             <Card key={course.id} onPress={() => navigation.navigate('CourseDetail', { courseId: course.id })} style={{ flexDirection: 'row', gap: 12 }}>
-              <Avatar source={rav.photo} name={rav.name} size={44} />
+              <Avatar source={congregation.rav.photo} name={congregation.rav.name} size={44} />
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Pill label={course.category} color={c.primary} />

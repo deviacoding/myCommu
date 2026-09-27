@@ -13,7 +13,7 @@ type Props = NativeStackScreenProps<RavStackParamList, 'RavDons'>;
 export function RavDonsScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { pledges, donations, categories } = useAppState();
+  const { myPledges: pledges, donations, categories } = useAppState();
   const due = pledges.filter((p) => p.status === 'due');
   const dueTotal = due.reduce((s, p) => s + p.amount, 0);
   const month = todayISO().slice(0, 7);

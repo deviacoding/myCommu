@@ -28,7 +28,7 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { donations, pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput } = useAppState();
+  const { donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput } = useAppState();
   // L'onglet Maasser s'ouvre par défaut.
   const [tab, setTab] = useState<Tab>('maasser');
   const [salary, setSalary] = useState(maasserInput.salary ? String(maasserInput.salary) : '');
@@ -56,7 +56,7 @@ export function DonationsScreen() {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
-      <ScreenHeader title="Dons" subtitle={`${money(givenThisMonth)} donnés ce mois · ${money(totalGiven)} au total`} />
+      <ScreenHeader title="Dons" subtitle={`${money(givenThisMonth)} donnés ce mois · ${money(totalGiven)} au total`} communitySwitch />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Segmented<Tab>
           options={[

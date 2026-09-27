@@ -7,12 +7,16 @@ import { QuestionDetailScreen } from '../screens/questions/QuestionDetailScreen'
 import { AskQuestionScreen } from '../screens/questions/AskQuestionScreen';
 import { DonateScreen } from '../screens/donations/DonateScreen';
 import { ReceiptScreen } from '../screens/donations/ReceiptScreen';
+import { JoinCommunityScreen } from '../screens/community/JoinCommunityScreen';
+import { useAuth } from '../state/AuthContext';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 export function AppStack() {
+  const { onboarded } = useAuth();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={onboarded ? 'MainTabs' : 'JoinCommunity'}>
+      <Stack.Screen name="JoinCommunity" component={JoinCommunityScreen} initialParams={{ onboarding: true }} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="CourseDetail" component={CourseDetailScreen} />
       <Stack.Screen name="QuestionDetail" component={QuestionDetailScreen} />

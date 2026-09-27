@@ -1,3 +1,5 @@
+import { ImageSourcePropType } from 'react-native';
+
 export type CommunityId = 'jewish' | 'christian' | 'muslim';
 
 export interface UserProfile {
@@ -43,6 +45,7 @@ export type AgendaCategory = 'office' | 'cours' | 'fete' | 'communaute';
 
 export interface AgendaEvent {
   id: string;
+  congregationId?: string; // communauté ; absent = sefarade
   title: string;
   date: string; // ISO date
   time: string;
@@ -61,6 +64,7 @@ export type CourseCategory = 'Fête' | 'Paracha' | 'Halakha' | 'Moussar' | 'Mich
 
 export interface Course {
   id: string;
+  congregationId?: string; // communauté ; absent = sefarade
   title: string;
   subtitle: string;
   teacher: string;
@@ -85,6 +89,7 @@ export type QuestionCategory = 'Fêtes' | 'Cacherout' | 'Chabbat' | 'Tsedaka' | 
 
 export interface Question {
   id: string;
+  congregationId?: string; // communauté ; absent = sefarade
   subject: string;
   category: QuestionCategory;
   status: 'answered' | 'pending';
@@ -107,6 +112,7 @@ export interface Donation {
 
 export interface Pledge {
   id: string;
+  congregationId?: string; // communauté ; absent = sefarade
   member?: string;
   category?: string; // nom de la catégorie de don (Apéritif, Dons de Chabbat…)
   label: string;
@@ -145,7 +151,20 @@ export interface DonationCategory {
 // Un horaire nommé sur un jour du calendrier (ex. « Allumage » à 19:13).
 export interface DayEntry {
   id: string;
+  congregationId?: string; // communauté ; absent = sefarade
   date: string; // ISO
   name: string;
   time: string;
+}
+
+export interface Congregation {
+  id: string;
+  name: string;
+  rite: string;
+  city: string;
+  address: string;
+  distance: string;
+  code: string;
+  members: number;
+  rav: { name: string; title: string; photo?: ImageSourcePropType };
 }

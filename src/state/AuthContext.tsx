@@ -10,8 +10,10 @@ interface AuthValue {
   mode: AccessMode;
   isAuthenticated: boolean;
   user: UserProfile;
+  onboarded: boolean; // le fidèle a rejoint au moins une communauté
   enterDemo: (community: CommunityId, role: DemoRole) => void;
   switchRole: (role: DemoRole) => void;
+  finishOnboarding: () => void;
   signOut: () => void;
   updateUser: (patch: Partial<UserProfile>) => void;
 }
@@ -21,19 +23,30 @@ const AuthContext = createContext<AuthValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { setCommunity } = useTheme();
   const [mode, setMode] = useState<AccessMode>('none');
+  const [onboarded, setOnboarded] = useState(false);
   const [user, setUser] = useState<UserProfile>(defaultUser);
 
   const enterDemo = useCallback(
     (community: CommunityId, role: DemoRole) => {
       setUser({ ...defaultUser, community });
       setCommunity(community);
+      // Un fidèle qui arrive commence par rejoindre une communauté ; le Rav a déjà la sienne.
+      setOnboarded(role === 'rav');
       setMode(role);
     },
     [setCommunity]
   );
 
-  const switchRole = useCallback((role: DemoRole) => setMode(role), []);
-  const signOut = useCallback(() => setMode('none'), []);
+  const switchRole = useCallback((role: DemoRole) => {
+    setOnboarded(true);
+    setMode(role);
+  }, []);
+
+  const finishOnboarding = useCallback(() => setOnboarded(true), []);
+  const signOut = useCallback(() => {
+    setMode('none');
+    setOnboarded(false);
+  }, []);
 
   const updateUser = useCallback(
     (patch: Partial<UserProfile>) => {
@@ -44,8 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ mode, isAuthenticated: mode !== 'none', user, enterDemo, switchRole, signOut, updateUser }),
-    [mode, user, enterDemo, switchRole, signOut, updateUser]
+    () => ({ mode, isAuthenticated: mode !== 'none', user, onboarded, enterDemo, switchRole, finishOnboarding, signOut, updateUser }),
+    [mode, user, onboarded, enterDemo, switchRole, finishOnboarding, signOut, updateUser]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

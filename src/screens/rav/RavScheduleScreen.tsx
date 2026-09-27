@@ -24,7 +24,7 @@ function isoOf(y: number, m: number, d: number): string {
 export function RavScheduleScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { dayEntries, addDayEntry, removeDayEntry } = useAppState();
+  const { myDayEntries: dayEntries, addDayEntry, removeDayEntry } = useAppState();
   const today = todayISO();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());

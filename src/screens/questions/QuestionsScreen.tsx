@@ -10,7 +10,6 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Chip, Pill, Muted } from '../../components/ui';
-import { rav } from '../../mocks/rav';
 import { formatShort } from '../../utils/time';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -20,7 +19,8 @@ export function QuestionsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { questions } = useAppState();
+  const { myQuestions: questions, congregation } = useAppState();
+  const rav = congregation.rav;
   const [filter, setFilter] = useState<Filter>('all');
 
   const list = questions.filter((q) => filter === 'all' || q.status === filter);
@@ -31,6 +31,7 @@ export function QuestionsScreen() {
       <ScreenHeader
         title="Questions au Rav"
         subtitle={`${questions.length} questions · ${pending} non répondue${pending > 1 ? 's' : ''}`}
+        communitySwitch
         right={
           <Pressable onPress={() => navigation.navigate('AskQuestion')} style={[styles.ask, { backgroundColor: c.primary }]}>
             <Ionicons name="add" size={18} color={c.textOnPrimary} />
