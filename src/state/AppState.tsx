@@ -102,6 +102,7 @@ interface AppStateValue {
   removePledge: (id: string) => void;
   updatePledgeNote: (id: string, note: string) => void;
   sendReminder: (id: string) => void;
+  settlePledge: (id: string) => void;
   categories: DonationCategory[];
   addCategory: (name: string) => DonationCategory;
   addSubcategory: (categoryId: string, name: string, amount: number) => void;
@@ -256,6 +257,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
 
+  // Le Rav marque un don comme acquitté : il passe dans « Réglés » et entre dans l'historique des dons.
+  const settlePledge = useCallback((id: string) => {
+    setPledges((list) => {
+      const p = list.find((x) => x.id === id);
+      if (p && p.status === 'due') {
+        setDonations((d) => [{ id: `d${seq++}`, type: 'engagement', amount: p.amount, cause: p.label, date: todayISO(), dedication: p.member }, ...d]);
+      }
+      return list.map((x) => (x.id === id ? { ...x, status: 'paid', settledAt: todayISO() } : x));
+    });
+  }, []);
+
   const sendReminder = useCallback((id: string) => {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, lastReminder: todayISO() } : p)));
   }, []);
@@ -317,6 +329,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removePledge,
       updatePledgeNote,
       sendReminder,
+      settlePledge,
       categories,
       addCategory,
       addSubcategory,
@@ -347,6 +360,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     removePledge,
     updatePledgeNote,
     sendReminder,
+    settlePledge,
     categories,
     addCategory,
     addSubcategory,

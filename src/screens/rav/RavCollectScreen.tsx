@@ -21,13 +21,21 @@ const SHORT: Record<string, string> = {
 export function RavCollectScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { pledges, categories, removePledge, updatePledgeNote, sendReminder } = useAppState();
+  const { pledges, categories, removePledge, updatePledgeNote, sendReminder, settlePledge } = useAppState();
   const [mode, setMode] = useState<ViewMode>('dons');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [reminded, setReminded] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [settleId, setSettleId] = useState<string | null>(null);
   const [openMember, setOpenMember] = useState<string | null>(null);
+
+  const settle = (p: Pledge) => {
+    settlePledge(p.id);
+    setSettleId(null);
+    setReminded(`Don acquitté : ${p.member ?? 'Fidèle'}, ${p.label}, ${money(p.amount)}. Il passe dans « Réglés » et dans l’historique.`);
+    setTimeout(() => setReminded(null), 4000);
+  };
 
   const allDue = pledges.filter((p) => p.status === 'due');
   const paid = pledges.filter((p) => p.status === 'paid');
@@ -164,7 +172,27 @@ export function RavCollectScreen({ navigation }: Props) {
                 />
               </View>
 
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              {settleId === p.id ? (
+                <View style={[styles.settleBox, { backgroundColor: c.success + '18', borderColor: c.success }]}>
+                  <Text style={{ color: c.text, fontSize: 17, fontWeight: '800', flex: 1 }}>
+                    {who} a bien réglé {money(p.amount)} ?
+                  </Text>
+                  <Pressable onPress={() => settle(p)} style={[styles.settleYes, { backgroundColor: c.success }]}>
+                    <Ionicons name="checkmark" size={22} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>Oui, acquitté</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setSettleId(null)} style={[styles.settleNo, { borderColor: c.border, backgroundColor: c.surface }]}>
+                    <Text style={{ color: c.text, fontWeight: '700', fontSize: 16 }}>Non</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable onPress={() => setSettleId(p.id)} style={({ pressed }) => [styles.remind, { backgroundColor: c.success, marginTop: 12, opacity: pressed ? 0.85 : 1 }]}>
+                  <Ionicons name="checkmark-circle" size={26} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 18, fontWeight: '900' }}>Don acquitté</Text>
+                </Pressable>
+              )}
+
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                 <Pressable onPress={() => remind([p.id], who, p.label, p.amount)} style={({ pressed }) => [styles.remind, { backgroundColor: c.primary, opacity: pressed ? 0.85 : 1 }]}>
                   <Ionicons name="notifications" size={24} color={c.textOnPrimary} />
                   <Text style={{ color: c.textOnPrimary, fontSize: 17, fontWeight: '800' }}>Envoyer un rappel push</Text>
@@ -220,6 +248,17 @@ export function RavCollectScreen({ navigation }: Props) {
                         </Text>
                       </View>
                       <Text style={{ color: c.text, fontSize: 18, fontWeight: '800' }}>{money(p.amount)}</Text>
+                      {settleId === p.id ? (
+                        <Pressable onPress={() => settle(p)} style={[styles.settleYes, { backgroundColor: c.success }]}>
+                          <Ionicons name="checkmark" size={20} color="#fff" />
+                          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Confirmer</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable onPress={() => setSettleId(p.id)} style={[styles.settleSmall, { backgroundColor: c.success + '18', borderColor: c.success }]}>
+                          <Ionicons name="checkmark-circle" size={20} color={c.success} />
+                          <Text style={{ color: c.success, fontWeight: '800', fontSize: 14 }}>Acquitté</Text>
+                        </Pressable>
+                      )}
                     </View>
                   ))}
                 </View>
@@ -245,9 +284,12 @@ export function RavCollectScreen({ navigation }: Props) {
         <RavCard key={p.id} style={{ opacity: 0.7 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Ionicons name="checkmark-circle" size={28} color={c.success} />
-            <Text style={{ color: c.text, fontSize: 17, fontWeight: '700', flex: 1 }}>
-              {p.member ?? 'Fidèle'} · {p.label}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: 17, fontWeight: '700' }}>
+                {p.member ?? 'Fidèle'} · {p.label}
+              </Text>
+              {p.settledAt ? <Text style={{ color: c.success, fontSize: 13, fontWeight: '600' }}>Acquitté le {formatNumeric(p.settledAt)}</Text> : null}
+            </View>
             <Text style={{ color: c.text, fontSize: 18, fontWeight: '800' }}>{money(p.amount)}</Text>
           </View>
         </RavCard>
@@ -294,4 +336,8 @@ const styles = StyleSheet.create({
   remind: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 14, minHeight: 56 },
   trash: { width: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
+  settleBox: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 14, borderWidth: 2, marginTop: 12, flexWrap: 'wrap' },
+  settleYes: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, minHeight: 44 },
+  settleNo: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, minHeight: 44, justifyContent: 'center' },
+  settleSmall: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1.5, minHeight: 40 },
 });

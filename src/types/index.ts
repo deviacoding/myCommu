@@ -116,6 +116,7 @@ export interface Pledge {
   status: 'due' | 'paid';
   note?: string;
   lastReminder?: string;
+  settledAt?: string;
 }
 
 export interface SoulLevel {
