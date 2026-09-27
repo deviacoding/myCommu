@@ -1,16 +1,49 @@
-export function timeAgo(iso: string, now: Date = new Date()): string {
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, now.getTime() - then);
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return 'à l’instant';
-  if (min < 60) return `il y a ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `il y a ${h} h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `il y a ${d} j`;
-  return new Date(iso).toLocaleDateString('fr-FR');
+const DAY = 86400000;
+const TISHREI_1_5787 = new Date(2026, 8, 12); // 1 Tichri 5787 = 12 septembre 2026
+
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-export function hourMinute(iso: string): string {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+export function parseISODate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function daysBetween(a: Date, b: Date): number {
+  return Math.round((startOfDay(b).getTime() - startOfDay(a).getTime()) / DAY);
+}
+
+export function hebrewDateLabel(d: Date = new Date()): string | null {
+  const day = daysBetween(TISHREI_1_5787, d) + 1;
+  if (day >= 1 && day <= 30) return `${day} Tichri 5787`;
+  if (day >= 31 && day <= 59) return `${day - 30} Hechvan 5787`;
+  if (day >= 60 && day <= 89) return `${day - 59} Kislev 5787`;
+  return null;
+}
+
+export function formatLong(iso: string): string {
+  return parseISODate(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+export function formatShort(iso: string): string {
+  return parseISODate(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+export function formatNumeric(iso: string): string {
+  return parseISODate(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+export function todayISO(d: Date = new Date()): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function euros(n: number): string {
+  return `${n.toLocaleString('fr-FR')} €`;
 }

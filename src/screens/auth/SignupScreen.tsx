@@ -1,103 +1,127 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../state/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
+import { CommunityId } from '../../types';
+import { themes } from '../../theme/themes';
+import { Button } from '../../components/ui';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
+type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const religions: { id: CommunityId; label: string; icon: MciName; hint: string }[] = [
+  { id: 'jewish', label: 'Judaïsme', icon: 'star-david', hint: 'Horaires des fêtes, cours de Torah, tsedaka et maasser' },
+  { id: 'christian', label: 'Christianisme', icon: 'cross', hint: 'Messes, catéchèse, dîme et offrandes' },
+  { id: 'muslim', label: 'Islam', icon: 'star-crescent', hint: 'Horaires de prière, cours, zakat et sadaqa' },
+];
+
 export function SignupScreen({ navigation }: Props) {
-  const { theme } = useTheme();
-  const { signIn } = useAuth();
+  const { theme, setCommunity } = useTheme();
+  const c = theme.colors;
+  const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [religion, setReligion] = useState<CommunityId | null>(null);
+
+  const inputStyle = [styles.input, { borderColor: c.border, backgroundColor: c.surface, color: c.text }];
+  const canSubmit = religion !== null && name.trim().length > 0;
+
+  const choose = (id: CommunityId) => {
+    setReligion(id);
+    setCommunity(id); // le thème change en direct pour montrer la couleur de la communauté
+  };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.root, { backgroundColor: c.background }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => navigation.goBack()} hitSlop={10}>
-            <Ionicons name="chevron-back" size={28} color={theme.colors.text} />
+          <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ alignSelf: 'flex-start' }}>
+            <Ionicons name="chevron-back" size={28} color={c.text} />
           </Pressable>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Créer un compte</Text>
-          <Text style={[styles.sub, { color: theme.colors.textMuted }]}>
-            Rejoignez votre communauté en quelques secondes
+          <Text style={[styles.title, { color: c.text }]}>Créer un compte</Text>
+          <Text style={[styles.sub, { color: c.textMuted }]}>Quelques informations pour rejoindre votre communauté</Text>
+
+          <Text style={[styles.label, { color: c.text, marginTop: 24 }]}>Nom complet</Text>
+          <TextInput value={name} onChangeText={setName} placeholder="David Cohen" placeholderTextColor={c.textMuted} style={inputStyle} />
+
+          <Text style={[styles.label, { color: c.text, marginTop: 14 }]}>Email</Text>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="vous@exemple.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholderTextColor={c.textMuted}
+            style={inputStyle}
+          />
+
+          <Text style={[styles.label, { color: c.text, marginTop: 14 }]}>Mot de passe</Text>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="8 caractères minimum"
+            secureTextEntry
+            placeholderTextColor={c.textMuted}
+            style={inputStyle}
+          />
+
+          <Text style={[styles.label, { color: c.text, marginTop: 22 }]}>Ma religion</Text>
+          <Text style={{ color: c.textMuted, fontSize: 12, marginBottom: 10 }}>
+            L’application s’adapte à votre communauté : contenus, calendrier et couleurs.
           </Text>
+          {religions.map((r) => {
+            const active = religion === r.id;
+            const tint = themes[r.id].colors.primary;
+            return (
+              <Pressable
+                key={r.id}
+                onPress={() => choose(r.id)}
+                style={[
+                  styles.religion,
+                  { borderColor: active ? tint : c.border, backgroundColor: active ? tint + '14' : c.surface },
+                ]}
+              >
+                <View style={[styles.religionIcon, { backgroundColor: tint + '22' }]}>
+                  <MaterialCommunityIcons name={r.icon} size={24} color={tint} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>{r.label}</Text>
+                  <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{r.hint}</Text>
+                </View>
+                <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? tint : c.border} />
+              </Pressable>
+            );
+          })}
 
-          <Field label="Nom complet" value={name} onChangeText={setName} placeholder="Daniel Levy" />
-          <Field label="Email" value={email} onChangeText={setEmail} placeholder="vous@exemple.com" keyboardType="email-address" />
-          <Field label="Mot de passe" value={password} onChangeText={setPassword} placeholder="••••••••" secure />
-
-          <Pressable style={[styles.btn, { backgroundColor: theme.colors.primary }]} onPress={signIn}>
-            <Text style={[styles.btnTxt, { color: theme.colors.textOnPrimary }]}>Créer mon compte</Text>
-          </Pressable>
-
-          <View style={styles.separator}>
-            <View style={[styles.line, { backgroundColor: theme.colors.border }]} />
-            <Text style={[styles.sepTxt, { color: theme.colors.textMuted }]}>ou</Text>
-            <View style={[styles.line, { backgroundColor: theme.colors.border }]} />
-          </View>
-
-          <SocialBtn icon="logo-google" label="Continuer avec Google" />
-          <SocialBtn icon="logo-apple" label="Continuer avec Apple" />
-
-          <Pressable onPress={() => navigation.navigate('Login')} style={{ marginTop: 16, alignItems: 'center' }}>
-            <Text style={{ color: theme.colors.textMuted }}>
-              Déjà un compte ? <Text style={{ color: theme.colors.primary, fontWeight: '700' }}>Se connecter</Text>
-            </Text>
-          </Pressable>
+          <Button
+            label="Créer mon compte"
+            disabled={!canSubmit}
+            onPress={() => religion && signUp({ name, email, community: religion })}
+            style={{ marginTop: 22 }}
+          />
+          <Text style={[styles.note, { color: c.textMuted }]}>
+            En créant un compte, vous acceptez les conditions d’utilisation et la politique de confidentialité.
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-function Field({ label, secure, ...rest }: any) {
-  const { theme } = useTheme();
-  return (
-    <View style={{ marginTop: 16 }}>
-      <Text style={[styles.label, { color: theme.colors.text }]}>{label}</Text>
-      <TextInput
-        {...rest}
-        secureTextEntry={secure}
-        placeholderTextColor={theme.colors.textMuted}
-        style={[
-          styles.input,
-          { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, color: theme.colors.text },
-        ]}
-      />
-    </View>
-  );
-}
-
-function SocialBtn({ icon, label }: { icon: any; label: string }) {
-  const { theme } = useTheme();
-  return (
-    <Pressable
-      style={[styles.social, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
-    >
-      <Ionicons name={icon} size={18} color={theme.colors.text} />
-      <Text style={[styles.socialTxt, { color: theme.colors.text }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { padding: 24, paddingBottom: 32 },
-  title: { fontSize: 28, fontWeight: '800', marginTop: 18 },
+  content: { padding: 24, paddingBottom: 40, maxWidth: 480, width: '100%', alignSelf: 'center' },
+  title: { fontSize: 28, fontWeight: '800', marginTop: 14 },
   sub: { fontSize: 14, marginTop: 6 },
   label: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
-  btn: { paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginTop: 24 },
-  btnTxt: { fontSize: 16, fontWeight: '700' },
-  separator: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
-  line: { flex: 1, height: 1 },
-  sepTxt: { fontSize: 13 },
-  social: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14, borderWidth: 1, borderRadius: 12, marginBottom: 10 },
-  socialTxt: { fontSize: 15, fontWeight: '600' },
+  religion: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 14, padding: 12, marginBottom: 10 },
+  religionIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  note: { fontSize: 11, textAlign: 'center', marginTop: 16 },
 });

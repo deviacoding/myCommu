@@ -1,109 +1,123 @@
 export type CommunityId = 'jewish' | 'christian' | 'muslim';
 
-export interface Community {
-  id: CommunityId;
-  name: string;
-  shortName: string;
-  description: string;
-  icon: string;
-}
-
-export interface User {
+export interface UserProfile {
   id: string;
   name: string;
-  handle: string;
-  avatar: string;
+  hebrewName?: string;
+  email: string;
+  phone?: string;
+  city?: string;
   community: CommunityId;
-  bio?: string;
-  level: number;
-  points: number;
-  badges: string[];
-  followers: number;
-  following: number;
+  synagogue?: string;
+  memberSince: string;
+  birthDate?: string;
+  hebrewBirthDate?: string;
 }
 
-export interface Post {
+export type HolidayKind = 'yomtov' | 'fast' | 'shabbat' | 'holhamoed';
+
+export interface HolidayTime {
+  label: string;
+  value: string;
+}
+
+export interface Holiday {
   id: string;
-  authorId: string;
-  community: CommunityId;
-  content: string;
-  image?: string;
-  createdAt: string;
-  likes: number;
-  comments: number;
-  liked?: boolean;
-  tags?: string[];
+  name: string;
+  hebrewName: string;
+  kind: HolidayKind;
+  start: string; // ISO date de la veille (allumage)
+  end: string; // ISO date du dernier jour
+  hebrewDates: string;
+  times: HolidayTime[];
+  notes?: string[];
 }
 
-export interface Event {
+export interface DailyService {
+  name: string;
+  weekday: string;
+  shabbat: string;
+}
+
+export type AgendaCategory = 'office' | 'cours' | 'fete' | 'communaute';
+
+export interface AgendaEvent {
   id: string;
   title: string;
-  description: string;
-  location: string;
-  date: string;
+  date: string; // ISO date
   time: string;
-  cover?: string;
-  community: CommunityId;
-  attendees: number;
-  going?: boolean;
-  organizerId: string;
+  place: string;
+  category: AgendaCategory;
+  description?: string;
 }
 
-export interface Group {
-  id: string;
-  name: string;
-  description: string;
-  members: number;
-  community: CommunityId;
-  cover?: string;
-  joined?: boolean;
-}
-
-export interface ChatMessage {
-  id: string;
-  senderId: string;
+export interface CourseSection {
+  heading?: string;
+  source?: string;
   text: string;
-  createdAt: string;
 }
 
-export interface Chat {
+export type CourseCategory = 'Fête' | 'Paracha' | 'Halakha' | 'Moussar' | 'Michna';
+
+export interface Course {
   id: string;
+  title: string;
+  subtitle: string;
+  teacher: string;
+  category: CourseCategory;
+  duration: string;
+  level: string;
+  date: string;
+  featured?: boolean;
+  sections: CourseSection[];
+}
+
+export interface QaMessage {
+  id: string;
+  author: 'member' | 'rav';
   name: string;
-  avatar: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  unread: number;
-  online?: boolean;
-  isGroup?: boolean;
-  messages: ChatMessage[];
-}
-
-export type NotificationType = 'like' | 'comment' | 'follow' | 'event' | 'badge' | 'message' | 'mention';
-
-export interface NotificationItem {
-  id: string;
-  type: NotificationType;
   text: string;
-  actorName?: string;
-  actorAvatar?: string;
-  createdAt: string;
-  read?: boolean;
+  sources?: string[];
+  date: string;
 }
 
-export interface Badge {
+export type QuestionCategory = 'Fêtes' | 'Cacherout' | 'Chabbat' | 'Tsedaka' | 'Deuil' | 'Famille' | 'Autre';
+
+export interface Question {
+  id: string;
+  subject: string;
+  category: QuestionCategory;
+  status: 'answered' | 'pending';
+  askedBy: string;
+  anonymous?: boolean;
+  date: string;
+  messages: QaMessage[];
+}
+
+export type DonationType = 'tsedaka' | 'maasser' | 'engagement';
+
+export interface Donation {
+  id: string;
+  type: DonationType;
+  amount: number;
+  cause: string;
+  date: string;
+  dedication?: string;
+}
+
+export interface Pledge {
+  id: string;
+  label: string;
+  amount: number;
+  dueDate: string;
+  origin: string;
+  status: 'due' | 'paid';
+}
+
+export interface SoulLevel {
   id: string;
   name: string;
+  hebrew: string;
+  min: number;
   description: string;
-  icon: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  earned?: boolean;
-}
-
-export interface LeaderboardEntry {
-  rank: number;
-  userId: string;
-  name: string;
-  avatar: string;
-  points: number;
-  level: number;
 }
