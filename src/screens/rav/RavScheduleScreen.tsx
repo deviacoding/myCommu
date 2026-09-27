@@ -7,6 +7,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { RavScreen, BigInput, BigButton, RavCard, BIG } from './RavUi';
 import { capitalize, formatLong, hebrewDateLabel, parseISODate, todayISO } from '../../utils/time';
+import { simulateCalJ } from '../../utils/calj';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavSchedule'>;
 
@@ -24,7 +25,22 @@ function isoOf(y: number, m: number, d: number): string {
 export function RavScheduleScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myDayEntries: dayEntries, addDayEntry, removeDayEntry } = useAppState();
+  const { myDayEntries: dayEntries, addDayEntry, addDayEntries, removeDayEntry } = useAppState();
+  const [calj, setCalj] = useState<'idle' | 'locating' | 'fetching' | 'done'>('idle');
+  const [caljResult, setCaljResult] = useState<{ place: string; coords: string; count: number } | null>(null);
+
+  const fetchCalJ = () => {
+    setCalj('locating');
+    setTimeout(() => {
+      setCalj('fetching');
+      setTimeout(() => {
+        const r = simulateCalJ(4);
+        const count = addDayEntries(r.entries);
+        setCaljResult({ place: r.place, coords: r.coords, count });
+        setCalj('done');
+      }, 1300);
+    }, 1200);
+  };
   const today = todayISO();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -82,6 +98,30 @@ export function RavScheduleScreen({ navigation }: Props) {
 
   return (
     <RavScreen title="Horaires" subtitle="Touchez un jour, puis ajoutez un horaire" onBack={() => navigation.goBack()}>
+      {/* CalJ */}
+      <RavCard style={{ borderColor: c.primary, borderWidth: 2 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name="location" size={30} color={c.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800' }}>Horaires automatiques avec CalJ</Text>
+            <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>
+              {calj === 'idle' ? 'Allumage, sortie de Chabbat, Minha : récupérés pour votre ville, sans rien taper.' : null}
+              {calj === 'locating' ? 'Géolocalisation en cours…' : null}
+              {calj === 'fetching' ? 'Connexion à CalJ, calcul des horaires…' : null}
+              {calj === 'done' && caljResult ? `${caljResult.count} horaires importés pour ${caljResult.place} (${caljResult.coords}) pour les 4 prochains Chabbat.` : null}
+            </Text>
+          </View>
+        </View>
+        <BigButton
+          label={calj === 'idle' ? 'Récupérer les horaires depuis CalJ en me géolocalisant' : calj === 'done' ? 'Horaires importés · relancer' : 'Patientez…'}
+          icon={calj === 'done' ? 'checkmark-circle' : 'navigate'}
+          disabled={calj === 'locating' || calj === 'fetching'}
+          color={calj === 'done' ? c.success : c.primary}
+          onPress={fetchCalJ}
+          style={{ marginTop: 12 }}
+        />
+      </RavCard>
+
       {/* Calendrier */}
       <RavCard style={{ padding: 12 }}>
         <View style={styles.monthRow}>

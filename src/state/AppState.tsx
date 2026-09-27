@@ -10,6 +10,10 @@ import {
   DonationCategory,
   DonationType,
   Holiday,
+  LiveSession,
+  MediaAttachment,
+  MemberDate,
+  MemberDateType,
   Pledge,
   Question,
   QuestionCategory,
@@ -21,6 +25,7 @@ import { courses as initialCourses } from '../mocks/courses';
 import { tishreiHolidays, dailyServices as initialServices, agendaEvents, initialDayEntries } from '../mocks/schedule';
 import { habadAgenda, habadCourses, habadDayEntries, habadPledges, habadQuestions } from '../mocks/habad';
 import { congregations, DEFAULT_CONGREGATION, findCongregation } from '../mocks/congregations';
+import { initialMemberDates } from '../mocks/memberDates';
 import { todayISO } from '../utils/time';
 
 interface DonateInput {
@@ -51,6 +56,16 @@ export interface NewCourseInput {
   subtitle: string;
   category: CourseCategory;
   text: string;
+  media?: MediaAttachment;
+}
+
+export interface NewMemberDateInput {
+  member: string;
+  type: MemberDateType;
+  label: string;
+  date: string;
+  hebrewDate?: string;
+  note?: string;
 }
 
 export interface NewEventInput {
@@ -60,6 +75,7 @@ export interface NewEventInput {
   place: string;
   category: AgendaEvent['category'];
   description?: string;
+  poster?: AgendaEvent['poster'];
 }
 
 export interface NewPledgeInput {
@@ -125,7 +141,18 @@ interface AppStateValue {
   addCategory: (name: string) => DonationCategory;
   addSubcategory: (categoryId: string, name: string, amount: number) => void;
   addDayEntry: (date: string, name: string, time: string) => void;
+  addDayEntries: (entries: { date: string; name: string; time: string }[]) => number;
   removeDayEntry: (id: string) => void;
+  courseThemes: string[];
+  addTheme: (name: string) => void;
+  publishQuestion: (id: string, anonymize: boolean) => void;
+  live: LiveSession | null;
+  startLive: (title: string) => void;
+  endLive: () => void;
+  memberDates: MemberDate[];
+  myMemberDates: MemberDate[];
+  addMemberDate: (input: NewMemberDateInput) => void;
+  removeMemberDate: (id: string) => void;
 }
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
@@ -167,6 +194,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<DonationCategory[]>(initialCategories);
   const [dayEntries, setDayEntries] = useState<DayEntry[]>([...initialDayEntries, ...habadDayEntries]);
   const [readCourses, setReadCourses] = useState<string[]>(['souccot-refuge']);
+  const [courseThemes, setCourseThemes] = useState<string[]>(['Paracha', 'Fête', 'Halakha', 'Moussar', 'Michna']);
+  const [live, setLive] = useState<LiveSession | null>(null);
+  const [memberDates, setMemberDates] = useState<MemberDate[]>(initialMemberDates);
   const [maasserInput, setMaasserInput] = useState<MaasserInput>({ salary: 12000, school: 2500, talmudTorah: 300, other: 0 });
 
   const joinCongregation = useCallback((id: string) => {
@@ -207,6 +237,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         status: 'pending',
         askedBy: name,
         anonymous,
+        isPublic: false,
         date,
         messages: [{ id: `${id}-m1`, author: 'member', name, text, date }],
       };
@@ -242,7 +273,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addCourse = useCallback(
-    ({ title, subtitle, category, text }: NewCourseInput) => {
+    ({ title, subtitle, category, text, media }: NewCourseInput) => {
       const course: Course = {
         id: `c${seq++}`,
         congregationId,
@@ -254,6 +285,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         level: 'Tous niveaux',
         date: todayISO(),
         featured: true,
+        media,
         sections: textToSections(text),
       };
       setCourses((list) => [course, ...list.map((c) => (ofCongregation(congregationId)(c) ? { ...c, featured: false } : c))]);
@@ -323,6 +355,53 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
+
+  const addDayEntries = useCallback(
+    (entries: { date: string; name: string; time: string }[]) => {
+      setDayEntries((list) => {
+        const fresh = entries.filter((e) => !list.some((x) => x.date === e.date && x.name === e.name && (x.congregationId ?? DEFAULT_CONGREGATION) === congregationId));
+        return [...list, ...fresh.map((e) => ({ id: 'e' + seq++, congregationId, ...e }))];
+      });
+      return entries.length;
+    },
+    [congregationId]
+  );
+
+  const addTheme = useCallback((name: string) => {
+    setCourseThemes((list) => (list.includes(name) ? list : [...list, name]));
+  }, []);
+
+  // Le Rav rend une question-réponse publique, en l'anonymisant si demandé.
+  const publishQuestion = useCallback((id: string, anonymize: boolean) => {
+    setQuestions((list) =>
+      list.map((q) =>
+        q.id === id
+          ? {
+              ...q,
+              isPublic: true,
+              anonymous: anonymize ? true : q.anonymous,
+              askedBy: anonymize ? 'Anonyme' : q.askedBy,
+              messages: q.messages.map((m) => (anonymize && m.author === 'member' ? { ...m, name: 'Anonyme' } : m)),
+            }
+          : q
+      )
+    );
+  }, []);
+
+  const startLive = useCallback((title: string) => {
+    setLive({ title, startedAt: new Date().toISOString(), viewers: 0, notified: findCongregation(congregationId).members });
+  }, [congregationId]);
+
+  const endLive = useCallback(() => setLive(null), []);
+
+  const addMemberDate = useCallback(
+    (input: NewMemberDateInput) => {
+      setMemberDates((list) => [...list, { id: 'md' + seq++, congregationId, ...input }]);
+    },
+    [congregationId]
+  );
+
+  const removeMemberDate = useCallback((id: string) => setMemberDates((list) => list.filter((d) => d.id !== id)), []);
 
   const sendReminder = useCallback((id: string) => {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, lastReminder: todayISO() } : p)));
@@ -404,7 +483,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       addCategory,
       addSubcategory,
       addDayEntry,
+      addDayEntries,
       removeDayEntry,
+      courseThemes,
+      addTheme,
+      publishQuestion,
+      live,
+      startLive,
+      endLive,
+      memberDates,
+      myMemberDates: memberDates.filter(mine),
+      addMemberDate,
+      removeMemberDate,
     };
   }, [
     congregationId,
@@ -439,7 +529,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     addCategory,
     addSubcategory,
     addDayEntry,
+    addDayEntries,
     removeDayEntry,
+    courseThemes,
+    addTheme,
+    publishQuestion,
+    live,
+    startLive,
+    endLive,
+    memberDates,
+    addMemberDate,
+    removeMemberDate,
   ]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

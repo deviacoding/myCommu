@@ -10,6 +10,7 @@ import { Avatar } from '../../components/Avatar';
 import { AiBanner } from '../../components/AiAssist';
 import { rav } from '../../mocks/rav';
 import { RavScreen, BigButton, BIG } from './RavUi';
+import { daysUntil } from '../../components/MyDates';
 import { capitalize, formatLong, hebrewDateLabel, todayISO } from '../../utils/time';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavHome'>;
@@ -19,17 +20,20 @@ export function RavHomeScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { signOut, switchRole } = useAuth();
-  const { myQuestions: questions, myCourses: courses, myPledges: pledges, myAgenda: agenda, joinCongregation } = useAppState();
+  const { myQuestions: questions, myCourses: courses, myPledges: pledges, myAgenda: agenda, joinCongregation, myMemberDates, live, congregation } = useAppState();
+  const soonDates = myMemberDates.filter((d) => daysUntil(d) <= 7).length;
+  const datesSub = soonDates ? `${soonDates} date${soonDates > 1 ? 's' : ''} cette semaine : anniversaires, azkarot` : 'Anniversaires et azkarot de vos fidèles';
   const pending = questions.filter((q) => q.status === 'pending').length;
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
   const hebrew = hebrewDateLabel();
 
   const tiles: { key: keyof RavStackParamList; icon: IoniconName; title: string; sub: string; badge?: number; color: string }[] = [
-    { key: 'RavDvarTorah', icon: 'create', title: 'Écrire un dvar Torah', sub: `${courses.length} publiés · le dernier s’affiche en premier chez les fidèles`, color: c.primary },
+    { key: 'RavDvarTorah', icon: 'create', title: 'Partager un dvar Torah', sub: `${courses.length} partagés · texte, vidéo, photo ou audio`, color: c.primary },
     { key: 'RavAnswers', icon: 'chatbubbles', title: 'Répondre aux questions', sub: pending ? `${pending} question${pending > 1 ? 's' : ''} sans réponse` : 'Toutes les questions ont une réponse', badge: pending, color: '#B45309' },
     { key: 'RavSchedule', icon: 'time', title: 'Horaires des fêtes et offices', sub: 'Calendrier : ajoutez des horaires jour par jour', color: '#0F766E' },
     { key: 'RavAgenda', icon: 'calendar', title: 'Agenda de la communauté', sub: `${upcoming} événements à venir`, color: '#7C3AED' },
+    { key: 'RavDates', icon: 'calendar-number', title: 'Dates des fidèles', sub: datesSub, badge: soonDates, color: '#DB2777' },
     { key: 'RavDons', icon: 'cash', title: 'Dons', sub: due ? `Enregistrer un don · ${due} don${due > 1 ? 's' : ''} à récupérer` : 'Enregistrer un don · rien à récupérer', badge: due, color: '#BE123C' },
   ];
 
@@ -40,6 +44,17 @@ export function RavHomeScreen({ navigation }: Props) {
       right={<Avatar source={rav.photo} name={rav.name} size={54} ring />}
     >
       <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 14 }}>Que souhaitez-vous faire aujourd’hui ? Touchez une case.</Text>
+
+      <Pressable onPress={() => navigation.navigate('RavLive')} style={({ pressed }) => [styles.live, { backgroundColor: live ? '#111827' : c.danger, opacity: pressed ? 0.85 : 1 }]}>
+        <View style={styles.liveDot}>
+          <Ionicons name="radio" size={30} color="#fff" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#fff', fontSize: 21, fontWeight: '900' }}>{live ? 'Live en cours' : 'Faire un live et prévenir ma communauté'}</Text>
+          <Text style={{ color: '#fff', opacity: 0.85, fontSize: BIG.small, marginTop: 2 }}>{live ? live.title : `Notification push à ${congregation.members} fidèles, puis cours ou office en direct`}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={30} color="#fff" />
+      </Pressable>
 
       {tiles.map((t) => (
         <Pressable
@@ -81,5 +96,7 @@ export function RavHomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   tile: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 18, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, marginBottom: 12, minHeight: 96 },
   tileIcon: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  live: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 18, borderRadius: 20, marginBottom: 12, minHeight: 96 },
+  liveDot: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: -6, right: -6, minWidth: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, borderWidth: 2 },
 });

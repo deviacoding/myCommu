@@ -9,7 +9,8 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Aura } from '../../components/Aura';
 import { Card, Chip, Muted, Button } from '../../components/ui';
-import { causes, quickAmounts } from '../../mocks/donations';
+import { causes as baseCauses, quickAmounts, causeDetails } from '../../mocks/donations';
+const causes = Array.from(new Set([...causeDetails.map((x) => x.name), ...baseCauses]));
 import { money } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
@@ -29,7 +30,7 @@ export function DonateScreen({ route, navigation }: Props) {
 
   const [amount, setAmount] = useState<number>(route.params.amount ?? 18);
   const [custom, setCustom] = useState('');
-  const [cause, setCause] = useState(pledge ? pledge.label : causes[0]);
+  const [cause, setCause] = useState(pledge ? pledge.label : route.params.cause ?? causes[0]);
   const [dedication, setDedication] = useState('');
   const [done, setDone] = useState<number | null>(null);
   const [pointsBefore] = useState(points);

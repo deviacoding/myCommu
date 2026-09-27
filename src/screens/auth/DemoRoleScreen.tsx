@@ -27,6 +27,13 @@ const labels: Record<CommunityId, { community: string; leader: string; leaderSub
     member: 'Accès fidèle',
     memberSub: 'Aperçu avec les couleurs de la communauté (contenus en préparation)',
   },
+  buddhist: {
+    community: 'Communauté bouddhiste',
+    leader: 'Accès enseignant',
+    leaderSub: 'Interface de publication (contenus en préparation)',
+    member: 'Accès pratiquant',
+    memberSub: 'Aperçu avec les couleurs de la communauté (contenus en préparation)',
+  },
   christian: {
     community: 'Communauté chrétienne',
     leader: 'Accès prêtre',

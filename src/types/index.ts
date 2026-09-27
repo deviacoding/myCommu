@@ -1,6 +1,6 @@
 import { ImageSourcePropType } from 'react-native';
 
-export type CommunityId = 'jewish' | 'christian' | 'muslim';
+export type CommunityId = 'jewish' | 'christian' | 'muslim' | 'buddhist';
 
 export interface UserProfile {
   id: string;
@@ -52,6 +52,7 @@ export interface AgendaEvent {
   place: string;
   category: AgendaCategory;
   description?: string;
+  poster?: { color: string; label: string }; // affiche de l'événement (simulée)
 }
 
 export interface CourseSection {
@@ -60,7 +61,15 @@ export interface CourseSection {
   text: string;
 }
 
-export type CourseCategory = 'Fête' | 'Paracha' | 'Halakha' | 'Moussar' | 'Michna';
+export type CourseCategory = string; // thèmes modifiables par le Rav (Fête, Paracha, Halakha, Moussar, Michna, …)
+
+export type MediaType = 'video' | 'photo' | 'audio';
+
+export interface MediaAttachment {
+  type: MediaType;
+  name: string;
+  duration?: string;
+}
 
 export interface Course {
   id: string;
@@ -73,6 +82,7 @@ export interface Course {
   level: string;
   date: string;
   featured?: boolean;
+  media?: MediaAttachment;
   sections: CourseSection[];
 }
 
@@ -95,6 +105,7 @@ export interface Question {
   status: 'answered' | 'pending';
   askedBy: string;
   anonymous?: boolean;
+  isPublic?: boolean; // visible par toute la communauté (après anonymisation par le Rav)
   date: string;
   messages: QaMessage[];
 }
@@ -167,4 +178,32 @@ export interface Congregation {
   code: string;
   members: number;
   rav: { name: string; title: string; photo?: ImageSourcePropType };
+}
+
+export type MemberDateType = 'anniversaire' | 'azkara' | 'autre';
+
+// Date importante d'un fidèle : anniversaire, azkara (souvenir d'un défunt), autre.
+export interface MemberDate {
+  id: string;
+  congregationId?: string;
+  member: string;
+  type: MemberDateType;
+  label: string;
+  date: string; // ISO (grégorien)
+  hebrewDate?: string;
+  note?: string;
+}
+
+export interface LiveSession {
+  title: string;
+  startedAt: string; // ISO datetime
+  viewers: number;
+  notified: number;
+}
+
+export interface DonationCause {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
 }

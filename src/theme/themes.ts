@@ -61,6 +61,17 @@ export const themes: Record<CommunityId, CommunityTheme> = {
       secondary: '#D4A373',
     },
   },
+  buddhist: {
+    id: 'buddhist',
+    name: 'Communauté bouddhiste',
+    colors: {
+      ...baseNeutrals,
+      primary: '#B45309',
+      primaryDark: '#78350F',
+      primaryLight: '#FEF3C7',
+      secondary: '#F59E0B',
+    },
+  },
   muslim: {
     id: 'muslim',
     name: 'Communauté islamique',

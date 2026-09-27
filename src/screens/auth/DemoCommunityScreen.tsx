@@ -15,6 +15,7 @@ const communities: { id: CommunityId; label: string; icon: MciName; ready: boole
   { id: 'jewish', label: 'Juif', icon: 'star-david', ready: true },
   { id: 'muslim', label: 'Musulman', icon: 'star-crescent', ready: false },
   { id: 'christian', label: 'Chrétien', icon: 'cross', ready: false },
+  { id: 'buddhist', label: 'Bouddhiste', icon: 'meditation', ready: false },
 ];
 
 export function DemoCommunityScreen({ navigation }: Props) {

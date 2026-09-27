@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeProvider';
 import { Avatar } from './Avatar';
 import { Muted, Pill } from './ui';
@@ -46,6 +46,16 @@ export function DvarTorahBody({ course, showTitle = true }: { course: Course; sh
           <Text style={{ color: c.textMuted, fontSize: 15, marginTop: 6 }}>{course.subtitle}</Text>
         </>
       ) : null}
+      {course.media ? (
+        <View style={[styles.media, { backgroundColor: '#111827' }]}>
+          <MaterialCommunityIcons name={course.media.type === 'photo' ? 'image' : 'play-circle'} size={56} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '800', marginTop: 8, fontSize: 15 }}>
+            {course.media.type === 'video' ? 'Vidéo' : course.media.type === 'audio' ? 'Audio' : 'Photo'}
+            {course.media.duration ? ` · ${course.media.duration}` : ''}
+          </Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 2 }}>{course.media.name} · lecteur à venir (maquette)</Text>
+        </View>
+      ) : null}
       {course.sections.map((s, i) => (
         <View key={i} style={{ marginTop: 18 }}>
           {s.heading ? <Text style={[styles.heading, { color: c.text }]}>{s.heading}</Text> : null}
@@ -68,4 +78,5 @@ const styles = StyleSheet.create({
   heading: { fontSize: 18, fontWeight: '800', marginBottom: 8 },
   source: { flexDirection: 'row', alignItems: 'center', gap: 6, borderLeftWidth: 3, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, marginBottom: 8 },
   body: { fontSize: 16, lineHeight: 26 },
+  media: { borderRadius: 14, padding: 28, alignItems: 'center', marginTop: 16 },
 });

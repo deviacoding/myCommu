@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
+import { useAuth } from '../../state/AuthContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Chip, Pill, Muted } from '../../components/ui';
@@ -19,7 +20,10 @@ export function QuestionsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { myQuestions: questions, congregation } = useAppState();
+  const { myQuestions: allQuestions, congregation } = useAppState();
+  const { user } = useAuth();
+  // Publiques (anonymisées par le Rav) ou posées par moi.
+  const questions = allQuestions.filter((q) => q.isPublic !== false || q.askedBy === user.name);
   const rav = congregation.rav;
   const [filter, setFilter] = useState<Filter>('all');
 

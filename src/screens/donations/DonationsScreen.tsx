@@ -10,7 +10,7 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, Segmented, SectionTitle, Muted, Button } from '../../components/ui';
-import { quickAmounts, amountLabels } from '../../mocks/donations';
+import { quickAmounts, amountLabels, causeDetails } from '../../mocks/donations';
 import { DonationType } from '../../types';
 import { money, formatShort, formatNumeric, CURRENCY } from '../../utils/time';
 
@@ -188,6 +188,21 @@ export function DonationsScreen() {
               </Pressable>
             </View>
             <Muted style={{ marginTop: 4 }}>18 = ‘haï, « vivant » · 26 = valeur numérique du Nom divin.</Muted>
+
+            <SectionTitle title="Où va votre argent ?" />
+            <Muted style={{ marginTop: -6, marginBottom: 10 }}>Choisissez la destination de votre don.</Muted>
+            {causeDetails.map((cause) => (
+              <Card key={cause.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={[styles.histIcon, { backgroundColor: c.primaryLight, width: 46, height: 46, borderRadius: 14 }]}>
+                  <MaterialCommunityIcons name={cause.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={24} color={c.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.text, fontWeight: '800', fontSize: 15 }}>{cause.name}</Text>
+                  <Muted style={{ marginTop: 2 }}>{cause.description}</Muted>
+                </View>
+                <Button label="Donner" variant="secondary" onPress={() => navigation.navigate('Donate', { type: 'tsedaka', cause: cause.name })} style={{ paddingVertical: 10, paddingHorizontal: 14 }} />
+              </Card>
+            ))}
           </>
         )}
 

@@ -18,6 +18,8 @@ export type RavStackParamList = {
   RavDons: undefined;
   RavRecordDonation: undefined;
   RavCollect: undefined;
+  RavLive: undefined;
+  RavDates: undefined;
 };
 
 export type MainTabsParamList = {
@@ -33,7 +35,7 @@ export type AppStackParamList = {
   CourseDetail: { courseId: string };
   QuestionDetail: { questionId: string };
   AskQuestion: undefined;
-  Donate: { type: DonationType; amount?: number; pledgeId?: string };
+  Donate: { type: DonationType; amount?: number; pledgeId?: string; cause?: string };
   Receipt: { format: ReceiptFormat; year: number };
   JoinCommunity: { onboarding: boolean };
 };

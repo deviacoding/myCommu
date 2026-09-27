@@ -1,4 +1,4 @@
-import { Donation, DonationCategory, Pledge, SoulLevel } from '../types';
+import { Donation, DonationCategory, DonationCause, Pledge, SoulLevel } from '../types';
 
 export const causes = [
   'Synagogue Beth Yaacov',
@@ -165,4 +165,14 @@ export const initialCategories: DonationCategory[] = [
       { id: 'd5', name: 'Azkara (souvenir d’un défunt)', amount: 100 },
     ],
   },
+];
+
+// Où va votre don ? Destinations proposées au fidèle.
+export const causeDetails: DonationCause[] = [
+  { id: 'pauvres', name: 'Dons pour les pauvres', description: 'Aide discrète aux familles de la communauté en difficulté : courses, loyer, factures.', icon: 'hand-heart' },
+  { id: 'aperitif', name: 'Apéritif', description: 'Offrir le kiddouch ou la séouda chlichit d’un Chabbat, en l’honneur d’une occasion.', icon: 'glass-wine' },
+  { id: 'entretien', name: 'Entretien de la synagogue', description: 'Électricité, chauffage, réparations, ménage : faire vivre le lieu au quotidien.', icon: 'home-heart' },
+  { id: 'talmud-torah', name: 'Talmud Torah', description: 'Bourses et matériel pour l’école du dimanche des enfants.', icon: 'book-open-variant' },
+  { id: 'hevra', name: 'Hevra Kadicha', description: 'Accompagnement des familles endeuillées et frais d’inhumation.', icon: 'candle' },
+  { id: 'israel', name: 'Israël : familles de soldats', description: 'Soutien aux familles de soldats de la communauté.', icon: 'star-david' },
 ];

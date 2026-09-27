@@ -17,6 +17,7 @@ const religions: { id: CommunityId; label: string; icon: MciName; hint: string }
   { id: 'jewish', label: 'Judaïsme', icon: 'star-david', hint: 'Horaires des fêtes, cours de Torah, tsedaka et maasser' },
   { id: 'christian', label: 'Christianisme', icon: 'cross', hint: 'Messes, catéchèse, dîme et offrandes' },
   { id: 'muslim', label: 'Islam', icon: 'star-crescent', hint: 'Horaires de prière, cours, zakat et sadaqa' },
+  { id: 'buddhist', label: 'Bouddhisme', icon: 'meditation', hint: 'Séances de méditation, enseignements du Dharma, dana' },
 ];
 
 export function SignupScreen({ navigation }: Props) {

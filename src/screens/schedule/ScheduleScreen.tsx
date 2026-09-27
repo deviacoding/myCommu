@@ -7,6 +7,8 @@ import { useAuth } from '../../state/AuthContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Card, Segmented, SectionTitle, Pill, Muted } from '../../components/ui';
 import { useAppState } from '../../state/AppState';
+import { LiveBanner } from '../../components/LiveBanner';
+import { MyDates } from '../../components/MyDates';
 import { AgendaCategory, Holiday, HolidayKind } from '../../types';
 import { capitalize, daysBetween, formatLong, formatShort, hebrewDateLabel, parseISODate, todayISO } from '../../utils/time';
 
@@ -98,6 +100,9 @@ export function ScheduleScreen() {
           onChange={setMode}
         />
 
+        <View style={{ marginTop: 14 }}>
+          <LiveBanner />
+        </View>
         {mode === 'horaires' ? (
           <>
             {nextLighting && (
@@ -203,7 +208,13 @@ export function ScheduleScreen() {
                     const meta = categoryMeta[e.category];
                     const isSaved = saved.includes(e.id);
                     return (
-                      <Card key={e.id} style={{ flexDirection: 'row', gap: 12 }}>
+                      <Card key={e.id} style={{ gap: 12 }}>
+                        {e.poster ? (
+                          <View style={{ backgroundColor: e.poster.color, height: 110, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18, textAlign: 'center', paddingHorizontal: 12 }}>{e.title}</Text>
+                          </View>
+                        ) : null}
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
                         <View style={{ alignItems: 'center', width: 48 }}>
                           <Text style={{ color: c.text, fontWeight: '800', fontSize: 15 }}>{e.time}</Text>
                           <View style={[styles.catIcon, { backgroundColor: c.primaryLight }]}>
@@ -220,12 +231,14 @@ export function ScheduleScreen() {
                         <Pressable onPress={() => toggleSaved(e.id)} hitSlop={8}>
                           <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={22} color={isSaved ? c.primary : c.textMuted} />
                         </Pressable>
+                        </View>
                       </Card>
                     );
                   })}
                 </View>
               );
             })}
+            <MyDates />
           </>
         )}
         <View style={{ height: 24 }} />

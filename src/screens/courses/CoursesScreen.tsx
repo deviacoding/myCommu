@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
+import { LiveBanner } from '../../components/LiveBanner';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { DvarTorahBody, RavByline } from '../../components/DvarTorah';
@@ -43,6 +44,7 @@ export function CoursesScreen() {
         communitySwitch
       />
       <ScrollView contentContainerStyle={styles.content}>
+        <LiveBanner />
         <SectionTitle title="Dernier dvar Torah" action={`${readCourses.length} lus`} />
         <Card style={{ padding: 18 }}>
           <RavByline date={latest.date} />

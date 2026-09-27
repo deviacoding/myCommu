@@ -14,6 +14,7 @@ import { Avatar } from '../../components/Avatar';
 import { Aura } from '../../components/Aura';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, SectionTitle, Muted, Button, Chip } from '../../components/ui';
+import { MyDates } from '../../components/MyDates';
 import { soulLevels } from '../../mocks/donations';
 import { CommunityId } from '../../types';
 import { money, formatNumeric } from '../../utils/time';
@@ -118,6 +119,8 @@ export function AccountScreen() {
           })}
           <Muted style={{ fontSize: 12 }}>Touchez une communauté pour l’afficher. Le bouton en haut de chaque écran permet aussi de basculer.</Muted>
         </Card>
+
+        <MyDates compact />
 
         <SectionTitle title="Mes informations" />
         <Card style={{ gap: 12 }}>

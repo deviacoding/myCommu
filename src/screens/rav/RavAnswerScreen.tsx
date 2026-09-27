@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Switch } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { RavStackParamList } from '../../navigation/types';
@@ -18,12 +18,14 @@ const sourceShortcuts = ['Choulhan Aroukh, Orah Haïm', 'Choulhan Aroukh, Yoré 
 export function RavAnswerScreen({ navigation, route }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { questions, answerQuestion } = useAppState();
+  const { questions, answerQuestion, publishQuestion } = useAppState();
   const q = questions.find((x) => x.id === route.params.questionId);
   const [text, setText] = useState('');
   const [sources, setSources] = useState<string[]>([]);
   const [customSource, setCustomSource] = useState('');
   const [done, setDone] = useState(false);
+  const [makePublic, setMakePublic] = useState(true);
+  const [anonymize, setAnonymize] = useState(true);
 
   if (!q) return null;
   const question = q.messages[0];
@@ -40,7 +42,7 @@ export function RavAnswerScreen({ navigation, route }: Props) {
   if (done) {
     return (
       <RavScreen title="Réponse publiée" onBack={() => navigation.goBack()}>
-        <Done title="Réponse envoyée" text={`${q.askedBy} reçoit une notification. La réponse est visible par toute la communauté avec votre photo.`}>
+        <Done title="Réponse envoyée" text={makePublic ? `${q.askedBy} reçoit une notification. La question-réponse est publiée${anonymize ? ', anonymisée,' : ''} pour toute la communauté.` : `${q.askedBy} reçoit une notification. La réponse reste privée, visible seulement par lui.`}>
           <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
             <BigButton label="Retour aux questions" icon="chatbubbles" onPress={() => navigation.goBack()} />
           </View>
@@ -94,13 +96,34 @@ export function RavAnswerScreen({ navigation, route }: Props) {
         <BigButton label="Ajouter" onPress={addCustom} color={c.primaryLight} textColor={c.primary} style={{ paddingHorizontal: 18 }} />
       </View>
 
-      <View style={{ marginTop: 26 }}>
+      <RavCard style={{ marginTop: 22, borderColor: makePublic ? c.primary : c.border, borderWidth: 2 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Ionicons name={makePublic ? 'earth' : 'lock-closed'} size={28} color={c.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800' }}>Anonymiser et rendre cette question-réponse publique</Text>
+            <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>Toute la communauté profite de la réponse, sans le nom du fidèle.</Text>
+          </View>
+          <Switch value={makePublic} onValueChange={setMakePublic} trackColor={{ true: c.primary }} />
+        </View>
+        {makePublic ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border }}>
+            <Text style={{ color: c.text, fontSize: BIG.small, flex: 1 }}>{anonymize ? `Le nom « ${q.askedBy} » sera remplacé par « Anonyme ».` : `Le nom « ${q.askedBy} » restera visible.`}</Text>
+            <Pressable onPress={() => setAnonymize((v) => !v)} style={[styles.src, { backgroundColor: anonymize ? c.secondary : c.surface, borderColor: anonymize ? c.secondary : c.border }]}>
+              <Ionicons name={anonymize ? 'eye-off' : 'eye'} size={18} color={anonymize ? c.primaryDark : c.textMuted} />
+              <Text style={{ color: anonymize ? c.primaryDark : c.text, fontSize: 15, fontWeight: '700' }}>{anonymize ? 'Anonymisé' : 'Nom visible'}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </RavCard>
+
+      <View style={{ marginTop: 16 }}>
         <BigButton
-          label="Publier la réponse"
+          label={makePublic ? 'Publier la réponse' : 'Envoyer la réponse en privé'}
           icon="send"
           disabled={text.trim().length < 10}
           onPress={() => {
             answerQuestion(q.id, text.trim(), sources);
+            if (makePublic) publishQuestion(q.id, anonymize);
             setDone(true);
           }}
         />
