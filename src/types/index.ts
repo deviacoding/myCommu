@@ -121,3 +121,5 @@ export interface SoulLevel {
   min: number;
   description: string;
 }
+
+export type ReceiptFormat = 'seif46' | 'cerfa';

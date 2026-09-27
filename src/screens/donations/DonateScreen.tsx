@@ -63,6 +63,19 @@ export function DonateScreen({ route, navigation }: Props) {
               </Muted>
             </View>
           </Card>
+          <Card style={{ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="document-text" size={26} color={c.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontWeight: '700' }}>Reçu fiscal généré automatiquement</Text>
+              <Muted>Seif 46 (Israël) ou Cerfa (France), à imprimer ou télécharger.</Muted>
+            </View>
+            <Button
+              label="Voir"
+              variant="secondary"
+              onPress={() => navigation.navigate('Receipt', { format: 'seif46', year: new Date().getFullYear() })}
+              style={{ paddingVertical: 10, paddingHorizontal: 14 }}
+            />
+          </Card>
           <Button label="Voir mon ora" icon="person-outline" onPress={() => navigation.navigate('MainTabs', { screen: 'AccountTab' })} style={{ alignSelf: 'stretch' }} />
           <Button label="Fermer" variant="ghost" onPress={() => navigation.goBack()} style={{ alignSelf: 'stretch', marginTop: 10 }} />
         </ScrollView>

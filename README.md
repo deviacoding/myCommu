@@ -34,7 +34,7 @@ npm run start      # Expo Go sur téléphone (scanner le QR code)
 | **Horaires** | Fêtes de Tichri 5787 avec allumages, fins de fête, notes ; offices quotidiens ; segment **Agenda** avec les événements à venir de la communauté |
 | **Cours** (libellé de l'onglet) | **Dvar Torah** : le dernier dvar Torah du Rav s'affiche directement en entier, avec sa photo en rond façon réseau social (« Souccot : la fragilité comme refuge », sourcé). En dessous, les divré Torah précédents filtrables par catégorie |
 | **Questions** | Questions-réponses membres ↔ Rav (photo du Rav sur chaque réponse) avec sources halakhiques. La première question est marquée **Non répondu**. Filtres et formulaire pour poser une question (anonyme possible) |
-| **Dons** | S'ouvre sur **Maasser** : calculateur (salaire net − frais école juive / Talmud Torah / autres, puis 10 %), suivi du mois. Tsedaka avec montants rapides en shekels (1, 5, 18, 26, 52 ₪). Engagements à payer (nedava, cotisation…), historique |
+| **Dons** | S'ouvre sur **Maasser** : calculateur (salaire net − frais école juive / Talmud Torah / autres, puis 10 %), suivi du mois. Tsedaka avec montants rapides en shekels (1, 5, 18, 26, 52 ₪). Engagements à payer (chéni paracha Berechit 104 ₪, chaise à l'année 350 ₪, nedava, cotisation…). **Reçus fiscaux** générés automatiquement : Seif 46 (Israël) ou Cerfa 11580 (France), à imprimer, télécharger ou envoyer par email. Historique |
 | **Compte** | Informations, préférences, et **l'ora** : représentation de l'âme qui grandit avec les dons, les cours suivis et les questions posées, en 5 niveaux (Nefech, Roua'h, Nechama, 'Haya, Ye'hida) |
 
 Un don, un cours lu ou une question posée mettent à jour l'ora immédiatement (état en mémoire, réinitialisé au rechargement).

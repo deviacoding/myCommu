@@ -31,6 +31,22 @@ export const initialDonations: Donation[] = [
 
 export const initialPledges: Pledge[] = [
   {
+    id: 'p5',
+    label: 'Chéni, paracha Berechit',
+    amount: 104,
+    dueDate: '2026-10-10',
+    origin: 'Montée à la Torah (2e montée), Chabbat Berechit',
+    status: 'due',
+  },
+  {
+    id: 'p6',
+    label: 'Chaise à l’année 5787',
+    amount: 350,
+    dueDate: '2026-10-31',
+    origin: 'Place réservée à la synagogue pour toute l’année',
+    status: 'due',
+  },
+  {
     id: 'p1',
     label: 'Nédava de Roch Hachana',
     amount: 52,

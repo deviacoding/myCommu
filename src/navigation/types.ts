@@ -1,5 +1,5 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
-import { DonationType } from '../types';
+import { DonationType, ReceiptFormat } from '../types';
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -20,4 +20,5 @@ export type AppStackParamList = {
   QuestionDetail: { questionId: string };
   AskQuestion: undefined;
   Donate: { type: DonationType; amount?: number; pledgeId?: string };
+  Receipt: { format: ReceiptFormat; year: number };
 };

@@ -6,6 +6,7 @@ import { CourseDetailScreen } from '../screens/courses/CourseDetailScreen';
 import { QuestionDetailScreen } from '../screens/questions/QuestionDetailScreen';
 import { AskQuestionScreen } from '../screens/questions/AskQuestionScreen';
 import { DonateScreen } from '../screens/donations/DonateScreen';
+import { ReceiptScreen } from '../screens/donations/ReceiptScreen';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -17,6 +18,7 @@ export function AppStack() {
       <Stack.Screen name="QuestionDetail" component={QuestionDetailScreen} />
       <Stack.Screen name="AskQuestion" component={AskQuestionScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="Donate" component={DonateScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="Receipt" component={ReceiptScreen} options={{ presentation: 'modal' }} />
     </Stack.Navigator>
   );
 }

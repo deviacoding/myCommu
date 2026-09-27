@@ -46,6 +46,8 @@ export function DonationsScreen() {
   const maasserLeft = Math.max(0, calc.maasser - maasserGivenThisMonth);
   const due = pledges.filter((p) => p.status === 'due');
   const dueTotal = due.reduce((s, p) => s + p.amount, 0);
+  const currentYear = new Date().getFullYear();
+  const givenThisYear = donations.filter((d) => d.date.startsWith(String(currentYear))).reduce((s, d) => s + d.amount, 0);
 
   const saveInputs = () =>
     setMaasserInput({ salary: toInt(salary), school: toInt(school), talmudTorah: toInt(talmudTorah), other: toInt(other) });
@@ -227,6 +229,37 @@ export function DonationsScreen() {
             ))}
           </>
         )}
+
+        <SectionTitle title="Reçus fiscaux" />
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[styles.histIcon, { backgroundColor: c.primaryLight, width: 44, height: 44, borderRadius: 12 }]}>
+              <Ionicons name="document-text" size={22} color={c.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>Reçu {currentYear} généré automatiquement</Text>
+              <Muted>
+                {money(givenThisYear)} de dons enregistrés · à imprimer, télécharger ou envoyer par email
+              </Muted>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+            <Button
+              label="Seif 46 · Israël"
+              icon="print-outline"
+              variant="secondary"
+              onPress={() => navigation.navigate('Receipt', { format: 'seif46', year: currentYear })}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label="Cerfa · France"
+              icon="print-outline"
+              variant="secondary"
+              onPress={() => navigation.navigate('Receipt', { format: 'cerfa', year: currentYear })}
+              style={{ flex: 1 }}
+            />
+          </View>
+        </Card>
 
         <SectionTitle title="Historique" />
         {donations.map((d) => (
