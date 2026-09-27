@@ -3,9 +3,9 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ThemeProvider } from './src/theme/ThemeProvider';
-import { AuthProvider } from './src/state/AuthContext';
-import { RootNavigator } from './src/navigation/RootNavigator';
+import { ThemeProvider } from './theme/ThemeProvider';
+import { AuthProvider } from './state/AuthContext';
+import { RootNavigator } from './navigation/RootNavigator';
 
 export default function App() {
   return (
