@@ -1,4 +1,4 @@
-import { AgendaEvent, DailyService, Holiday } from '../types';
+import { AgendaEvent, DailyService, DayEntry, Holiday } from '../types';
 
 // Horaires indicatifs pour Paris, Tichri 5787 (septembre / octobre 2026).
 // 1 Tichri 5787 = samedi 12 septembre 2026.
@@ -249,3 +249,23 @@ export const agendaEvents: AgendaEvent[] = [
     description: 'Bilan 5786, budget 5787, élection du conseil.',
   },
 ];
+
+// Les horaires des fêtes, replacés jour par jour dans le calendrier du Rav.
+// Le jour est lu dans le libellé « (vendredi 11) » ; sinon on prend le premier jour de la fête.
+function toDate(h: Holiday, label: string): string {
+  const [y, m, d] = h.start.split('-').map(Number);
+  const found = label.match(/\((?:[^\d)]*)(\d{1,2})\)/);
+  if (!found) return h.start;
+  const day = Number(found[1]);
+  const month = day < d ? m + 1 : m;
+  return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+export const initialDayEntries: DayEntry[] = tishreiHolidays.flatMap((h) =>
+  h.times.map((t, i) => ({
+    id: `${h.id}-${i}`,
+    date: toDate(h, t.label),
+    name: `${h.name} · ${t.label.replace(/\s*\([^)]*\)/, '')}`,
+    time: t.value,
+  }))
+);

@@ -28,9 +28,9 @@ export function RavHomeScreen({ navigation }: Props) {
   const tiles: { key: keyof RavStackParamList; icon: IoniconName; title: string; sub: string; badge?: number; color: string }[] = [
     { key: 'RavDvarTorah', icon: 'create', title: 'Écrire un dvar Torah', sub: `${courses.length} publiés · le dernier s’affiche en premier chez les fidèles`, color: c.primary },
     { key: 'RavAnswers', icon: 'chatbubbles', title: 'Répondre aux questions', sub: pending ? `${pending} question${pending > 1 ? 's' : ''} sans réponse` : 'Toutes les questions ont une réponse', badge: pending, color: '#B45309' },
-    { key: 'RavSchedule', icon: 'time', title: 'Horaires des fêtes et offices', sub: 'Allumages, fins de fête, Chaharit, Minha, Arvit', color: '#0F766E' },
+    { key: 'RavSchedule', icon: 'time', title: 'Horaires des fêtes et offices', sub: 'Calendrier : ajoutez des horaires jour par jour', color: '#0F766E' },
     { key: 'RavAgenda', icon: 'calendar', title: 'Agenda de la communauté', sub: `${upcoming} événements à venir`, color: '#7C3AED' },
-    { key: 'RavPledges', icon: 'cash', title: 'Dons et engagements', sub: due ? `${due} engagement${due > 1 ? 's' : ''} à encaisser` : 'Aucun engagement en attente', badge: due, color: '#BE123C' },
+    { key: 'RavDons', icon: 'cash', title: 'Dons', sub: due ? `Enregistrer un don · ${due} don${due > 1 ? 's' : ''} à récupérer` : 'Enregistrer un don · rien à récupérer', badge: due, color: '#BE123C' },
   ];
 
   return (

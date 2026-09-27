@@ -30,9 +30,9 @@ npm run start      # Expo Go sur téléphone (scanner le QR code)
 3. **Accès rabbin** : interface de publication pensée pour des utilisateurs âgés (gros textes, gros boutons, une action par écran) :
    - Écrire un dvar Torah (titre, thème, texte libre découpé automatiquement en parties) → apparaît en premier chez les fidèles. Barre de mise en forme : **gras**, ==surligné==, couleurs rouge / bleu / vert (balises légères rendues par RichText, sélection du texte puis bouton).
    - Répondre aux questions (liste des non répondues, éditeur, sources en un clic).
-   - Horaires des fêtes et offices (chaque heure modifiable sur place).
+   - Horaires : un **calendrier** mensuel (Chabbat teinté, aujourd'hui encadré, pastille avec le nombre d'horaires). On touche un jour, on voit ses horaires nommés, on en ajoute un (nom + heure, raccourcis Allumage / Minha / Cours…). Les horaires des fêtes de Tichri sont préremplis jour par jour. Le fidèle voit « Prochains horaires » (7 jours) en haut de son onglet Horaires.
    - Agenda (ajout / suppression d'événements).
-   - Dons et engagements : rubrique **Dons à récupérer** triée du plus grand au plus petit montant, avec une note libre par don (« où en est-on ») et un bouton **Envoyer un rappel push** au fidèle (simulé, date du dernier rappel mémorisée). Enregistrer un chéni, maftir, nédava… pour un fidèle, qui le retrouve dans « À payer ».
+   - Dons : deux entrées. **1) Enregistrer un nouveau don** en 4 étapes (fidèle avec recherche, catégorie, type de don, montant) : catégories préremplies Apéritif, Dons de Chabbat (Richone, Chéni, Chlichi, Revihi, Hamichi, Chichi, Chevihi, Haftara, Hagbaha, Port du Séfer), Dons de fêtes juives, Divers ; ajout de catégories et de types de dons à la volée, montant habituel prérempli. **2) Dons à récupérer** triés du plus grand au plus petit, note libre par don, bouton « Envoyer un rappel push » (simulé). Le fidèle retrouve le don dans « À payer ».
    - **Tous les textes peuvent être corrigés et réécrits par ChatGPT** : bouton vert sur chaque zone de texte, proposition à accepter ou refuser. Simulation locale (`src/utils/ai.ts`) en attendant le branchement de l'API.
    - Bouton « Voir l'application comme un fidèle » pour vérifier le rendu.
 4. **Accès fidèle** : 5 onglets :

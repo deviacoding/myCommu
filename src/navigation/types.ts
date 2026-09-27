@@ -15,7 +15,9 @@ export type RavStackParamList = {
   RavAnswer: { questionId: string };
   RavSchedule: undefined;
   RavAgenda: undefined;
-  RavPledges: undefined;
+  RavDons: undefined;
+  RavRecordDonation: undefined;
+  RavCollect: undefined;
 };
 
 export type MainTabsParamList = {

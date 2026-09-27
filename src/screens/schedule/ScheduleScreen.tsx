@@ -39,7 +39,7 @@ export function ScheduleScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const { user } = useAuth();
-  const { holidays: tishreiHolidays, services: dailyServices, agenda: agendaEvents } = useAppState();
+  const { holidays: tishreiHolidays, services: dailyServices, agenda: agendaEvents, dayEntries } = useAppState();
   const [mode, setMode] = useState<Mode>('horaires');
   const [saved, setSaved] = useState<string[]>(['a3', 'a7']);
   const today = useMemo(() => new Date(), []);
@@ -63,6 +63,21 @@ export function ScheduleScreen() {
       });
     return groups;
   }, [today, agendaEvents]);
+
+  // Horaires publiés par le Rav dans son calendrier, pour les 7 prochains jours.
+  const upcomingDays = useMemo(() => {
+    const t = todayISO(today);
+    const groups: { date: string; entries: typeof dayEntries }[] = [];
+    [...dayEntries]
+      .filter((e) => e.date >= t && daysBetween(today, parseISODate(e.date)) <= 7)
+      .sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1))
+      .forEach((e) => {
+        const g = groups.find((x) => x.date === e.date);
+        if (g) g.entries.push(e);
+        else groups.push({ date: e.date, entries: [e] });
+      });
+    return groups;
+  }, [today, dayEntries]);
 
   const toggleSaved = (id: string) => setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
@@ -101,6 +116,24 @@ export function ScheduleScreen() {
                 <MaterialCommunityIcons name="candle" size={44} color={c.secondary} />
               </Card>
             )}
+
+            <SectionTitle title="Prochains horaires" />
+            {upcomingDays.length === 0 ? <Muted style={{ marginBottom: 10 }}>Aucun horaire publié pour les jours à venir.</Muted> : null}
+            {upcomingDays.map((g) => {
+              const d = daysBetween(today, parseISODate(g.date));
+              const dayLabel = d === 0 ? 'Aujourd’hui' : d === 1 ? 'Demain' : capitalize(formatLong(g.date));
+              return (
+                <Card key={g.date} style={{ paddingVertical: 12 }}>
+                  <Text style={{ color: d === 0 ? c.primary : c.text, fontWeight: '800', marginBottom: 6 }}>{dayLabel}</Text>
+                  {g.entries.map((e) => (
+                    <View key={e.id} style={styles.timeRow}>
+                      <Text style={{ color: c.text, fontSize: 14, flex: 1 }}>{e.name}</Text>
+                      <Text style={{ color: c.text, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{e.time}</Text>
+                    </View>
+                  ))}
+                </Card>
+              );
+            })}
 
             <SectionTitle title="Tichri 5787" />
             <Muted style={{ marginTop: -6, marginBottom: 10 }}>Horaires indicatifs pour Paris · {user.synagogue}</Muted>

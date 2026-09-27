@@ -126,3 +126,24 @@ export interface SoulLevel {
 }
 
 export type ReceiptFormat = 'seif46' | 'cerfa';
+
+export interface DonationItem {
+  id: string;
+  name: string;
+  amount: number; // montant habituel, modifiable
+}
+
+export interface DonationCategory {
+  id: string;
+  name: string;
+  icon: string;
+  items: DonationItem[];
+}
+
+// Un horaire nommé sur un jour du calendrier (ex. « Allumage » à 19:13).
+export interface DayEntry {
+  id: string;
+  date: string; // ISO
+  name: string;
+  time: string;
+}

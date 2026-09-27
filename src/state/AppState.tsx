@@ -4,7 +4,9 @@ import {
   Course,
   CourseCategory,
   DailyService,
+  DayEntry,
   Donation,
+  DonationCategory,
   DonationType,
   Holiday,
   Pledge,
@@ -12,10 +14,10 @@ import {
   QuestionCategory,
   SoulLevel,
 } from '../types';
-import { initialDonations, initialPledges, soulLevels } from '../mocks/donations';
+import { initialDonations, initialPledges, soulLevels, initialCategories } from '../mocks/donations';
 import { initialQuestions } from '../mocks/questions';
 import { courses as initialCourses } from '../mocks/courses';
-import { tishreiHolidays, dailyServices as initialServices, agendaEvents } from '../mocks/schedule';
+import { tishreiHolidays, dailyServices as initialServices, agendaEvents, initialDayEntries } from '../mocks/schedule';
 import { rav } from '../mocks/rav';
 import { todayISO } from '../utils/time';
 
@@ -99,6 +101,12 @@ interface AppStateValue {
   removePledge: (id: string) => void;
   updatePledgeNote: (id: string, note: string) => void;
   sendReminder: (id: string) => void;
+  categories: DonationCategory[];
+  addCategory: (name: string) => DonationCategory;
+  addSubcategory: (categoryId: string, name: string, amount: number) => void;
+  dayEntries: DayEntry[];
+  addDayEntry: (date: string, name: string, time: string) => void;
+  removeDayEntry: (id: string) => void;
 }
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
@@ -134,6 +142,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [services, setServices] = useState<DailyService[]>(initialServices);
   const [agenda, setAgenda] = useState<AgendaEvent[]>(agendaEvents);
   const [readCourses, setReadCourses] = useState<string[]>(['souccot-refuge']);
+  const [categories, setCategories] = useState<DonationCategory[]>(initialCategories);
+  const [dayEntries, setDayEntries] = useState<DayEntry[]>(initialDayEntries);
   const [maasserInput, setMaasserInput] = useState<MaasserInput>({ salary: 12000, school: 2500, talmudTorah: 300, other: 0 });
 
   const donate = useCallback(({ type, amount, cause, dedication, pledgeId }: DonateInput) => {
@@ -227,6 +237,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, note } : p)));
   }, []);
 
+  const addCategory = useCallback((name: string) => {
+    const cat: DonationCategory = { id: 'cat' + seq++, name, icon: 'folder-star', items: [] };
+    setCategories((list) => [...list, cat]);
+    return cat;
+  }, []);
+
+  const addSubcategory = useCallback((categoryId: string, name: string, amount: number) => {
+    setCategories((list) =>
+      list.map((c) => (c.id === categoryId ? { ...c, items: [...c.items, { id: 'item' + seq++, name, amount }] } : c))
+    );
+  }, []);
+
+  const addDayEntry = useCallback((date: string, name: string, time: string) => {
+    setDayEntries((list) => [...list, { id: 'e' + seq++, date, name, time }]);
+  }, []);
+
+  const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
+
   const sendReminder = useCallback((id: string) => {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, lastReminder: todayISO() } : p)));
   }, []);
@@ -288,6 +316,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removePledge,
       updatePledgeNote,
       sendReminder,
+      categories,
+      addCategory,
+      addSubcategory,
+      dayEntries,
+      addDayEntry,
+      removeDayEntry,
     };
   }, [
     donations,
@@ -312,6 +346,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     removePledge,
     updatePledgeNote,
     sendReminder,
+    categories,
+    addCategory,
+    addSubcategory,
+    dayEntries,
+    addDayEntry,
+    removeDayEntry,
   ]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

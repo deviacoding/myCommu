@@ -7,7 +7,9 @@ import { RavAnswersScreen } from '../screens/rav/RavAnswersScreen';
 import { RavAnswerScreen } from '../screens/rav/RavAnswerScreen';
 import { RavScheduleScreen } from '../screens/rav/RavScheduleScreen';
 import { RavAgendaScreen } from '../screens/rav/RavAgendaScreen';
-import { RavPledgesScreen } from '../screens/rav/RavPledgesScreen';
+import { RavDonsScreen } from '../screens/rav/RavDonsScreen';
+import { RavRecordDonationScreen } from '../screens/rav/RavRecordDonationScreen';
+import { RavCollectScreen } from '../screens/rav/RavCollectScreen';
 
 const Stack = createNativeStackNavigator<RavStackParamList>();
 
@@ -20,7 +22,9 @@ export function RavStack() {
       <Stack.Screen name="RavAnswer" component={RavAnswerScreen} />
       <Stack.Screen name="RavSchedule" component={RavScheduleScreen} />
       <Stack.Screen name="RavAgenda" component={RavAgendaScreen} />
-      <Stack.Screen name="RavPledges" component={RavPledgesScreen} />
+      <Stack.Screen name="RavDons" component={RavDonsScreen} />
+      <Stack.Screen name="RavRecordDonation" component={RavRecordDonationScreen} />
+      <Stack.Screen name="RavCollect" component={RavCollectScreen} />
     </Stack.Navigator>
   );
 }

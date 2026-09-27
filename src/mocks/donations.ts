@@ -1,4 +1,4 @@
-import { Donation, Pledge, SoulLevel } from '../types';
+import { Donation, DonationCategory, Pledge, SoulLevel } from '../types';
 
 export const causes = [
   'Synagogue Beth Yaacov',
@@ -95,4 +95,63 @@ export const soulLevels: SoulLevel[] = [
   { id: 'neshama', name: 'Nechama', hebrew: 'נשמה', min: 540, description: 'L’âme. Votre lumière est visible autour de vous.' },
   { id: 'haya', name: '’Haya', hebrew: 'חיה', min: 1800, description: 'La vivante. Votre ora porte la communauté.' },
   { id: 'yehida', name: 'Ye’hida', hebrew: 'יחידה', min: 5400, description: 'L’unique. Une âme entièrement tournée vers le don.' },
+];
+
+// Catégories et sous-catégories de dons enregistrées par le Rav. Modifiables dans l'application.
+export const initialCategories: DonationCategory[] = [
+  {
+    id: 'aperitif',
+    name: 'Apéritif',
+    icon: 'glass-wine',
+    items: [
+      { id: 'ap1', name: 'Kiddouch du Chabbat', amount: 500 },
+      { id: 'ap2', name: 'Séouda chlichit', amount: 250 },
+      { id: 'ap3', name: 'Mélavé Malka', amount: 300 },
+      { id: 'ap4', name: 'Apéritif de fête', amount: 800 },
+    ],
+  },
+  {
+    id: 'chabbat',
+    name: 'Dons de Chabbat',
+    icon: 'candle',
+    items: [
+      { id: 'ch1', name: 'Richone', amount: 104 },
+      { id: 'ch2', name: 'Chéni', amount: 104 },
+      { id: 'ch3', name: 'Chlichi', amount: 104 },
+      { id: 'ch4', name: 'Revihi', amount: 104 },
+      { id: 'ch5', name: 'Hamichi', amount: 104 },
+      { id: 'ch6', name: 'Chichi', amount: 104 },
+      { id: 'ch7', name: 'Chevihi', amount: 104 },
+      { id: 'ch8', name: 'Haftara', amount: 180 },
+      { id: 'ch9', name: 'Hagbaha', amount: 52 },
+      { id: 'ch10', name: 'Port du Séfer', amount: 52 },
+    ],
+  },
+  {
+    id: 'fetes',
+    name: 'Dons de fêtes juives',
+    icon: 'star-david',
+    items: [
+      { id: 'f1', name: 'Roch Hachana : montée à la Torah', amount: 180 },
+      { id: 'f2', name: 'Yom Kippour : Kol Nidré', amount: 260 },
+      { id: 'f3', name: 'Yom Kippour : Neïla', amount: 360 },
+      { id: 'f4', name: 'Sim’hat Torah : Hatan Torah', amount: 520 },
+      { id: 'f5', name: 'Sim’hat Torah : Hatan Berechit', amount: 520 },
+      { id: 'f6', name: 'Hanouka : allumage', amount: 100 },
+      { id: 'f7', name: 'Pourim : Matanot laévyonim', amount: 72 },
+      { id: 'f8', name: 'Pessah : Kimha dépis’ha', amount: 180 },
+    ],
+  },
+  {
+    id: 'divers',
+    name: 'Divers',
+    icon: 'hand-heart',
+    items: [
+      { id: 'd1', name: 'Nédava', amount: 52 },
+      { id: 'd2', name: 'Chaise à l’année', amount: 350 },
+      { id: 'd3', name: 'Cotisation annuelle', amount: 360 },
+      { id: 'd4', name: 'Mi chébérakh (refoua chelema)', amount: 36 },
+      { id: 'd5', name: 'Azkara (souvenir d’un défunt)', amount: 100 },
+    ],
+  },
 ];
