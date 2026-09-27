@@ -7,6 +7,7 @@ import { Muted, Pill } from './ui';
 import { rav } from '../mocks/rav';
 import { Course } from '../types';
 import { capitalize, formatLong } from '../utils/time';
+import { renderRich } from './RichText';
 
 // En-tête auteur façon réseau social : photo ronde du Rav, nom, fonction, date.
 export function RavByline({ date, size = 52 }: { date?: string; size?: number }) {
@@ -52,7 +53,7 @@ export function DvarTorahBody({ course, showTitle = true }: { course: Course; sh
               <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600', flex: 1 }}>{s.source}</Text>
             </View>
           ) : null}
-          <Text style={[styles.body, { color: c.text }]}>{s.text}</Text>
+          <Text style={[styles.body, { color: c.text }]}>{renderRich(s.text)}</Text>
         </View>
       ))}
     </View>

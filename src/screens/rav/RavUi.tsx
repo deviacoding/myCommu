@@ -55,6 +55,7 @@ export function BigInput({
   keyboardType,
   style,
   onBlur,
+  onSelectionChange,
 }: {
   value: string;
   onChangeText: (v: string) => void;
@@ -63,6 +64,7 @@ export function BigInput({
   keyboardType?: 'default' | 'number-pad';
   style?: StyleProp<ViewStyle>;
   onBlur?: () => void;
+  onSelectionChange?: (sel: { start: number; end: number }) => void;
 }) {
   const { theme } = useTheme();
   const c = theme.colors;
@@ -71,6 +73,7 @@ export function BigInput({
       value={value}
       onChangeText={onChangeText}
       onBlur={onBlur}
+      onSelectionChange={onSelectionChange ? (e) => onSelectionChange(e.nativeEvent.selection) : undefined}
       placeholder={placeholder}
       placeholderTextColor={c.textMuted}
       multiline={multiline}

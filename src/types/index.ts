@@ -113,6 +113,8 @@ export interface Pledge {
   dueDate: string;
   origin: string;
   status: 'due' | 'paid';
+  note?: string;
+  lastReminder?: string;
 }
 
 export interface SoulLevel {

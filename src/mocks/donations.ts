@@ -65,6 +65,8 @@ export const initialPledges: Pledge[] = [
     dueDate: '2026-10-31',
     origin: 'Adhésion à la communauté, année 5787',
     status: 'due',
+    note: 'A promis de régler après les fêtes, rappeler début Hechvan.',
+    lastReminder: '2026-09-22',
   },
   {
     id: 'p3',

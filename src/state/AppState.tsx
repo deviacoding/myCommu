@@ -97,6 +97,8 @@ interface AppStateValue {
   removeEvent: (id: string) => void;
   addPledge: (input: NewPledgeInput) => void;
   removePledge: (id: string) => void;
+  updatePledgeNote: (id: string, note: string) => void;
+  sendReminder: (id: string) => void;
 }
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
@@ -221,6 +223,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const removePledge = useCallback((id: string) => setPledges((list) => list.filter((p) => p.id !== id)), []);
 
+  const updatePledgeNote = useCallback((id: string, note: string) => {
+    setPledges((list) => list.map((p) => (p.id === id ? { ...p, note } : p)));
+  }, []);
+
+  const sendReminder = useCallback((id: string) => {
+    setPledges((list) => list.map((p) => (p.id === id ? { ...p, lastReminder: todayISO() } : p)));
+  }, []);
+
   const value = useMemo<AppStateValue>(() => {
     const month = todayISO().slice(0, 7);
     const totalGiven = donations.reduce((s, d) => s + d.amount, 0);
@@ -276,6 +286,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeEvent,
       addPledge,
       removePledge,
+      updatePledgeNote,
+      sendReminder,
     };
   }, [
     donations,
@@ -298,6 +310,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     removeEvent,
     addPledge,
     removePledge,
+    updatePledgeNote,
+    sendReminder,
   ]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

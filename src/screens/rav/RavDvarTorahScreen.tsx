@@ -6,6 +6,8 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { AiAssist, AiBanner } from '../../components/AiAssist';
 import { RavByline } from '../../components/DvarTorah';
+import { FormatToolbar, Selection } from '../../components/FormatToolbar';
+import { renderRich } from '../../components/RichText';
 import { CourseCategory } from '../../types';
 import { RavScreen, BigLabel, BigInput, BigButton, BigChoice, Done, RavCard, BIG } from './RavUi';
 
@@ -27,6 +29,7 @@ export function RavDvarTorahScreen({ navigation }: Props) {
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState<CourseCategory>('Paracha');
   const [text, setText] = useState('');
+  const [selection, setSelection] = useState<Selection>({ start: 0, end: 0 });
   const [published, setPublished] = useState(false);
 
   const canPublish = title.trim().length > 3 && text.trim().length > 40;
@@ -36,7 +39,16 @@ export function RavDvarTorahScreen({ navigation }: Props) {
       <RavScreen title="Dvar Torah publié" onBack={() => navigation.goBack()}>
         <Done title="C’est publié !" text="Votre dvar Torah s’affiche maintenant en premier chez tous les fidèles, avec votre photo.">
           <View style={{ alignSelf: 'stretch', marginTop: 18, gap: 10 }}>
-            <BigButton label="Écrire un autre dvar Torah" icon="create" onPress={() => { setTitle(''); setSubtitle(''); setText(''); setPublished(false); }} />
+            <BigButton
+              label="Écrire un autre dvar Torah"
+              icon="create"
+              onPress={() => {
+                setTitle('');
+                setSubtitle('');
+                setText('');
+                setPublished(false);
+              }}
+            />
             <BigButton label="Retour à l’accueil" icon="home" color={c.primaryLight} textColor={c.primary} onPress={() => navigation.goBack()} />
           </View>
         </Done>
@@ -58,16 +70,17 @@ export function RavDvarTorahScreen({ navigation }: Props) {
       <BigChoice options={categories} value={category} onChange={setCategory} />
 
       <BigLabel hint="Écrivez comme vous parlez. Sautez une ligne entre les paragraphes. Une ligne courte devient un titre de partie.">4. Votre texte</BigLabel>
-      <BigInput value={text} onChangeText={setText} multiline placeholder="Cette semaine, la paracha nous enseigne…" />
+      <BigInput value={text} onChangeText={setText} onSelectionChange={setSelection} multiline placeholder="Cette semaine, la paracha nous enseigne…" />
+      <FormatToolbar text={text} selection={selection} onChange={setText} />
       <AiAssist text={text} onAccept={setText} />
 
-      {title.trim() ? (
+      {title.trim() || text.trim() ? (
         <RavCard style={{ marginTop: 22 }}>
           <Text style={{ color: c.textMuted, fontSize: BIG.small, fontWeight: '700', marginBottom: 10 }}>APERÇU CHEZ LES FIDÈLES</Text>
           <RavByline />
-          <Text style={{ color: c.text, fontSize: 22, fontWeight: '800', marginTop: 12 }}>{title}</Text>
+          {title ? <Text style={{ color: c.text, fontSize: 22, fontWeight: '800', marginTop: 12 }}>{title}</Text> : null}
           {subtitle ? <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4 }}>{subtitle}</Text> : null}
-          {text ? <Text style={{ color: c.text, fontSize: 17, lineHeight: 26, marginTop: 10 }} numberOfLines={4}>{text}</Text> : null}
+          {text ? <Text style={{ color: c.text, fontSize: 17, lineHeight: 27, marginTop: 10 }}>{renderRich(text)}</Text> : null}
         </RavCard>
       ) : null}
 
@@ -82,9 +95,7 @@ export function RavDvarTorahScreen({ navigation }: Props) {
           }}
         />
         {!canPublish ? (
-          <Text style={{ color: c.textMuted, fontSize: BIG.small, textAlign: 'center', marginTop: 10 }}>
-            Il manque un titre ou le texte est trop court.
-          </Text>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small, textAlign: 'center', marginTop: 10 }}>Il manque un titre ou le texte est trop court.</Text>
         ) : null}
       </View>
     </RavScreen>
