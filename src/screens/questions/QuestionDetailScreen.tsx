@@ -9,6 +9,7 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Pill, Muted, Button } from '../../components/ui';
+import { rav } from '../../mocks/rav';
 import { formatLong, capitalize } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
@@ -25,7 +26,7 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
       <ScreenHeader title={q.category} subtitle={capitalize(formatLong(q.date))} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-          <Pill label={q.status === 'answered' ? 'Répondu' : 'En attente de réponse'} color={q.status === 'answered' ? c.success : c.warning} />
+          <Pill label={q.status === 'answered' ? 'Répondu' : 'Non répondu'} color={q.status === 'answered' ? c.success : c.danger} />
           {q.anonymous ? <Pill label="Anonyme" color={c.textMuted} /> : null}
         </View>
         <Text style={[styles.subject, { color: c.text }]}>{q.subject}</Text>
@@ -35,10 +36,10 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
           return (
             <Card key={m.id} style={[styles.msg, isRav && { borderColor: c.primary, borderWidth: 1 }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Avatar name={m.name} size={36} />
+                {isRav ? <Avatar source={rav.photo} name={rav.name} size={44} ring /> : <Avatar name={m.name} size={40} />}
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: isRav ? c.primary : c.text, fontWeight: '700' }}>{m.name}</Text>
-                  <Muted>{capitalize(formatLong(m.date))}</Muted>
+                  <Muted>{isRav ? rav.title : capitalize(formatLong(m.date))}</Muted>
                 </View>
                 {isRav ? <Ionicons name="shield-checkmark" size={18} color={c.success} /> : null}
               </View>
@@ -60,8 +61,8 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
 
         {q.status === 'pending' ? (
           <Card style={{ alignItems: 'center', gap: 6 }}>
-            <Ionicons name="hourglass-outline" size={26} color={c.warning} />
-            <Text style={{ color: c.text, fontWeight: '700' }}>Le Rav n’a pas encore répondu</Text>
+            <Avatar source={rav.photo} name={rav.name} size={48} />
+            <Text style={{ color: c.text, fontWeight: '700', marginTop: 4 }}>Le Rav n’a pas encore répondu</Text>
             <Muted style={{ textAlign: 'center' }}>Vous recevrez une notification dès que la réponse sera publiée.</Muted>
           </Card>
         ) : (

@@ -16,7 +16,7 @@ import { ProgressBar } from '../../components/ProgressBar';
 import { Card, SectionTitle, Muted, Button, Chip } from '../../components/ui';
 import { soulLevels } from '../../mocks/donations';
 import { CommunityId } from '../../types';
-import { euros, formatNumeric } from '../../utils/time';
+import { money, formatNumeric } from '../../utils/time';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 
@@ -80,7 +80,7 @@ export function AccountScreen() {
             ))}
           </View>
           <Muted style={{ textAlign: 'center', marginTop: 12, fontSize: 12 }}>
-            Votre ora grandit à chaque don, chaque cours étudié et chaque question posée.
+            Votre ora grandit à chaque don, chaque dvar Torah lu et chaque question posée.
           </Muted>
           <Button
             label="Faire grandir mon ora"
@@ -91,10 +91,10 @@ export function AccountScreen() {
         </Card>
 
         <View style={styles.stats}>
-          <Stat icon="hand-heart" label="Total donné" value={euros(totalGiven)} />
-          <Stat icon="calendar-month" label="Ce mois" value={euros(givenThisMonth)} />
+          <Stat icon="hand-heart" label="Total donné" value={money(totalGiven)} />
+          <Stat icon="calendar-month" label="Ce mois" value={money(givenThisMonth)} />
           <Stat icon="fire" label="Mois d’affilée" value={String(streakMonths)} />
-          <Stat icon="book-open-variant" label="Cours suivis" value={String(readCourses.length)} />
+          <Stat icon="book-open-variant" label="Divré Torah lus" value={String(readCourses.length)} />
           <Stat icon="comment-question" label="Questions" value={String(myQuestions)} />
           <Stat icon="star-david" label="Niveau" value={`${levelIndex + 1}/5`} />
         </View>

@@ -1,16 +1,18 @@
 import React from 'react';
-import { Image, View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { Image, View, Text, StyleSheet, ViewStyle, ImageSourcePropType } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
 interface AvatarProps {
   uri?: string;
+  source?: ImageSourcePropType;
   name?: string;
   size?: number;
   online?: boolean;
+  ring?: boolean;
   style?: ViewStyle;
 }
 
-export function Avatar({ uri, name, size = 44, online, style }: AvatarProps) {
+export function Avatar({ uri, source, name, size = 44, online, ring, style }: AvatarProps) {
   const { theme } = useTheme();
   const initials = name
     ? name
@@ -20,11 +22,19 @@ export function Avatar({ uri, name, size = 44, online, style }: AvatarProps) {
         .join('')
         .toUpperCase()
     : '?';
+  const img = source ?? (uri ? { uri } : undefined);
 
   return (
     <View style={[{ width: size, height: size }, style]}>
-      {uri ? (
-        <Image source={{ uri }} style={[styles.img, { width: size, height: size, borderRadius: size / 2 }]} />
+      {img ? (
+        <Image
+          source={img}
+          style={[
+            styles.img,
+            { width: size, height: size, borderRadius: size / 2 },
+            ring && { borderWidth: 3, borderColor: theme.colors.secondary },
+          ]}
+        />
       ) : (
         <View
           style={[
@@ -59,7 +69,7 @@ export function Avatar({ uri, name, size = 44, online, style }: AvatarProps) {
 }
 
 const styles = StyleSheet.create({
-  img: { backgroundColor: '#eee' },
+  img: { backgroundColor: '#eee', resizeMode: 'cover' },
   fallback: { alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', right: 0, bottom: 0, borderWidth: 2 },
 });

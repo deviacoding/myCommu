@@ -20,12 +20,19 @@ interface AskInput {
   askedBy: string;
 }
 
+export interface MaasserInput {
+  salary: number;
+  school: number;
+  talmudTorah: number;
+  other: number;
+}
+
 interface AppStateValue {
   donations: Donation[];
   pledges: Pledge[];
   questions: Question[];
   readCourses: string[];
-  monthlyIncome: number | null;
+  maasserInput: MaasserInput;
   totalGiven: number;
   givenThisMonth: number;
   maasserGivenThisMonth: number;
@@ -38,7 +45,7 @@ interface AppStateValue {
   donate: (input: DonateInput) => number;
   askQuestion: (input: AskInput) => Question;
   markCourseRead: (id: string) => void;
-  setMonthlyIncome: (n: number | null) => void;
+  setMaasserInput: (m: MaasserInput) => void;
 }
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
@@ -50,7 +57,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [pledges, setPledges] = useState<Pledge[]>(initialPledges);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [readCourses, setReadCourses] = useState<string[]>(['souccot-refuge']);
-  const [monthlyIncome, setMonthlyIncome] = useState<number | null>(2500);
+  const [maasserInput, setMaasserInput] = useState<MaasserInput>({ salary: 12000, school: 2500, talmudTorah: 300, other: 0 });
 
   const donate = useCallback(({ type, amount, cause, dedication, pledgeId }: DonateInput) => {
     const id = `d${seq++}`;
@@ -112,7 +119,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       pledges,
       questions,
       readCourses,
-      monthlyIncome,
+      maasserInput,
       totalGiven,
       givenThisMonth,
       maasserGivenThisMonth,
@@ -125,9 +132,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       donate,
       askQuestion,
       markCourseRead,
-      setMonthlyIncome,
+      setMaasserInput,
     };
-  }, [donations, pledges, questions, readCourses, monthlyIncome, donate, askQuestion, markCourseRead]);
+  }, [donations, pledges, questions, readCourses, maasserInput, donate, askQuestion, markCourseRead]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
 }

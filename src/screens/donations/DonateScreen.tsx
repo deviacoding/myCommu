@@ -10,7 +10,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Aura } from '../../components/Aura';
 import { Card, Chip, Muted, Button } from '../../components/ui';
 import { causes, quickAmounts } from '../../mocks/donations';
-import { euros } from '../../utils/time';
+import { money } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 
@@ -27,7 +27,7 @@ export function DonateScreen({ route, navigation }: Props) {
   const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points } = useAppState();
   const pledge = pledges.find((p) => p.id === pledgeId);
 
-  const [amount, setAmount] = useState<number>(route.params.amount ?? 36);
+  const [amount, setAmount] = useState<number>(route.params.amount ?? 18);
   const [custom, setCustom] = useState('');
   const [cause, setCause] = useState(pledge ? pledge.label : causes[0]);
   const [dedication, setDedication] = useState('');
@@ -48,7 +48,7 @@ export function DonateScreen({ route, navigation }: Props) {
         <ScrollView contentContainerStyle={[styles.content, { alignItems: 'center', paddingTop: 30 }]}>
           <Aura levelIndex={levelIndex} progress={levelProgress} size={200} />
           <Text style={{ color: c.text, fontSize: 22, fontWeight: '800', marginTop: 18 }}>Merci pour votre don</Text>
-          <Text style={{ color: c.primary, fontSize: 30, fontWeight: '900', marginTop: 4 }}>{euros(done)}</Text>
+          <Text style={{ color: c.primary, fontSize: 30, fontWeight: '900', marginTop: 4 }}>{money(done)}</Text>
           <Muted style={{ textAlign: 'center', marginTop: 8, maxWidth: 320 }}>
             {cause}
             {dedication.trim() ? ` · ${dedication.trim()}` : ''}
@@ -95,7 +95,7 @@ export function DonateScreen({ route, navigation }: Props) {
               }}
               style={[styles.amount, { borderColor: amount === a && !custom ? c.primary : c.border, backgroundColor: amount === a && !custom ? c.primary : c.surface }]}
             >
-              <Text style={{ color: amount === a && !custom ? c.textOnPrimary : c.text, fontWeight: '800', fontSize: 16 }}>{a} €</Text>
+              <Text style={{ color: amount === a && !custom ? c.textOnPrimary : c.text, fontWeight: '800', fontSize: 16 }}>{a} ₪</Text>
             </Pressable>
           ))}
         </View>
@@ -107,7 +107,7 @@ export function DonateScreen({ route, navigation }: Props) {
             if (Number.isFinite(n) && n > 0) setAmount(n);
           }}
           keyboardType="number-pad"
-          placeholder="Autre montant en €"
+          placeholder="Autre montant en ₪"
           placeholderTextColor={c.textMuted}
           style={[...inputStyle, { marginTop: 10 }]}
         />
@@ -138,10 +138,10 @@ export function DonateScreen({ route, navigation }: Props) {
             <Text style={{ color: c.text, fontWeight: '600', flex: 1 }}>Visa •••• 4242</Text>
             <Text style={{ color: c.primary, fontWeight: '600', fontSize: 13 }}>Modifier</Text>
           </View>
-          <Muted>Reçu fiscal envoyé par email. 66 % du don est déductible des impôts.</Muted>
+          <Muted>Reçu fiscal envoyé par email après chaque don.</Muted>
         </Card>
 
-        <Button label={`Confirmer le don de ${euros(amount)}`} icon="heart" onPress={confirm} />
+        <Button label={`Confirmer le don de ${money(amount)}`} icon="heart" onPress={confirm} />
         <Muted style={{ textAlign: 'center', marginTop: 12 }}>Maquette : aucun paiement réel n’est effectué.</Muted>
         <View style={{ height: 24 }} />
       </ScrollView>

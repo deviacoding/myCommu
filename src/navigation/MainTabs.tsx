@@ -35,11 +35,12 @@ export function MainTabs() {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 6,
+          height: 72,
+          paddingBottom: 12,
+          paddingTop: 8,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+        tabBarItemStyle: { paddingVertical: 0 },
         tabBarIcon: ({ color, focused }) => {
           const [on, off] = icons[route.name as keyof MainTabsParamList];
           return <Ionicons name={focused ? on : off} size={24} color={color} />;

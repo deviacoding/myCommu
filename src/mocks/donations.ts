@@ -9,7 +9,15 @@ export const causes = [
   'Israël : familles de soldats',
 ];
 
-export const quickAmounts = [18, 36, 54, 90, 180];
+export const quickAmounts = [1, 5, 18, 26, 52];
+
+export const amountLabels: Record<number, string> = {
+  1: 'un premier pas',
+  5: 'les 5 livres',
+  18: '‘haï, « vivant »',
+  26: 'valeur du Nom',
+  52: '2 × 26',
+};
 
 export const initialDonations: Donation[] = [
   { id: 'd1', type: 'engagement', amount: 36, cause: 'Kapparot', date: '2026-09-18' },

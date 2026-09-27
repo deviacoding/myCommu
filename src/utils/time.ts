@@ -44,6 +44,12 @@ export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function euros(n: number): string {
+export function eurosLegacy(n: number): string {
   return `${n.toLocaleString('fr-FR')} €`;
+}
+
+export const CURRENCY = '₪';
+
+export function money(n: number): string {
+  return `${n.toLocaleString('fr-FR')} ${CURRENCY}`;
 }

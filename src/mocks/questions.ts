@@ -4,6 +4,24 @@ const RAV = 'Rav Yaacov Attias';
 
 export const initialQuestions: Question[] = [
   {
+    id: 'q6',
+    subject: 'Lave-vaisselle partagé entre vaisselle cachère et non cachère',
+    category: 'Cacherout',
+    status: 'pending',
+    askedBy: 'Myriam K.',
+    date: '2026-09-27',
+    messages: [
+      {
+        id: 'q6-m1',
+        author: 'member',
+        name: 'Myriam K.',
+        date: '2026-09-27',
+        text:
+          'Nous emménageons en colocation avec une personne qui ne mange pas cachère. Peut-on utiliser le même lave-vaisselle en faisant des cycles séparés ? Faut-il des paniers différents ?',
+      },
+    ],
+  },
+  {
     id: 'q1',
     subject: 'Peut-on manger dans la soucca quand il pleut ?',
     category: 'Fêtes',
@@ -136,24 +154,6 @@ export const initialQuestions: Question[] = [
         text:
           'Je vous adresse mes condoléances, hamakom yena’hem. Le Kaddich est une « chose de sainteté » (davar chébikdoucha) et ne peut être dit qu’en présence d’un minyan de dix hommes. Seul, on ne le récite pas.\n\nMais l’élévation de l’âme de votre père ne dépend pas que du Kaddich. Les jours où vous ne pouvez pas venir, vous pouvez étudier une michna en sa mémoire (les lettres de Michna sont celles de Nechama, l’âme), lire des Tehilim, ou donner une tsedaka à son nom. Et n’hésitez pas à me dire quels jours vous posent problème : nous pouvons souvent trouver quelqu’un pour dire le Kaddich à votre place.',
         sources: ['Choulhan Aroukh, Orah Haïm 55, 1', 'Rama, Yoré Déa 376, 4'],
-      },
-    ],
-  },
-  {
-    id: 'q6',
-    subject: 'Lave-vaisselle partagé entre vaisselle cachère et non cachère',
-    category: 'Cacherout',
-    status: 'pending',
-    askedBy: 'Myriam K.',
-    date: '2026-09-27',
-    messages: [
-      {
-        id: 'q6-m1',
-        author: 'member',
-        name: 'Myriam K.',
-        date: '2026-09-27',
-        text:
-          'Nous emménageons en colocation avec une personne qui ne mange pas cachère. Peut-on utiliser le même lave-vaisselle en faisant des cycles séparés ? Faut-il des paniers différents ?',
       },
     ],
   },
