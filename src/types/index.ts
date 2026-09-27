@@ -108,6 +108,7 @@ export interface Donation {
 export interface Pledge {
   id: string;
   member?: string;
+  category?: string; // nom de la catégorie de don (Apéritif, Dons de Chabbat…)
   label: string;
   amount: number;
   dueDate: string;

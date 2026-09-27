@@ -30,9 +30,15 @@ export const initialDonations: Donation[] = [
 ];
 
 export const initialPledges: Pledge[] = [
+  { id: 'p7', member: 'Yossef Benhamou', category: 'Apéritif', label: 'Kiddouch du Chabbat', amount: 500, dueDate: '2026-10-10', origin: 'Chabbat Berechit', status: 'due', note: 'Kiddouch en l’honneur de la naissance de sa fille.' },
+  { id: 'p8', member: 'Yossef Benhamou', category: 'Dons de Chabbat', label: 'Haftara', amount: 180, dueDate: '2026-10-03', origin: 'Chabbat Chouva', status: 'due' },
+  { id: 'p9', member: 'Sarah Levy', category: 'Dons de fêtes juives', label: 'Yom Kippour : Neïla', amount: 360, dueDate: '2026-10-05', origin: 'Yom Kippour 5787', status: 'due', lastReminder: '2026-09-25' },
+  { id: 'p10', member: 'Réouven Amar', category: 'Dons de Chabbat', label: 'Chlichi', amount: 104, dueDate: '2026-09-26', origin: 'Chabbat Haazinou', status: 'due' },
+  { id: 'p11', member: 'Michaël Dahan', category: 'Apéritif', label: 'Séouda chlichit', amount: 250, dueDate: '2026-10-17', origin: 'Chabbat Noa’h', status: 'due' },
   {
     id: 'p5',
     member: 'David Cohen',
+    category: 'Dons de Chabbat',
     label: 'Chéni, paracha Berechit',
     amount: 104,
     dueDate: '2026-10-10',
@@ -42,6 +48,7 @@ export const initialPledges: Pledge[] = [
   {
     id: 'p6',
     member: 'David Cohen',
+    category: 'Divers',
     label: 'Chaise à l’année 5787',
     amount: 350,
     dueDate: '2026-10-31',
@@ -51,6 +58,7 @@ export const initialPledges: Pledge[] = [
   {
     id: 'p1',
     member: 'David Cohen',
+    category: 'Divers',
     label: 'Nédava de Roch Hachana',
     amount: 52,
     dueDate: '2026-10-15',
@@ -60,6 +68,7 @@ export const initialPledges: Pledge[] = [
   {
     id: 'p2',
     member: 'David Cohen',
+    category: 'Divers',
     label: 'Cotisation annuelle 5787',
     amount: 360,
     dueDate: '2026-10-31',
@@ -71,6 +80,7 @@ export const initialPledges: Pledge[] = [
   {
     id: 'p3',
     member: 'David Cohen',
+    category: 'Dons de fêtes juives',
     label: 'Kapparot',
     amount: 36,
     dueDate: '2026-09-20',
@@ -80,6 +90,7 @@ export const initialPledges: Pledge[] = [
   {
     id: 'p4',
     member: 'David Cohen',
+    category: 'Dons de fêtes juives',
     label: 'Places de Yom Kippour',
     amount: 120,
     dueDate: '2026-09-20',

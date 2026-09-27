@@ -62,6 +62,7 @@ export interface NewEventInput {
 
 export interface NewPledgeInput {
   member: string;
+  category?: string;
   label: string;
   amount: number;
   dueDate: string;
@@ -227,8 +228,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const removeEvent = useCallback((id: string) => setAgenda((list) => list.filter((e) => e.id !== id)), []);
 
-  const addPledge = useCallback(({ member, label, amount, dueDate, origin }: NewPledgeInput) => {
-    setPledges((list) => [{ id: `p${seq++}`, member, label, amount, dueDate, origin, status: 'due' }, ...list]);
+  const addPledge = useCallback(({ member, category, label, amount, dueDate, origin }: NewPledgeInput) => {
+    setPledges((list) => [{ id: `p${seq++}`, member, category, label, amount, dueDate, origin, status: 'due' }, ...list]);
   }, []);
 
   const removePledge = useCallback((id: string) => setPledges((list) => list.filter((p) => p.id !== id)), []);

@@ -74,10 +74,11 @@ export function RavRecordDonationScreen({ navigation }: Props) {
     if (!canSave || !currentCategory || !item || !member) return;
     addPledge({
       member,
+      category: currentCategory.name,
       label: item.name,
       amount: amountNum,
       dueDate: plusDays(30),
-      origin: `${currentCategory.name}${note.trim() ? ' · ' + note.trim() : ''}`,
+      origin: note.trim() || currentCategory.name,
     });
     setSaved(`${item.name} · ${money(amountNum)} attribué à ${member}`);
   };
