@@ -1,9 +1,21 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
-import { DonationType, ReceiptFormat } from '../types';
+import { CommunityId, DonationType, ReceiptFormat } from '../types';
 
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  DemoCommunity: undefined;
+  DemoRole: { community: CommunityId };
+};
+
+export type RavStackParamList = {
+  RavHome: undefined;
+  RavDvarTorah: undefined;
+  RavAnswers: undefined;
+  RavAnswer: { questionId: string };
+  RavSchedule: undefined;
+  RavAgenda: undefined;
+  RavPledges: undefined;
 };
 
 export type MainTabsParamList = {

@@ -11,7 +11,6 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { DvarTorahBody, RavByline } from '../../components/DvarTorah';
 import { Card, Chip, SectionTitle, Pill, Muted } from '../../components/ui';
-import { courses } from '../../mocks/courses';
 import { rav } from '../../mocks/rav';
 import { CourseCategory } from '../../types';
 import { formatShort } from '../../utils/time';
@@ -25,7 +24,7 @@ export function CoursesScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { readCourses, markCourseRead } = useAppState();
+  const { readCourses, markCourseRead, courses } = useAppState();
   const [filter, setFilter] = useState<Filter>('Tous');
   const [liked, setLiked] = useState(false);
 

@@ -3,8 +3,13 @@ import { NavigationContainer } from '@react-navigation/native';
 import { useAuth } from '../state/AuthContext';
 import { AuthStack } from './AuthStack';
 import { AppStack } from './AppStack';
+import { RavStack } from './RavStack';
 
 export function RootNavigator() {
-  const { isAuthenticated } = useAuth();
-  return <NavigationContainer>{isAuthenticated ? <AppStack /> : <AuthStack />}</NavigationContainer>;
+  const { mode } = useAuth();
+  return (
+    <NavigationContainer>
+      {mode === 'rav' ? <RavStack /> : mode === 'member' ? <AppStack /> : <AuthStack />}
+    </NavigationContainer>
+  );
 }

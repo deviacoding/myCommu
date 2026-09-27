@@ -6,7 +6,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../state/AuthContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Card, Segmented, SectionTitle, Pill, Muted } from '../../components/ui';
-import { tishreiHolidays, dailyServices, agendaEvents } from '../../mocks/schedule';
+import { useAppState } from '../../state/AppState';
 import { AgendaCategory, Holiday, HolidayKind } from '../../types';
 import { capitalize, daysBetween, formatLong, formatShort, hebrewDateLabel, parseISODate, todayISO } from '../../utils/time';
 
@@ -39,6 +39,7 @@ export function ScheduleScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const { user } = useAuth();
+  const { holidays: tishreiHolidays, services: dailyServices, agenda: agendaEvents } = useAppState();
   const [mode, setMode] = useState<Mode>('horaires');
   const [saved, setSaved] = useState<string[]>(['a3', 'a7']);
   const today = useMemo(() => new Date(), []);
@@ -48,7 +49,7 @@ export function ScheduleScreen() {
   const nextLighting = useMemo(() => {
     const upcoming = tishreiHolidays.filter((h) => daysBetween(today, parseISODate(h.start)) >= 0 && h.kind !== 'fast' && h.kind !== 'holhamoed');
     return upcoming[0] ?? null;
-  }, [today]);
+  }, [today, tishreiHolidays]);
 
   const agendaByDate = useMemo(() => {
     const t = todayISO(today);
@@ -61,7 +62,7 @@ export function ScheduleScreen() {
         else groups.push({ date: e.date, events: [e] });
       });
     return groups;
-  }, [today]);
+  }, [today, agendaEvents]);
 
   const toggleSaved = (id: string) => setSaved((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 

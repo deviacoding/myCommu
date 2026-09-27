@@ -32,6 +32,7 @@ export const initialDonations: Donation[] = [
 export const initialPledges: Pledge[] = [
   {
     id: 'p5',
+    member: 'David Cohen',
     label: 'Chéni, paracha Berechit',
     amount: 104,
     dueDate: '2026-10-10',
@@ -40,6 +41,7 @@ export const initialPledges: Pledge[] = [
   },
   {
     id: 'p6',
+    member: 'David Cohen',
     label: 'Chaise à l’année 5787',
     amount: 350,
     dueDate: '2026-10-31',
@@ -48,6 +50,7 @@ export const initialPledges: Pledge[] = [
   },
   {
     id: 'p1',
+    member: 'David Cohen',
     label: 'Nédava de Roch Hachana',
     amount: 52,
     dueDate: '2026-10-15',
@@ -56,6 +59,7 @@ export const initialPledges: Pledge[] = [
   },
   {
     id: 'p2',
+    member: 'David Cohen',
     label: 'Cotisation annuelle 5787',
     amount: 360,
     dueDate: '2026-10-31',
@@ -64,6 +68,7 @@ export const initialPledges: Pledge[] = [
   },
   {
     id: 'p3',
+    member: 'David Cohen',
     label: 'Kapparot',
     amount: 36,
     dueDate: '2026-09-20',
@@ -72,6 +77,7 @@ export const initialPledges: Pledge[] = [
   },
   {
     id: 'p4',
+    member: 'David Cohen',
     label: 'Places de Yom Kippour',
     amount: 120,
     dueDate: '2026-09-20',

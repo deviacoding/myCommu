@@ -25,9 +25,17 @@ npm run start      # Expo Go sur téléphone (scanner le QR code)
 
 ## Parcours
 
-1. **Connexion** : « Continuer avec Google » ou email + mot de passe.
-2. **Inscription** : nom, email, mot de passe, puis choix de la religion (le thème change en direct).
-3. Une fois connecté, 5 onglets :
+1. **Accueil** : bouton **Accès démo** (seul point d'entrée vers la maquette). Les formulaires de connexion et d'inscription sont présents mais affichent « bientôt disponible » : ils serviront à la vraie authentification.
+2. **Accès démo** → choix de la communauté (Juif, Musulman, Chrétien) → choix du rôle : **Accès rabbin** ou **Accès fidèle**.
+3. **Accès rabbin** : interface de publication pensée pour des utilisateurs âgés (gros textes, gros boutons, une action par écran) :
+   - Écrire un dvar Torah (titre, thème, texte libre découpé automatiquement en parties) → apparaît en premier chez les fidèles.
+   - Répondre aux questions (liste des non répondues, éditeur, sources en un clic).
+   - Horaires des fêtes et offices (chaque heure modifiable sur place).
+   - Agenda (ajout / suppression d'événements).
+   - Dons et engagements (enregistrer un chéni, maftir, nédava… pour un fidèle, qui le retrouve dans « À payer »).
+   - **Tous les textes peuvent être corrigés et réécrits par ChatGPT** : bouton vert sur chaque zone de texte, proposition à accepter ou refuser. Simulation locale (`src/utils/ai.ts`) en attendant le branchement de l'API.
+   - Bouton « Voir l'application comme un fidèle » pour vérifier le rendu.
+4. **Accès fidèle** : 5 onglets :
 
 | Onglet | Contenu |
 | --- | --- |

@@ -9,14 +9,13 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { DvarTorahBody, RavByline } from '../../components/DvarTorah';
 import { Card, Muted, Button } from '../../components/ui';
-import { courses } from '../../mocks/courses';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'CourseDetail'>;
 
 export function CourseDetailScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { markCourseRead, readCourses } = useAppState();
+  const { markCourseRead, readCourses, courses } = useAppState();
   const course = courses.find((x) => x.id === route.params.courseId);
 
   useEffect(() => {

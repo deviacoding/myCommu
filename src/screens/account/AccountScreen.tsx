@@ -137,7 +137,7 @@ export function AccountScreen() {
           </View>
         </Card>
 
-        <Button label="Se déconnecter" variant="ghost" icon="log-out-outline" onPress={signOut} style={{ marginTop: 6 }} />
+        <Button label="Quitter la démo" variant="ghost" icon="log-out-outline" onPress={signOut} style={{ marginTop: 6 }} />
         <Muted style={{ textAlign: 'center', marginTop: 14, fontSize: 11 }}>myCommu · maquette v0.2</Muted>
         <View style={{ height: 24 }} />
       </ScrollView>

@@ -107,6 +107,7 @@ export interface Donation {
 
 export interface Pledge {
   id: string;
+  member?: string;
   label: string;
   amount: number;
   dueDate: string;

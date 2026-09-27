@@ -5,7 +5,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
-import { useAuth } from '../../state/AuthContext';
 import { CommunityId } from '../../types';
 import { themes } from '../../theme/themes';
 import { Button } from '../../components/ui';
@@ -23,7 +22,7 @@ const religions: { id: CommunityId; label: string; icon: MciName; hint: string }
 export function SignupScreen({ navigation }: Props) {
   const { theme, setCommunity } = useTheme();
   const c = theme.colors;
-  const { signUp } = useAuth();
+  const [notice, setNotice] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -102,9 +101,15 @@ export function SignupScreen({ navigation }: Props) {
           <Button
             label="Créer mon compte"
             disabled={!canSubmit}
-            onPress={() => religion && signUp({ name, email, community: religion })}
+            onPress={() => setNotice('L’inscription réelle arrive bientôt. Pour découvrir l’application, revenez à l’accueil et choisissez « Accès démo ».')}
             style={{ marginTop: 22 }}
           />
+          {notice ? (
+            <View style={[styles.notice, { backgroundColor: c.primaryLight }]}>
+              <Ionicons name="information-circle" size={18} color={c.primary} />
+              <Text style={{ color: c.primary, fontSize: 13, flex: 1, fontWeight: '600' }}>{notice}</Text>
+            </View>
+          ) : null}
           <Text style={[styles.note, { color: c.textMuted }]}>
             En créant un compte, vous acceptez les conditions d’utilisation et la politique de confidentialité.
           </Text>
@@ -124,4 +129,5 @@ const styles = StyleSheet.create({
   religion: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 14, padding: 12, marginBottom: 10 },
   religionIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   note: { fontSize: 11, textAlign: 'center', marginTop: 16 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, marginTop: 14 },
 });
