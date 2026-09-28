@@ -7,7 +7,7 @@ import { AuthStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../state/AuthContext';
 import { Avatar } from '../../components/Avatar';
-import { rav } from '../../mocks/rav';
+import { getSeed } from '../../seeds';
 import { CommunityId } from '../../types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'DemoRole'>;
@@ -49,6 +49,7 @@ export function DemoRoleScreen({ navigation, route }: Props) {
   const { enterDemo } = useAuth();
   const { community } = route.params;
   const l = labels[community];
+  const leader = getSeed(community).congregations[0].rav;
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]}>
@@ -60,8 +61,8 @@ export function DemoRoleScreen({ navigation, route }: Props) {
         <Text style={[styles.sub, { color: c.textMuted }]}>Avec quel rôle souhaitez-vous entrer ?</Text>
 
         <Pressable onPress={() => enterDemo(community, 'rav')} style={({ pressed }) => [styles.big, { backgroundColor: c.primary, opacity: pressed ? 0.85 : 1 }]}>
-          {community === 'jewish' ? (
-            <Avatar source={rav.photo} name={rav.name} size={64} ring />
+          {leader.photo ? (
+            <Avatar source={leader.photo} name={leader.name} size={64} ring />
           ) : (
             <View style={styles.bigIcon}>
               <MaterialCommunityIcons name="account-tie" size={36} color="#fff" />

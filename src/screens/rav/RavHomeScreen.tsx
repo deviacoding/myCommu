@@ -8,10 +8,9 @@ import { useAuth } from '../../state/AuthContext';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
 import { AiBanner } from '../../components/AiAssist';
-import { rav } from '../../mocks/rav';
 import { RavScreen, BigButton, BIG } from './RavUi';
 import { daysUntil } from '../../components/MyDates';
-import { capitalize, formatLong, hebrewDateLabel, todayISO } from '../../utils/time';
+import { capitalize, formatLong, todayISO } from '../../utils/time';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavHome'>;
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -26,7 +25,7 @@ export function RavHomeScreen({ navigation }: Props) {
   const pending = questions.filter((q) => q.status === 'pending').length;
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
-  const hebrew = hebrewDateLabel();
+  const hebrew = seed.religiousDate(new Date());
 
   const tiles: { key: keyof RavStackParamList; icon: IoniconName; title: string; sub: string; badge?: number; color: string }[] = [
     { key: 'RavDvarTorah', icon: 'create', title: seed.teachingShareTitle, sub: `${courses.length} partagés · texte, vidéo, photo ou audio`, color: c.primary },
@@ -41,7 +40,7 @@ export function RavHomeScreen({ navigation }: Props) {
     <RavScreen
       title={`Bonjour ${seed.leaderShort}`}
       subtitle={`${capitalize(formatLong(todayISO()))}${hebrew ? ` · ${hebrew}` : ''}`}
-      right={<Avatar source={rav.photo} name={rav.name} size={54} ring />}
+      right={<Avatar source={congregation.rav.photo} name={congregation.rav.name} size={54} ring />}
     >
       <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 14 }}>Que souhaitez-vous faire aujourd’hui ? Touchez une case.</Text>
 
