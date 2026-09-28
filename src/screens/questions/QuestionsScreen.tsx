@@ -20,7 +20,7 @@ export function QuestionsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { myQuestions: allQuestions, congregation } = useAppState();
+  const { myQuestions: allQuestions, congregation, seed } = useAppState();
   const { user } = useAuth();
   // Publiques (anonymisées par le Rav) ou posées par moi.
   const questions = allQuestions.filter((q) => q.isPublic !== false || q.askedBy === user.name);
@@ -33,7 +33,7 @@ export function QuestionsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader
-        title="Questions au Rav"
+        title={seed.questionTitle}
         subtitle={`${questions.length} questions · ${pending} non répondue${pending > 1 ? 's' : ''}`}
         communitySwitch
         right={
@@ -85,7 +85,7 @@ export function QuestionsScreen() {
               ) : (
                 <View style={[styles.answer, { backgroundColor: c.danger + '12' }]}>
                   <Ionicons name="time-outline" size={16} color={c.danger} />
-                  <Text style={{ color: c.danger, fontSize: 13, fontWeight: '600' }}>En attente de la réponse du Rav</Text>
+                  <Text style={{ color: c.danger, fontSize: 13, fontWeight: '600' }}>En attente de la réponse</Text>
                 </View>
               )}
             </Card>

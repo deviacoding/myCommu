@@ -15,7 +15,6 @@ import { Aura } from '../../components/Aura';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, SectionTitle, Muted, Button, Chip } from '../../components/ui';
 import { MyDates } from '../../components/MyDates';
-import { soulLevels } from '../../mocks/donations';
 import { CommunityId } from '../../types';
 import { money, formatNumeric } from '../../utils/time';
 
@@ -26,7 +25,9 @@ export function AccountScreen() {
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
   const { user, signOut, updateUser } = useAuth();
-  const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation } = useAppState();
+  const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed } = useAppState();
+  const soulLevels = seed.gamification.levels;
+  const g = seed.gamification;
   const mine = congregations.filter((k) => myCongregations.includes(k.id));
   const [notif, setNotif] = useState(true);
   const [shabbatMode, setShabbatMode] = useState(true);
@@ -55,8 +56,8 @@ export function AccountScreen() {
         </View>
 
         <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
-          <Text style={[styles.oraTitle, { color: c.textMuted }]}>MON ORA</Text>
-          <Aura levelIndex={levelIndex} progress={levelProgress} size={230} />
+          <Text style={[styles.oraTitle, { color: c.textMuted }]}>{g.title}</Text>
+          <Aura levelIndex={levelIndex} progress={levelProgress} size={230} icon={g.icon} />
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
             <Text style={{ color: c.text, fontSize: 26, fontWeight: '900' }}>{level.name}</Text>
             <Text style={{ color: c.textMuted, fontSize: 18 }}>{level.hebrew}</Text>
@@ -83,10 +84,10 @@ export function AccountScreen() {
             ))}
           </View>
           <Muted style={{ textAlign: 'center', marginTop: 12, fontSize: 12 }}>
-            Votre ora grandit à chaque don, chaque dvar Torah lu et chaque question posée.
+            {g.growHint}
           </Muted>
           <Button
-            label="Faire grandir mon ora"
+            label={g.ctaLabel}
             icon="heart"
             onPress={() => navigation.navigate('Donate', { type: 'tsedaka' })}
             style={{ alignSelf: 'stretch', marginTop: 14 }}
@@ -97,9 +98,9 @@ export function AccountScreen() {
           <Stat icon="hand-heart" label="Total donné" value={money(totalGiven)} />
           <Stat icon="calendar-month" label="Ce mois" value={money(givenThisMonth)} />
           <Stat icon="fire" label="Mois d’affilée" value={String(streakMonths)} />
-          <Stat icon="book-open-variant" label="Divré Torah lus" value={String(readCourses.length)} />
+          <Stat icon="book-open-variant" label={`${seed.teachingPlural} lus`} value={String(readCourses.length)} />
           <Stat icon="comment-question" label="Questions" value={String(myQuestions)} />
-          <Stat icon="star-david" label="Niveau" value={`${levelIndex + 1}/5`} />
+          <Stat icon={g.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} label="Niveau" value={`${levelIndex + 1}/${soulLevels.length}`} />
         </View>
 
         <SectionTitle title="Mes communautés" action="Rejoindre" onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
@@ -128,7 +129,7 @@ export function AccountScreen() {
           <Info icon="call-outline" label="Téléphone" value={user.phone ?? '—'} />
           <Info icon="location-outline" label="Ville" value={user.city ?? '—'} />
           <Info icon="business-outline" label="Communauté affichée" value={`${congregation.name} · ${congregation.rite}`} />
-          <Info icon="gift-outline" label="Date de naissance" value={user.birthDate ? `${formatNumeric(user.birthDate)} · ${user.hebrewBirthDate ?? ''}` : '—'} />
+          <Info icon="gift-outline" label="Date de naissance" value={user.birthDate ? `${formatNumeric(user.birthDate)}${user.hebrewBirthDate ? ' · ' + user.hebrewBirthDate : ''}` : '—'} />
         </Card>
 
         <SectionTitle title="Préférences" />
@@ -144,8 +145,8 @@ export function AccountScreen() {
           <View style={styles.prefRow}>
             <MaterialCommunityIcons name="candle" size={20} color={c.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontWeight: '600' }}>Mode Chabbat</Text>
-              <Muted>Aucune notification du vendredi soir au samedi soir</Muted>
+              <Text style={{ color: c.text, fontWeight: '600' }}>{seed.quietMode.label}</Text>
+              <Muted>{seed.quietMode.hint}</Muted>
             </View>
             <Switch value={shabbatMode} onValueChange={setShabbatMode} trackColor={{ true: c.primary }} />
           </View>
@@ -156,7 +157,7 @@ export function AccountScreen() {
                 <Chip key={id} label={themes[id].name.replace('Communauté ', '')} active={user.community === id} color={themes[id].colors.primary} onPress={() => updateUser({ community: id })} />
               ))}
             </View>
-            <Muted style={{ fontSize: 12 }}>Maquette : seuls les contenus de la communauté juive sont disponibles pour l’instant.</Muted>
+            <Muted style={{ fontSize: 12 }}>Changer de confession recharge la démo avec les contenus correspondants.</Muted>
           </View>
         </Card>
 

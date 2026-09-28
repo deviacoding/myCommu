@@ -1,6 +1,6 @@
 # myCommu : base de données et déclinaison multi-confessions
 
-Ce document décrit comment passer de la maquette (données en mémoire, communauté juive) à une base de données réelle, puis comment construire les parties **imam**, **prêtre / pasteur** et **enseignant bouddhiste** en copiant ce qui existe et en l'adaptant.
+Ce document décrit comment passer de la maquette (données en mémoire) à une base de données réelle. Les quatre confessions sont désormais implémentées dans la maquette sous forme de seeds : src/seeds/jewish.ts, muslim.ts, christian.ts, buddhist.ts, avec le contrat commun src/seeds/types.ts (ReligionSeed). Les adaptations décrites en section 3 sont celles qui ont été codées.
 
 Principe : **un seul moteur, quatre vocabulaires**. Tout ce que fait le rabbin (partager un enseignement, répondre, publier des horaires, gérer l'agenda, enregistrer des dons, suivre les dates des fidèles, faire un live) existe dans les quatre religions. Seuls changent les mots, les calendriers, les catégories de dons et quelques règles (zakat, dîme…). Le fichier `src/config/religions.ts` porte déjà ces différences.
 

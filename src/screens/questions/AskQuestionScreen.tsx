@@ -13,16 +13,16 @@ import { QuestionCategory } from '../../types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'AskQuestion'>;
 
-const categories: QuestionCategory[] = ['Fêtes', 'Cacherout', 'Chabbat', 'Tsedaka', 'Deuil', 'Famille', 'Autre'];
 
 export function AskQuestionScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { askQuestion } = useAppState();
+  const { askQuestion, seed, congregation } = useAppState();
+  const categories: QuestionCategory[] = seed.questionCategories;
   const { user } = useAuth();
   const [subject, setSubject] = useState('');
   const [text, setText] = useState('');
-  const [category, setCategory] = useState<QuestionCategory>('Fêtes');
+  const [category, setCategory] = useState<QuestionCategory>(seed.questionCategories[0]);
   const [anonymous, setAnonymous] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -36,13 +36,13 @@ export function AskQuestionScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
-      <ScreenHeader title="Poser une question" subtitle="Réponse du Rav sous 48 h" onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Poser une question" subtitle={`Réponse de ${congregation.rav.name} sous 48 h`} onBack={() => navigation.goBack()} />
       {sent ? (
         <View style={styles.center}>
           <Ionicons name="paper-plane" size={48} color={c.primary} />
           <Text style={{ color: c.text, fontSize: 20, fontWeight: '800', marginTop: 14 }}>Question envoyée</Text>
           <Muted style={{ textAlign: 'center', marginTop: 6, maxWidth: 300 }}>
-            Le Rav a reçu votre question. Elle apparaît dans la liste avec le statut « En attente ».
+            {congregation.rav.name} a reçu votre question. Elle reste privée jusqu’à sa réponse.
           </Muted>
           <Button label="Retour aux questions" onPress={() => navigation.goBack()} style={{ marginTop: 24, minWidth: 220 }} />
         </View>
@@ -84,7 +84,7 @@ export function AskQuestionScreen({ navigation }: Props) {
               <Switch value={anonymous} onValueChange={setAnonymous} trackColor={{ true: c.primary }} />
             </Card>
 
-            <Button label="Envoyer au Rav" icon="send" disabled={!canSend} onPress={submit} />
+            <Button label={`Envoyer à ${seed.leaderShort === 'Rav' ? 'au Rav' : seed.leaderShort}`.replace('Envoyer à au', 'Envoyer au')} icon="send" disabled={!canSend} onPress={submit} />
             <Muted style={{ textAlign: 'center', marginTop: 12 }}>
               Les questions et réponses sont visibles par les membres de la communauté.
             </Muted>

@@ -6,7 +6,6 @@ import { RavStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
-import { members } from '../../mocks/members';
 import { DonationCategory, DonationItem } from '../../types';
 import { RavScreen, BigLabel, BigInput, BigButton, Done, RavCard, BIG } from './RavUi';
 import { money, todayISO } from '../../utils/time';
@@ -23,7 +22,7 @@ function plusDays(n: number): string {
 export function RavRecordDonationScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { categories, addCategory, addSubcategory, addPledge } = useAppState();
+  const { categories, addCategory, addSubcategory, addPledge, members, seed } = useAppState();
 
   const [search, setSearch] = useState('');
   const [member, setMember] = useState<string | null>(null);
@@ -96,7 +95,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
   if (saved) {
     return (
       <RavScreen title="Don enregistré" onBack={() => navigation.goBack()}>
-        <Done title="C’est noté !" text={`${saved}. Le fidèle le retrouve dans « À payer » sur son téléphone et peut régler en un geste.`}>
+        <Done title="C’est noté !" text={`${saved}. Le ${seed.memberLabel} le retrouve dans « ${seed.pendingLabel} » sur son téléphone et peut régler en un geste.`}>
           <View style={{ alignSelf: 'stretch', marginTop: 18, gap: 10 }}>
             <BigButton label="Enregistrer un autre don" icon="add-circle" onPress={reset} />
             <BigButton label="Voir les dons à récupérer" icon="cash" color={c.primaryLight} textColor={c.primary} onPress={() => navigation.replace('RavCollect')} />
@@ -112,7 +111,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
       <StepTitle n={1} title="À qui ?" done={!!member} value={member ?? undefined} />
       {!member ? (
         <>
-          <BigInput value={search} onChangeText={setSearch} placeholder="Chercher un fidèle par son nom…" />
+          <BigInput value={search} onChangeText={setSearch} placeholder={`Chercher un ${seed.memberLabel} par son nom…`} />
           <View style={{ marginTop: 10 }}>
             {filteredMembers.map((m) => (
               <Pressable key={m.id} onPress={() => setMember(m.name)} style={({ pressed }) => [styles.member, { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
@@ -125,7 +124,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
               </Pressable>
             ))}
             {search.trim() && !filteredMembers.length ? (
-              <BigButton label={`Ajouter « ${search.trim()} » comme nouveau fidèle`} icon="person-add" color={c.primaryLight} textColor={c.primary} onPress={() => setMember(search.trim())} />
+              <BigButton label={`Ajouter « ${search.trim()} » comme nouveau ${seed.memberLabel}`} icon="person-add" color={c.primaryLight} textColor={c.primary} onPress={() => setMember(search.trim())} />
             ) : null}
           </View>
         </>
@@ -154,7 +153,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
               {showNewCat ? (
                 <RavCard style={{ borderColor: c.primary, borderWidth: 2 }}>
                   <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginBottom: 8 }}>Nouvelle catégorie</Text>
-                  <BigInput value={newCat} onChangeText={setNewCat} placeholder="Ex. : Dons de Hanouka, Bar-mitsva…" />
+                  <BigInput value={newCat} onChangeText={setNewCat} placeholder="Nom de la catégorie" />
                   <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                     <BigButton label="Créer" icon="checkmark" onPress={createCategory} disabled={!newCat.trim()} style={{ flex: 1 }} />
                     <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setShowNewCat(false)} style={{ flex: 1, borderWidth: 1, borderColor: c.border }} />
@@ -181,7 +180,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
                 <Pressable key={it.id} onPress={() => chooseItem(it)} style={[styles.chip, { backgroundColor: active ? c.secondary : c.surface, borderColor: active ? c.secondary : c.border }]}>
                   {active ? <Ionicons name="checkmark" size={18} color={c.primaryDark} /> : null}
                   <Text style={{ color: active ? c.primaryDark : c.text, fontSize: 17, fontWeight: '700' }}>{it.name}</Text>
-                  <Text style={{ color: active ? c.primaryDark : c.textMuted, fontSize: 14 }}>{it.amount ? `${it.amount} ₪` : ''}</Text>
+                  <Text style={{ color: active ? c.primaryDark : c.textMuted, fontSize: 14 }}>{it.amount ? `${it.amount} ${seed.currency}` : ''}</Text>
                 </Pressable>
               );
             })}
@@ -189,8 +188,8 @@ export function RavRecordDonationScreen({ navigation }: Props) {
           {showNewItem ? (
             <RavCard style={{ borderColor: c.primary, borderWidth: 2, marginTop: 12 }}>
               <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginBottom: 8 }}>Nouveau type de don dans « {currentCategory.name} »</Text>
-              <BigInput value={newItem} onChangeText={setNewItem} placeholder="Nom, ex. : Pétihat hahékhal" />
-              <BigInput value={newItemAmount} onChangeText={setNewItemAmount} keyboardType="number-pad" placeholder="Montant habituel en ₪ (facultatif)" style={{ marginTop: 8 }} />
+              <BigInput value={newItem} onChangeText={setNewItem} placeholder="Nom du type de don" />
+              <BigInput value={newItemAmount} onChangeText={setNewItemAmount} keyboardType="number-pad" placeholder={`Montant habituel en ${seed.currency} (facultatif)`} style={{ marginTop: 8 }} />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                 <BigButton label="Ajouter" icon="checkmark" onPress={createItem} disabled={!newItem.trim()} style={{ flex: 1 }} />
                 <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setShowNewItem(false)} style={{ flex: 1, borderWidth: 1, borderColor: c.border }} />
@@ -208,16 +207,16 @@ export function RavRecordDonationScreen({ navigation }: Props) {
       {member && currentCategory && item ? (
         <>
           <StepTitle n={4} title="Montant" done={amountNum > 0} />
-          <BigInput value={amount} onChangeText={setAmount} keyboardType="number-pad" placeholder="Montant en ₪" />
+          <BigInput value={amount} onChangeText={setAmount} keyboardType="number-pad" placeholder={`Montant en ${seed.currency}`} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
             {[52, 104, 180, 260, 520, 1000].map((a) => (
               <Pressable key={a} onPress={() => setAmount(String(a))} style={[styles.chip, { backgroundColor: amountNum === a ? c.primary : c.surface, borderColor: amountNum === a ? c.primary : c.border }]}>
-                <Text style={{ color: amountNum === a ? c.textOnPrimary : c.text, fontSize: 16, fontWeight: '700' }}>{a} ₪</Text>
+                <Text style={{ color: amountNum === a ? c.textOnPrimary : c.text, fontSize: 16, fontWeight: '700' }}>{a} {seed.currency}</Text>
               </Pressable>
             ))}
           </View>
           <BigLabel hint="Facultatif">Une précision</BigLabel>
-          <BigInput value={note} onChangeText={setNote} placeholder="Ex. : Chabbat Berechit, en l’honneur de la naissance…" />
+          <BigInput value={note} onChangeText={setNote} placeholder="Ex. : en l’honneur de…" />
 
           <RavCard style={{ marginTop: 22, backgroundColor: c.primaryLight, borderColor: c.primaryLight }}>
             <Text style={{ color: c.textMuted, fontSize: 14, fontWeight: '700' }}>RÉCAPITULATIF</Text>

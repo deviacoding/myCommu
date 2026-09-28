@@ -21,7 +21,7 @@ const SHORT: Record<string, string> = {
 export function RavCollectScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myPledges: pledges, categories, removePledge, updatePledgeNote, sendReminder, settlePledge } = useAppState();
+  const { myPledges: pledges, categories, removePledge, updatePledgeNote, sendReminder, settlePledge, seed } = useAppState();
   const [mode, setMode] = useState<ViewMode>('dons');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export function RavCollectScreen({ navigation }: Props) {
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="Nom du fidèle qui doit de l’argent…"
+          placeholder={`Nom du ${seed.memberLabel} qui doit de l’argent…`}
           placeholderTextColor={c.textMuted}
           style={{ flex: 1, fontSize: 18, color: c.text, paddingVertical: 4 }}
         />
@@ -165,7 +165,7 @@ export function RavCollectScreen({ navigation }: Props) {
                 <TextInput
                   value={p.note ?? ''}
                   onChangeText={(v) => updatePledgeNote(p.id, v)}
-                  placeholder="Où en est-on ? Ex. : a promis de payer après Chabbat…"
+                  placeholder="Où en est-on ? Ex. : a promis de payer la semaine prochaine…"
                   placeholderTextColor={c.textMuted}
                   multiline
                   style={[styles.note, { color: c.text }]}

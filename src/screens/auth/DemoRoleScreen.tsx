@@ -23,23 +23,23 @@ const labels: Record<CommunityId, { community: string; leader: string; leaderSub
   muslim: {
     community: 'Communauté musulmane',
     leader: 'Accès imam',
-    leaderSub: 'Interface de publication (contenus en préparation)',
+    leaderSub: 'Publier les khutbas, répondre aux questions, gérer horaires de prière, agenda et dons',
     member: 'Accès fidèle',
-    memberSub: 'Aperçu avec les couleurs de la communauté (contenus en préparation)',
+    memberSub: 'Horaires de prière, khutbas, questions à l’imam, zakat et sadaqa, mon compte',
   },
   buddhist: {
     community: 'Communauté bouddhiste',
     leader: 'Accès enseignant',
-    leaderSub: 'Interface de publication (contenus en préparation)',
+    leaderSub: 'Publier les enseignements, répondre aux questions, gérer séances, agenda et dana',
     member: 'Accès pratiquant',
-    memberSub: 'Aperçu avec les couleurs de la communauté (contenus en préparation)',
+    memberSub: 'Séances et cérémonies, enseignements, questions, dana, mon compte',
   },
   christian: {
     community: 'Communauté chrétienne',
     leader: 'Accès prêtre',
-    leaderSub: 'Interface de publication (contenus en préparation)',
-    member: 'Accès fidèle',
-    memberSub: 'Aperçu avec les couleurs de la communauté (contenus en préparation)',
+    leaderSub: 'Publier les homélies, répondre aux questions, gérer messes, agenda, dîme et offrandes',
+    member: 'Accès paroissien',
+    memberSub: 'Messes et fêtes, homélies, questions au prêtre, dîme et aumône, mon compte',
   },
 };
 

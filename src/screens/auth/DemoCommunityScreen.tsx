@@ -13,9 +13,9 @@ type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const communities: { id: CommunityId; label: string; icon: MciName; ready: boolean }[] = [
   { id: 'jewish', label: 'Juif', icon: 'star-david', ready: true },
-  { id: 'muslim', label: 'Musulman', icon: 'star-crescent', ready: false },
-  { id: 'christian', label: 'Chrétien', icon: 'cross', ready: false },
-  { id: 'buddhist', label: 'Bouddhiste', icon: 'meditation', ready: false },
+  { id: 'muslim', label: 'Musulman', icon: 'star-crescent', ready: true },
+  { id: 'christian', label: 'Chrétien', icon: 'cross', ready: true },
+  { id: 'buddhist', label: 'Bouddhiste', icon: 'meditation', ready: true },
 ];
 
 export function DemoCommunityScreen({ navigation }: Props) {

@@ -6,7 +6,7 @@ import { RavStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
-import { AddDateForm, dateTypeMeta, daysUntil } from '../../components/MyDates';
+import { AddDateForm, useDateTypeMeta, daysUntil } from '../../components/MyDates';
 import { MemberDateType } from '../../types';
 import { RavScreen, RavCard, BigButton, BIG } from './RavUi';
 import { capitalize, formatLong } from '../../utils/time';
@@ -17,7 +17,8 @@ type Filter = 'all' | MemberDateType;
 export function RavDatesScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myMemberDates, removeMemberDate } = useAppState();
+  const { myMemberDates, removeMemberDate, seed } = useAppState();
+  const dateTypeMeta = useDateTypeMeta();
   const [filter, setFilter] = useState<Filter>('all');
   const [showForm, setShowForm] = useState(false);
   const [added, setAdded] = useState<string | null>(null);
@@ -60,13 +61,13 @@ export function RavDatesScreen({ navigation }: Props) {
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                 <Pressable
                   onPress={() => {
-                    setReminded(`Message envoyé à ${d.member} : « ${d.type === 'azkara' ? 'Nous pensons à vous pour l’azkara' : 'Mazal tov'} : ${d.label} »`);
+                    setReminded(`Message envoyé à ${d.member} : « ${d.type === 'azkara' ? 'Nous pensons à vous' : 'Toutes nos félicitations'} : ${d.label} »`);
                     setTimeout(() => setReminded(null), 3500);
                   }}
                   style={({ pressed }) => [styles.action, { backgroundColor: c.primary, opacity: pressed ? 0.85 : 1 }]}
                 >
                   <Ionicons name={d.type === 'azkara' ? 'flame' : 'gift'} size={20} color={c.textOnPrimary} />
-                  <Text style={{ color: c.textOnPrimary, fontWeight: '800', fontSize: 15 }}>{d.type === 'azkara' ? 'Proposer une montée / Kaddich' : 'Envoyer un mazal tov'}</Text>
+                  <Text style={{ color: c.textOnPrimary, fontWeight: '800', fontSize: 15 }}>{d.type === 'azkara' ? seed.azkaraAction : seed.birthdayAction}</Text>
                 </Pressable>
                 <Pressable onPress={() => removeMemberDate(d.id)} hitSlop={8} style={[styles.trash, { backgroundColor: c.danger + '18' }]}>
                   <Ionicons name="trash" size={20} color={c.danger} />
@@ -79,7 +80,7 @@ export function RavDatesScreen({ navigation }: Props) {
     ) : null;
 
   return (
-    <RavScreen title="Dates des fidèles" subtitle={`${birthdays} anniversaires · ${azkarot} azkarot`} onBack={() => navigation.goBack()}>
+    <RavScreen title={seed.memberDatesTitle} subtitle={`${birthdays} anniversaires · ${azkarot} ${seed.dateTypeLabels.azkara.toLowerCase()}s`} onBack={() => navigation.goBack()}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {(['all', 'anniversaire', 'azkara', 'autre'] as Filter[]).map((f) => {
           const active = filter === f;
@@ -100,7 +101,7 @@ export function RavDatesScreen({ navigation }: Props) {
       ) : null}
 
       <View style={{ marginTop: 14 }}>
-        <BigButton label={showForm ? 'Fermer le formulaire' : 'Ajouter une date pour un fidèle'} icon={showForm ? 'close' : 'add-circle'} color={c.primaryLight} textColor={c.primary} onPress={() => setShowForm((v) => !v)} />
+        <BigButton label={showForm ? 'Fermer le formulaire' : `Ajouter une date pour un ${seed.memberLabel}`} icon={showForm ? 'close' : 'add-circle'} color={c.primaryLight} textColor={c.primary} onPress={() => setShowForm((v) => !v)} />
       </View>
       {showForm ? (
         <RavCard style={{ marginTop: 12, borderColor: c.primary, borderWidth: 2 }}>

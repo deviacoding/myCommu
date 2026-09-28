@@ -10,15 +10,15 @@ import { useAppState } from '../../state/AppState';
 import { LiveBanner } from '../../components/LiveBanner';
 import { MyDates } from '../../components/MyDates';
 import { AgendaCategory, Holiday, HolidayKind } from '../../types';
-import { capitalize, daysBetween, formatLong, formatShort, hebrewDateLabel, parseISODate, todayISO } from '../../utils/time';
+import { capitalize, daysBetween, formatLong, formatShort, parseISODate, todayISO } from '../../utils/time';
 
 type Mode = 'horaires' | 'agenda';
 
 const kindLabel: Record<HolidayKind, string> = {
   yomtov: 'Fête',
   fast: 'Jeûne',
-  shabbat: 'Chabbat',
-  holhamoed: 'Hol Hamoed',
+  shabbat: 'Office',
+  holhamoed: 'Période',
 };
 
 const categoryMeta: Record<AgendaCategory, { label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = {
@@ -41,12 +41,12 @@ export function ScheduleScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const { user } = useAuth();
-  const { holidays: tishreiHolidays, services: dailyServices, myAgenda: agendaEvents, myDayEntries: dayEntries, congregation } = useAppState();
+  const { holidays: tishreiHolidays, services: dailyServices, myAgenda: agendaEvents, myDayEntries: dayEntries, congregation, seed } = useAppState();
   const [mode, setMode] = useState<Mode>('horaires');
   const [saved, setSaved] = useState<string[]>(['a3', 'a7']);
   const today = useMemo(() => new Date(), []);
-  const hebrew = hebrewDateLabel(today);
-  const isShabbat = today.getDay() === 6;
+  const hebrew = seed.religiousDate(today);
+  const isShabbat = today.getDay() === seed.serviceSecondColumnDay;
 
   const nextLighting = useMemo(() => {
     const upcoming = tishreiHolidays.filter((h) => daysBetween(today, parseISODate(h.start)) >= 0 && h.kind !== 'fast' && h.kind !== 'holhamoed');
@@ -86,7 +86,7 @@ export function ScheduleScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader
-        title="Horaires"
+        title={seed.scheduleTitle}
         subtitle={`${capitalize(formatLong(todayISO(today)))}${hebrew ? ` · ${hebrew}` : ''}`}
         communitySwitch
       />
@@ -108,7 +108,7 @@ export function ScheduleScreen() {
             {nextLighting && (
               <Card style={[styles.hero, { backgroundColor: c.primary, borderColor: c.primary }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: c.textOnPrimary, opacity: 0.8, fontSize: 12, fontWeight: '600' }}>PROCHAIN ALLUMAGE</Text>
+                  <Text style={{ color: c.textOnPrimary, opacity: 0.8, fontSize: 12, fontWeight: '600' }}>{seed.nextHolidayLabel}</Text>
                   <Text style={{ color: c.textOnPrimary, fontSize: 20, fontWeight: '800', marginTop: 4 }}>{nextLighting.name}</Text>
                   <Text style={{ color: c.textOnPrimary, opacity: 0.9, marginTop: 2 }}>
                     {capitalize(formatLong(nextLighting.start))} · {nextLighting.times[0].value}
@@ -136,8 +136,8 @@ export function ScheduleScreen() {
               );
             })}
 
-            <SectionTitle title="Tichri 5787" />
-            <Muted style={{ marginTop: -6, marginBottom: 10 }}>Horaires indicatifs pour Paris · {congregation.name}</Muted>
+            <SectionTitle title={seed.seasonTitle} />
+            <Muted style={{ marginTop: -6, marginBottom: 10 }}>Horaires indicatifs · {congregation.name}</Muted>
 
             {tishreiHolidays.map((h) => {
               const st = holidayStatus(h, today);
@@ -182,8 +182,8 @@ export function ScheduleScreen() {
             <Card>
               <View style={[styles.timeRow, { marginBottom: 8 }]}>
                 <Text style={{ flex: 1 }} />
-                <Text style={[styles.colHead, { color: c.textMuted }]}>Semaine</Text>
-                <Text style={[styles.colHead, { color: c.textMuted }]}>Chabbat</Text>
+                <Text style={[styles.colHead, { color: c.textMuted }]}>{seed.serviceColumns[0]}</Text>
+                <Text style={[styles.colHead, { color: c.textMuted }]}>{seed.serviceColumns[1]}</Text>
               </View>
               {dailyServices.map((s) => (
                 <View key={s.name} style={styles.timeRow}>

@@ -15,7 +15,7 @@ import { RavScreen, BigLabel, BigInput, BigButton, BigChoice, Done, RavCard, BIG
 type Props = NativeStackScreenProps<RavStackParamList, 'RavDvarTorah'>;
 
 const mediaMeta: Record<MediaType, { label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; sample: MediaAttachment; hint: string }> = {
-  video: { label: 'Vidéo', icon: 'video', sample: { type: 'video', name: 'Dvar Torah filmé.mp4', duration: '12 min' }, hint: 'Filmer ou choisir une vidéo' },
+  video: { label: 'Vidéo', icon: 'video', sample: { type: 'video', name: 'Enseignement filmé.mp4', duration: '12 min' }, hint: 'Filmer ou choisir une vidéo' },
   photo: { label: 'Photo', icon: 'image', sample: { type: 'photo', name: 'Photo.jpg' }, hint: 'Prendre ou choisir une photo' },
   audio: { label: 'Audio', icon: 'microphone', sample: { type: 'audio', name: 'Enregistrement.m4a', duration: '9 min' }, hint: 'Enregistrer votre voix' },
 };
@@ -23,10 +23,11 @@ const mediaMeta: Record<MediaType, { label: string; icon: React.ComponentProps<t
 export function RavDvarTorahScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { addCourse, myCourses: courses, courseThemes, addTheme } = useAppState();
+  const { addCourse, myCourses: courses, courseThemes, addTheme, seed } = useAppState();
+  const tl = seed.teachingLabel;
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [category, setCategory] = useState<string>('Paracha');
+  const [category, setCategory] = useState<string>(seed.themes[0]);
   const [newTheme, setNewTheme] = useState('');
   const [showNewTheme, setShowNewTheme] = useState(false);
   const [text, setText] = useState('');
@@ -57,11 +58,11 @@ export function RavDvarTorahScreen({ navigation }: Props) {
 
   if (published) {
     return (
-      <RavScreen title="Dvar Torah partagé" onBack={() => navigation.goBack()}>
-        <Done title="C’est partagé !" text="Votre dvar Torah s’affiche maintenant en premier chez tous les fidèles, avec votre photo.">
+      <RavScreen title={`${tl} partagé`} onBack={() => navigation.goBack()}>
+        <Done title="C’est partagé !" text={`Votre ${tl.toLowerCase()} s’affiche maintenant en premier chez tous les ${seed.memberLabel}s.`}>
           <View style={{ alignSelf: 'stretch', marginTop: 18, gap: 10 }}>
             <BigButton
-              label="Partager un autre dvar Torah"
+              label={`Partager : ${tl}`}
               icon="create"
               onPress={() => {
                 setTitle('');
@@ -79,21 +80,21 @@ export function RavDvarTorahScreen({ navigation }: Props) {
   }
 
   return (
-    <RavScreen title="Partager un dvar Torah" subtitle={`${courses.length} déjà partagés`} onBack={() => navigation.goBack()}>
+    <RavScreen title={seed.teachingShareTitle} subtitle={`${courses.length} déjà partagés`} onBack={() => navigation.goBack()}>
       <AiBanner compact />
 
-      <BigLabel hint="Exemple : Souccot, la fragilité comme refuge">1. Le titre</BigLabel>
-      <BigInput value={title} onChangeText={setTitle} placeholder="Titre de votre dvar Torah" />
+      <BigLabel hint={`Exemple : ${seed.courses[0]?.title ?? ''}`}>1. Le titre</BigLabel>
+      <BigInput value={title} onChangeText={setTitle} placeholder={`Titre de votre ${tl.toLowerCase()}`} />
 
       <BigLabel hint="Une phrase pour donner envie de lire (facultatif)">2. Le sous-titre</BigLabel>
-      <BigInput value={subtitle} onChangeText={setSubtitle} placeholder="Pourquoi quitter sa maison une semaine après Yom Kippour" />
+      <BigInput value={subtitle} onChangeText={setSubtitle} placeholder={seed.courses[0]?.subtitle ?? 'Une phrase pour donner envie de lire'} />
 
       <BigLabel>3. Le thème</BigLabel>
       <BigChoice options={courseThemes.map((t) => ({ value: t, label: t }))} value={category} onChange={setCategory} />
       {showNewTheme ? (
         <RavCard style={{ marginTop: 10, borderColor: c.primary, borderWidth: 2 }}>
           <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginBottom: 8 }}>Nouveau thème</Text>
-          <BigInput value={newTheme} onChangeText={setNewTheme} placeholder="Ex. : Chalom bayit, Kabbale, Histoire juive…" />
+          <BigInput value={newTheme} onChangeText={setNewTheme} placeholder="Nom du nouveau thème" />
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
             <BigButton label="Créer le thème" icon="checkmark" onPress={createTheme} disabled={!newTheme.trim()} style={{ flex: 1 }} />
             <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setShowNewTheme(false)} style={{ flex: 1, borderWidth: 1, borderColor: c.border }} />
@@ -106,7 +107,7 @@ export function RavDvarTorahScreen({ navigation }: Props) {
         </Pressable>
       )}
 
-      <BigLabel hint="Vidéo, photo ou audio : le dvar Torah peut aussi se dire de vive voix. Facultatif.">4. Une vidéo, une photo ou un audio</BigLabel>
+      <BigLabel hint={`Vidéo, photo ou audio : ${tl.toLowerCase()} peut aussi se dire de vive voix. Facultatif.`}>4. Une vidéo, une photo ou un audio</BigLabel>
       {media ? (
         <RavCard style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: c.success, borderWidth: 2 }}>
           <View style={[styles.mediaIcon, { backgroundColor: c.primary }]}>
@@ -136,13 +137,13 @@ export function RavDvarTorahScreen({ navigation }: Props) {
       )}
 
       <BigLabel hint="Écrivez comme vous parlez. Sautez une ligne entre les paragraphes. Une ligne courte devient un titre de partie.">5. Votre texte</BigLabel>
-      <BigInput value={text} onChangeText={setText} onSelectionChange={setSelection} multiline placeholder={media ? 'Quelques mots pour présenter votre vidéo ou votre audio…' : 'Cette semaine, la paracha nous enseigne…'} />
+      <BigInput value={text} onChangeText={setText} onSelectionChange={setSelection} multiline placeholder={media ? 'Quelques mots pour présenter votre vidéo ou votre audio…' : 'Écrivez ici…'} />
       <FormatToolbar text={text} selection={selection} onChange={setText} />
       <AiAssist text={text} onAccept={setText} />
 
       {title.trim() || text.trim() || media ? (
         <RavCard style={{ marginTop: 22 }}>
-          <Text style={{ color: c.textMuted, fontSize: BIG.small, fontWeight: '700', marginBottom: 10 }}>APERÇU CHEZ LES FIDÈLES</Text>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small, fontWeight: '700', marginBottom: 10 }}>APERÇU CHEZ LES {seed.memberLabel.toUpperCase()}S</Text>
           <RavByline />
           {title ? <Text style={{ color: c.text, fontSize: 22, fontWeight: '800', marginTop: 12 }}>{title}</Text> : null}
           {subtitle ? <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4 }}>{subtitle}</Text> : null}
@@ -161,7 +162,7 @@ export function RavDvarTorahScreen({ navigation }: Props) {
 
       <View style={{ marginTop: 24 }}>
         <BigButton
-          label="Partager avec les fidèles"
+          label={`Partager avec les ${seed.memberLabel}s`}
           icon="send"
           disabled={!canPublish}
           onPress={() => {

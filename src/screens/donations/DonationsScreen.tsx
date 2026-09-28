@@ -10,14 +10,12 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, Segmented, SectionTitle, Muted, Button } from '../../components/ui';
-import { quickAmounts, amountLabels, causeDetails } from '../../mocks/donations';
 import { DonationType } from '../../types';
-import { money, formatShort, formatNumeric, CURRENCY } from '../../utils/time';
+import { money, formatShort, formatNumeric } from '../../utils/time';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
-type Tab = 'tsedaka' | 'maasser' | 'engagements';
-
-const typeLabel: Record<DonationType, string> = { tsedaka: 'Tsedaka', maasser: 'Maasser', engagement: 'Engagement' };
+type Tab = 'tithe' | 'alms' | 'engagements';
+type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 function toInt(v: string): number {
   const n = parseInt(v.replace(/\D/g, ''), 10);
@@ -28,155 +26,168 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput } = useAppState();
-  // L'onglet Maasser s'ouvre par défaut.
-  const [tab, setTab] = useState<Tab>('maasser');
+  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput } = useAppState();
+  const tithe = seed.tithe;
+  const alms = seed.alms;
+  const cur = seed.currency;
+  const typeLabel: Record<DonationType, string> = { tsedaka: alms.name, maasser: tithe?.name ?? alms.name, engagement: 'Engagement' };
+
+  // L'onglet « part obligatoire » (maasser, zakat, dîme) s'ouvre par défaut quand il existe ; sinon l'aumône (dana).
+  const [tab, setTab] = useState<Tab>(tithe ? 'tithe' : 'alms');
   const [salary, setSalary] = useState(maasserInput.salary ? String(maasserInput.salary) : '');
-  const [school, setSchool] = useState(maasserInput.school ? String(maasserInput.school) : '');
-  const [talmudTorah, setTalmudTorah] = useState(maasserInput.talmudTorah ? String(maasserInput.talmudTorah) : '');
-  const [other, setOther] = useState(maasserInput.other ? String(maasserInput.other) : '');
+  const [d1, setD1] = useState(maasserInput.school ? String(maasserInput.school) : '');
+  const [d2, setD2] = useState(maasserInput.talmudTorah ? String(maasserInput.talmudTorah) : '');
+  const [d3, setD3] = useState(maasserInput.other ? String(maasserInput.other) : '');
 
   const calc = useMemo(() => {
     const s = toInt(salary);
-    const fees = toInt(school) + toInt(talmudTorah) + toInt(other);
+    const fees = toInt(d1) + toInt(d2) + toInt(d3);
     const base = Math.max(0, s - fees);
-    return { salary: s, fees, base, maasser: Math.round(base * 0.1) };
-  }, [salary, school, talmudTorah, other]);
+    const belowThreshold = !!tithe?.threshold && base < tithe.threshold.amount;
+    const due = tithe && !belowThreshold ? Math.round(base * tithe.rate) : 0;
+    return { salary: s, fees, base, due, belowThreshold };
+  }, [salary, d1, d2, d3, tithe]);
 
-  const maasserLeft = Math.max(0, calc.maasser - maasserGivenThisMonth);
+  const left = Math.max(0, calc.due - maasserGivenThisMonth);
   const due = pledges.filter((p) => p.status === 'due');
   const dueTotal = due.reduce((s, p) => s + p.amount, 0);
   const currentYear = new Date().getFullYear();
   const givenThisYear = donations.filter((d) => d.date.startsWith(String(currentYear))).reduce((s, d) => s + d.amount, 0);
 
-  const saveInputs = () =>
-    setMaasserInput({ salary: toInt(salary), school: toInt(school), talmudTorah: toInt(talmudTorah), other: toInt(other) });
-
+  const saveInputs = () => setMaasserInput({ salary: toInt(salary), school: toInt(d1), talmudTorah: toInt(d2), other: toInt(d3) });
   const inputStyle = [styles.input, { borderColor: c.border, backgroundColor: c.surface, color: c.text }];
+  const deductionSetters = [setD1, setD2, setD3];
+  const deductionValues = [d1, d2, d3];
+  const ratePct = tithe ? `${(tithe.rate * 100).toLocaleString('fr-FR')} %` : '';
+
+  const options: { value: Tab; label: string }[] = [
+    ...(tithe ? [{ value: 'tithe' as Tab, label: tithe.name }] : []),
+    { value: 'alms', label: alms.name },
+    { value: 'engagements', label: due.length ? `${seed.pendingLabel} (${due.length})` : seed.pendingLabel },
+  ];
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader title="Dons" subtitle={`${money(givenThisMonth)} donnés ce mois · ${money(totalGiven)} au total`} communitySwitch />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Segmented<Tab>
-          options={[
-            { value: 'maasser', label: 'Maasser' },
-            { value: 'tsedaka', label: 'Tsedaka' },
-            { value: 'engagements', label: due.length ? `À payer (${due.length})` : 'À payer' },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
+        <Segmented<Tab> options={options} value={tab} onChange={setTab} />
 
-        {tab === 'maasser' && (
+        {tab === 'tithe' && tithe && (
           <>
             <Card style={[styles.hero, { backgroundColor: c.primary, borderColor: c.primary }]}>
               <MaterialCommunityIcons name="percent-circle" size={40} color={c.secondary} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: c.textOnPrimary, fontSize: 18, fontWeight: '800' }}>Donner son maasser</Text>
+                <Text style={{ color: c.textOnPrimary, fontSize: 18, fontWeight: '800' }}>Donner sa {tithe.name.toLowerCase()}</Text>
                 <Text style={{ color: c.textOnPrimary, opacity: 0.85, fontSize: 13, marginTop: 4 }}>
-                  Un dixième de ses revenus réservé à la tsedaka. « Asser téasser » : prélève la dîme afin de t’enrichir (Taanit 9a).
+                  {tithe.hint} {tithe.source}
                 </Text>
               </View>
             </Card>
 
-            <SectionTitle title="Calculer mon maasser à donner" />
+            <SectionTitle title={`Calculer ma ${tithe.name.toLowerCase()} à donner`} />
             <Card>
-              <Text style={[styles.label, { color: c.text }]}>Salaire net du mois</Text>
+              <Text style={[styles.label, { color: c.text }]}>{tithe.incomeLabel}</Text>
               <TextInput
                 value={salary}
                 onChangeText={setSalary}
                 onBlur={saveInputs}
                 keyboardType="number-pad"
-                placeholder={`Ex. : 12 000 ${CURRENCY}`}
+                placeholder={`Ex. : ${tithe.mode === 'wealth' ? '9 000' : '2 400'} ${cur}`}
                 placeholderTextColor={c.textMuted}
                 style={inputStyle}
               />
 
-              <Text style={[styles.label, { color: c.text, marginTop: 16 }]}>Frais à retirer avant le calcul</Text>
-              <Muted style={{ marginBottom: 8 }}>Les frais d’éducation juive peuvent être déduits du revenu, selon l’avis de votre Rav.</Muted>
-              <FeeRow icon="school-outline" label="École juive" value={school} onChange={setSchool} onBlur={saveInputs} />
-              <FeeRow icon="book-outline" label="Cours de Talmud Torah" value={talmudTorah} onChange={setTalmudTorah} onBlur={saveInputs} />
-              <FeeRow icon="add-circle-outline" label="Autres frais" value={other} onChange={setOther} onBlur={saveInputs} />
+              <Text style={[styles.label, { color: c.text, marginTop: 16 }]}>{tithe.mode === 'wealth' ? 'À retirer avant le calcul' : 'Frais à retirer avant le calcul'}</Text>
+              <Muted style={{ marginBottom: 8 }}>{tithe.mode === 'wealth' ? 'Les dettes exigibles se déduisent de l’épargne.' : 'Selon l’avis de votre responsable, certains frais peuvent être déduits du revenu.'}</Muted>
+              {tithe.deductions.map((d, i) => (
+                <FeeRow key={d.key} icon={d.icon as React.ComponentProps<typeof Ionicons>['name']} label={d.label} value={deductionValues[i]} onChange={deductionSetters[i]} onBlur={saveInputs} currency={cur} />
+              ))}
 
               <View style={[styles.result, { backgroundColor: c.primaryLight }]}>
                 <View style={styles.resultRow}>
-                  <Muted>Salaire net</Muted>
+                  <Muted>{tithe.mode === 'wealth' ? 'Épargne' : 'Revenu net'}</Muted>
                   <Text style={{ color: c.text, fontWeight: '600' }}>{money(calc.salary)}</Text>
                 </View>
                 <View style={styles.resultRow}>
-                  <Muted>− Frais déduits</Muted>
+                  <Muted>− Déductions</Muted>
                   <Text style={{ color: c.text, fontWeight: '600' }}>− {money(calc.fees)}</Text>
                 </View>
                 <View style={[styles.resultRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.primary + '55', paddingTop: 8 }]}>
                   <Muted>Base de calcul</Muted>
                   <Text style={{ color: c.text, fontWeight: '700' }}>{money(calc.base)}</Text>
                 </View>
+                {tithe.threshold ? (
+                  <View style={styles.resultRow}>
+                    <Muted>{tithe.threshold.label}</Muted>
+                    <Text style={{ color: calc.belowThreshold ? c.warning : c.success, fontWeight: '700' }}>
+                      {calc.belowThreshold ? `sous le seuil (${money(tithe.threshold.amount)})` : 'seuil dépassé'}
+                    </Text>
+                  </View>
+                ) : null}
                 <View style={[styles.resultRow, { marginTop: 4 }]}>
-                  <Text style={{ color: c.primary, fontWeight: '800', fontSize: 16 }}>Maasser à donner (10 %)</Text>
-                  <Text style={{ color: c.primary, fontWeight: '900', fontSize: 22 }}>{money(calc.maasser)}</Text>
+                  <Text style={{ color: c.primary, fontWeight: '800', fontSize: 16 }}>
+                    {tithe.name} à donner ({ratePct})
+                  </Text>
+                  <Text style={{ color: c.primary, fontWeight: '900', fontSize: 22 }}>{money(calc.due)}</Text>
                 </View>
               </View>
 
-              {calc.maasser > 0 ? (
+              {calc.due > 0 ? (
                 <View style={{ marginTop: 16 }}>
                   <View style={styles.kpis}>
-                    <Kpi label="À donner ce mois" value={money(calc.maasser)} color={c.text} />
+                    <Kpi label={`À donner ${tithe.period}`} value={money(calc.due)} color={c.text} />
                     <Kpi label="Déjà donné" value={money(maasserGivenThisMonth)} color={c.success} />
-                    <Kpi label="Reste" value={money(maasserLeft)} color={maasserLeft > 0 ? c.warning : c.success} />
+                    <Kpi label="Reste" value={money(left)} color={left > 0 ? c.warning : c.success} />
                   </View>
-                  <ProgressBar progress={Math.min(1, maasserGivenThisMonth / calc.maasser)} />
-                  {maasserLeft > 0 ? (
-                    <Button
-                      label={`Donner le reste : ${money(maasserLeft)}`}
-                      icon="checkmark-circle-outline"
-                      onPress={() => navigation.navigate('Donate', { type: 'maasser', amount: maasserLeft })}
-                      style={{ marginTop: 14 }}
-                    />
+                  <ProgressBar progress={Math.min(1, maasserGivenThisMonth / calc.due)} />
+                  {left > 0 ? (
+                    <Button label={`Donner le reste : ${money(left)}`} icon="checkmark-circle-outline" onPress={() => navigation.navigate('Donate', { type: 'maasser', amount: left })} style={{ marginTop: 14 }} />
                   ) : (
                     <View style={[styles.done, { backgroundColor: c.success + '22' }]}>
                       <Ionicons name="checkmark-circle" size={18} color={c.success} />
-                      <Text style={{ color: c.success, fontWeight: '700' }}>Maasser du mois complet</Text>
+                      <Text style={{ color: c.success, fontWeight: '700' }}>
+                        {tithe.name} complète {tithe.period}
+                      </Text>
                     </View>
                   )}
                 </View>
               ) : (
-                <Muted style={{ marginTop: 12, textAlign: 'center' }}>Saisissez votre salaire pour calculer votre maasser.</Muted>
+                <Muted style={{ marginTop: 12, textAlign: 'center' }}>
+                  {calc.belowThreshold
+                    ? `Sous le ${tithe.threshold?.label.toLowerCase()}, la ${tithe.name.toLowerCase()} n’est pas due. Une ${alms.name.toLowerCase()} reste toujours possible.`
+                    : `Saisissez votre montant pour calculer votre ${tithe.name.toLowerCase()}.`}
+                </Muted>
               )}
             </Card>
 
             <Card>
               <Text style={{ color: c.text, fontWeight: '700' }}>Bon à savoir</Text>
-              <Muted style={{ marginTop: 6, lineHeight: 19 }}>
-                Le maasser se calcule en général sur le revenu net, après impôts. Il est recommandé de le commencer « bli neder »,
-                sans vœu formel. La déduction des frais de scolarité fait l’objet d’avis différents : voir la réponse du Rav dans l’onglet
-                Questions.
-              </Muted>
+              <Muted style={{ marginTop: 6, lineHeight: 19 }}>{tithe.advice}</Muted>
             </Card>
           </>
         )}
 
-        {tab === 'tsedaka' && (
+        {tab === 'alms' && (
           <>
             <Card style={[styles.hero, { backgroundColor: c.primary, borderColor: c.primary }]}>
               <MaterialCommunityIcons name="hand-heart" size={40} color={c.secondary} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: c.textOnPrimary, fontSize: 18, fontWeight: '800' }}>Donner la tsedaka</Text>
-                <Text style={{ color: c.textOnPrimary, opacity: 0.85, fontSize: 13, marginTop: 4 }}>
-                  « La tsedaka sauve de la mort » (Michlé 10, 2). Un don, même petit, chaque jour.
-                </Text>
+                <Text style={{ color: c.textOnPrimary, fontSize: 18, fontWeight: '800' }}>{alms.title}</Text>
+                <Text style={{ color: c.textOnPrimary, opacity: 0.85, fontSize: 13, marginTop: 4 }}>{alms.quote}</Text>
               </View>
             </Card>
             <SectionTitle title="Montant rapide" />
             <View style={styles.amounts}>
-              {quickAmounts.map((a) => (
+              {alms.amounts.map((a) => (
                 <Pressable
                   key={a}
                   onPress={() => navigation.navigate('Donate', { type: 'tsedaka', amount: a })}
                   style={({ pressed }) => [styles.amount, { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.8 : 1 }]}
                 >
-                  <Text style={{ color: c.text, fontWeight: '800', fontSize: 18 }}>{a} {CURRENCY}</Text>
-                  <Muted style={{ fontSize: 11 }}>{amountLabels[a] ?? ''}</Muted>
+                  <Text style={{ color: c.text, fontWeight: '800', fontSize: 18 }}>
+                    {a} {cur}
+                  </Text>
+                  <Muted style={{ fontSize: 11 }}>{alms.amountLabels[a] ?? ''}</Muted>
                 </Pressable>
               ))}
               <Pressable
@@ -187,14 +198,14 @@ export function DonationsScreen() {
                 <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>Autre</Text>
               </Pressable>
             </View>
-            <Muted style={{ marginTop: 4 }}>18 = ‘haï, « vivant » · 26 = valeur numérique du Nom divin.</Muted>
+            <Muted style={{ marginTop: 4 }}>{alms.amountsNote}</Muted>
 
             <SectionTitle title="Où va votre argent ?" />
             <Muted style={{ marginTop: -6, marginBottom: 10 }}>Choisissez la destination de votre don.</Muted>
-            {causeDetails.map((cause) => (
+            {seed.causes.map((cause) => (
               <Card key={cause.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={[styles.histIcon, { backgroundColor: c.primaryLight, width: 46, height: 46, borderRadius: 14 }]}>
-                  <MaterialCommunityIcons name={cause.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={24} color={c.primary} />
+                  <MaterialCommunityIcons name={cause.icon as MciName} size={24} color={c.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: c.text, fontWeight: '800', fontSize: 15 }}>{cause.name}</Text>
@@ -211,9 +222,7 @@ export function DonationsScreen() {
             <Card style={[styles.hero, { backgroundColor: due.length ? c.warning + '22' : c.success + '22', borderColor: 'transparent' }]}>
               <Ionicons name={due.length ? 'alert-circle' : 'checkmark-circle'} size={32} color={due.length ? c.warning : c.success} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: c.text, fontSize: 17, fontWeight: '800' }}>
-                  {due.length ? `${money(dueTotal)} à régler` : 'Tout est réglé'}
-                </Text>
+                <Text style={{ color: c.text, fontSize: 17, fontWeight: '800' }}>{due.length ? `${money(dueTotal)} à régler` : 'Tout est réglé'}</Text>
                 <Muted>{due.length ? `${due.length} engagement${due.length > 1 ? 's' : ''} en attente` : 'Aucun engagement en attente'}</Muted>
               </View>
             </Card>
@@ -228,12 +237,7 @@ export function DonationsScreen() {
                   <Text style={{ color: c.text, fontWeight: '800', fontSize: 18 }}>{money(p.amount)}</Text>
                 </View>
                 {p.status === 'due' ? (
-                  <Button
-                    label="Payer maintenant"
-                    icon="card-outline"
-                    onPress={() => navigation.navigate('Donate', { type: 'engagement', amount: p.amount, pledgeId: p.id })}
-                    style={{ marginTop: 12 }}
-                  />
+                  <Button label="Payer maintenant" icon="card-outline" onPress={() => navigation.navigate('Donate', { type: 'engagement', amount: p.amount, pledgeId: p.id })} style={{ marginTop: 12 }} />
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
                     <Ionicons name="checkmark-circle" size={16} color={c.success} />
@@ -253,26 +257,14 @@ export function DonationsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>Reçu {currentYear} généré automatiquement</Text>
-              <Muted>
-                {money(givenThisYear)} de dons enregistrés · à imprimer, télécharger ou envoyer par email
-              </Muted>
+              <Muted>{money(givenThisYear)} de dons enregistrés · à imprimer, télécharger ou envoyer par email</Muted>
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-            <Button
-              label="Seif 46 · Israël"
-              icon="print-outline"
-              variant="secondary"
-              onPress={() => navigation.navigate('Receipt', { format: 'seif46', year: currentYear })}
-              style={{ flex: 1 }}
-            />
-            <Button
-              label="Cerfa · France"
-              icon="print-outline"
-              variant="secondary"
-              onPress={() => navigation.navigate('Receipt', { format: 'cerfa', year: currentYear })}
-              style={{ flex: 1 }}
-            />
+            {seed.receiptFormats.includes('seif46') ? (
+              <Button label="Seif 46 · Israël" icon="print-outline" variant="secondary" onPress={() => navigation.navigate('Receipt', { format: 'seif46', year: currentYear })} style={{ flex: 1 }} />
+            ) : null}
+            <Button label="Cerfa · France" icon="print-outline" variant="secondary" onPress={() => navigation.navigate('Receipt', { format: 'cerfa', year: currentYear })} style={{ flex: 1 }} />
           </View>
         </Card>
 
@@ -280,11 +272,7 @@ export function DonationsScreen() {
         {donations.map((d) => (
           <Card key={d.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
             <View style={[styles.histIcon, { backgroundColor: c.primaryLight }]}>
-              <MaterialCommunityIcons
-                name={d.type === 'maasser' ? 'percent' : d.type === 'engagement' ? 'file-document-check' : 'hand-heart'}
-                size={18}
-                color={c.primary}
-              />
+              <MaterialCommunityIcons name={d.type === 'maasser' ? 'percent' : d.type === 'engagement' ? 'file-document-check' : 'hand-heart'} size={18} color={c.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontWeight: '600' }}>{d.cause}</Text>
@@ -302,35 +290,15 @@ export function DonationsScreen() {
   );
 }
 
-function FeeRow({
-  icon,
-  label,
-  value,
-  onChange,
-  onBlur,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  onBlur: () => void;
-}) {
+function FeeRow({ icon, label, value, onChange, onBlur, currency }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; value: string; onChange: (v: string) => void; onBlur: () => void; currency: string }) {
   const { theme } = useTheme();
   const c = theme.colors;
   return (
     <View style={styles.feeRow}>
       <Ionicons name={icon} size={18} color={c.primary} />
       <Text style={{ color: c.text, flex: 1, fontWeight: '600' }}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        onBlur={onBlur}
-        keyboardType="number-pad"
-        placeholder="0"
-        placeholderTextColor={c.textMuted}
-        style={[styles.feeInput, { borderColor: c.border, backgroundColor: c.surface, color: c.text }]}
-      />
-      <Muted>{CURRENCY}</Muted>
+      <TextInput value={value} onChangeText={onChange} onBlur={onBlur} keyboardType="number-pad" placeholder="0" placeholderTextColor={c.textMuted} style={[styles.feeInput, { borderColor: c.border, backgroundColor: c.surface, color: c.text }]} />
+      <Muted>{currency}</Muted>
     </View>
   );
 }

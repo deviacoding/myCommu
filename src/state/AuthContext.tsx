@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 import { CommunityId, UserProfile } from '../types';
 import { useTheme } from '../theme/ThemeProvider';
-import { defaultUser } from '../mocks/user';
+import { getSeed } from '../seeds';
 
 export type AccessMode = 'none' | 'member' | 'rav';
 export type DemoRole = 'member' | 'rav';
@@ -21,16 +21,16 @@ interface AuthValue {
 const AuthContext = createContext<AuthValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { setCommunity } = useTheme();
+  const { setCommunity, community } = useTheme();
   const [mode, setMode] = useState<AccessMode>('none');
   const [onboarded, setOnboarded] = useState(false);
-  const [user, setUser] = useState<UserProfile>(defaultUser);
+  const [user, setUser] = useState<UserProfile>(getSeed(community).user);
 
   const enterDemo = useCallback(
-    (community: CommunityId, role: DemoRole) => {
-      setUser({ ...defaultUser, community });
-      setCommunity(community);
-      // Un fidèle qui arrive commence par rejoindre une communauté ; le Rav a déjà la sienne.
+    (id: CommunityId, role: DemoRole) => {
+      setUser(getSeed(id).user);
+      setCommunity(id);
+      // Un fidèle qui arrive commence par rejoindre une communauté ; le responsable a déjà la sienne.
       setOnboarded(role === 'rav');
       setMode(role);
     },

@@ -18,13 +18,13 @@ import { formatShort } from '../../utils/time';
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Filter = 'Tous' | CourseCategory;
 
-const filters: Filter[] = ['Tous', 'Fête', 'Paracha', 'Halakha', 'Moussar', 'Michna'];
 
 export function CoursesScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { readCourses, markCourseRead, myCourses: courses, congregation } = useAppState();
+  const { readCourses, markCourseRead, myCourses: courses, congregation, seed } = useAppState();
+  const filters: Filter[] = ['Tous', ...seed.themes];
   const [filter, setFilter] = useState<Filter>('Tous');
   const [liked, setLiked] = useState(false);
 
@@ -39,13 +39,13 @@ export function CoursesScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader
-        title="Dvar Torah"
-        subtitle={`Paroles de Torah de ${congregation.rav.name}`}
+        title={seed.teachingLabel}
+        subtitle={seed.teachingSubtitle(congregation.rav.name)}
         communitySwitch
       />
       <ScrollView contentContainerStyle={styles.content}>
         <LiveBanner />
-        <SectionTitle title="Dernier dvar Torah" action={`${readCourses.length} lus`} />
+        <SectionTitle title={seed.teachingLatestTitle} action={`${readCourses.length} lus`} />
         <Card style={{ padding: 18 }}>
           <RavByline date={latest.date} />
           <View style={[styles.divider, { backgroundColor: c.border }]} />
@@ -66,7 +66,7 @@ export function CoursesScreen() {
           </View>
         </Card>
 
-        <SectionTitle title="Divré Torah précédents" />
+        <SectionTitle title={seed.teachingPreviousTitle} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
           {filters.map((f) => (
             <Chip key={f} label={f} active={filter === f} onPress={() => setFilter(f)} />

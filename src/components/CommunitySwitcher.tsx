@@ -48,7 +48,7 @@ export function CommunitySwitcher() {
               </Pressable>
             </View>
             <Text style={{ color: c.textMuted, fontSize: 13, marginBottom: 12 }}>
-              Vous appartenez à {mine.length} communauté{mine.length > 1 ? 's' : ''}. Horaires, divré Torah, questions et dons changent selon la communauté affichée.
+              Vous appartenez à {mine.length} communauté{mine.length > 1 ? 's' : ''}. Horaires, enseignements, questions et dons changent selon la communauté affichée.
             </Text>
 
             {mine.map((k) => {

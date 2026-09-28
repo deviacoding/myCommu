@@ -14,17 +14,17 @@ type Props = NativeStackScreenProps<RavStackParamList, 'RavAnswers'>;
 export function RavAnswersScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myQuestions: questions } = useAppState();
+  const { myQuestions: questions, seed } = useAppState();
   const pending = questions.filter((q) => q.status === 'pending');
   const answered = questions.filter((q) => q.status === 'answered');
 
   return (
-    <RavScreen title="Questions des fidèles" subtitle={`${pending.length} sans réponse · ${answered.length} répondues`} onBack={() => navigation.goBack()}>
+    <RavScreen title={`Questions des ${seed.memberLabel}s`} subtitle={`${pending.length} sans réponse · ${answered.length} répondues`} onBack={() => navigation.goBack()}>
       <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginBottom: 10 }}>À répondre</Text>
       {pending.length === 0 ? (
         <RavCard style={{ alignItems: 'center' }}>
           <Ionicons name="checkmark-circle" size={40} color={c.success} />
-          <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8 }}>Tout est répondu, kol hakavod !</Text>
+          <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8 }}>Tout est répondu, bravo !</Text>
         </RavCard>
       ) : null}
       {pending.map((q) => (

@@ -20,9 +20,9 @@ const quickTitles: Record<Kind, string> = {
 export function RavLiveScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { live, startLive, endLive, congregation } = useAppState();
+  const { live, startLive, endLive, congregation, seed } = useAppState();
   const [kind, setKind] = useState<Kind>('cours');
-  const [title, setTitle] = useState('Cours en direct : la paracha de la semaine');
+  const [title, setTitle] = useState('Cours en direct');
   const [notify, setNotify] = useState(true);
   const [viewers, setViewers] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -46,9 +46,9 @@ export function RavLiveScreen({ navigation }: Props) {
       <RavScreen title="Live terminé" onBack={() => navigation.goBack()}>
         <RavCard style={{ alignItems: 'center', paddingVertical: 28 }}>
           <Ionicons name="checkmark-circle" size={56} color={c.success} />
-          <Text style={{ color: c.text, fontSize: 24, fontWeight: '900', marginTop: 10 }}>Merci, Rav !</Text>
+          <Text style={{ color: c.text, fontSize: 24, fontWeight: '900', marginTop: 10 }}>Merci, {seed.leaderShort} !</Text>
           <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 6, textAlign: 'center' }}>
-            {ended.viewers} fidèles ont suivi votre live pendant {Math.floor(ended.elapsed / 60)} min {ended.elapsed % 60} s. L’enregistrement est disponible dans vos divré Torah (maquette).
+            {ended.viewers} {seed.memberLabel}s ont suivi votre live pendant {Math.floor(ended.elapsed / 60)} min {ended.elapsed % 60} s. L’enregistrement est disponible dans vos {seed.teachingPlural.toLowerCase()} (maquette).
           </Text>
           <BigButton label="Retour à l’accueil" icon="home" onPress={() => navigation.goBack()} style={{ alignSelf: 'stretch', marginTop: 20 }} />
         </RavCard>
@@ -82,7 +82,7 @@ export function RavLiveScreen({ navigation }: Props) {
               <Text style={{ color: '#D1D5DB', fontSize: 12 }}>prévenus</Text>
             </View>
           </View>
-          <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 14 }}>Caméra simulée. Les fidèles voient un bandeau « LIVE » dans leur application.</Text>
+          <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 14 }}>Caméra simulée. Les {seed.memberLabel}s voient un bandeau « LIVE » dans leur application.</Text>
         </View>
         <BigButton
           label="Terminer le live"
@@ -103,7 +103,7 @@ export function RavLiveScreen({ navigation }: Props) {
       <RavCard style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.primaryLight, borderColor: c.primaryLight }}>
         <MaterialCommunityIcons name="video-wireless" size={36} color={c.primary} />
         <Text style={{ color: c.text, fontSize: BIG.small, flex: 1 }}>
-          Un cours, un office ou un mot à transmettre ? Lancez le direct en un geste. {congregation.members} fidèles de {congregation.name} seront prévenus.
+          Un cours, un office ou un mot à transmettre ? Lancez le direct en un geste. {congregation.members} {seed.memberLabel}s de {congregation.name} seront prévenus.
         </Text>
       </RavCard>
 
@@ -127,7 +127,7 @@ export function RavLiveScreen({ navigation }: Props) {
       <BigLabel>Prévenir la communauté</BigLabel>
       <BigChoice
         options={[
-          { value: 'yes', label: `Oui, envoyer une notification push à ${congregation.members} fidèles` },
+          { value: 'yes', label: `Oui, envoyer une notification push à ${congregation.members} ${seed.memberLabel}s` },
           { value: 'no', label: 'Non, live discret' },
         ]}
         value={notify ? 'yes' : 'no'}

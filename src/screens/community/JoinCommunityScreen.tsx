@@ -9,7 +9,6 @@ import { useAuth } from '../../state/AuthContext';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
 import { Card, Button, Segmented, Muted } from '../../components/ui';
-import { findByCode } from '../../mocks/congregations';
 import { Congregation } from '../../types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'JoinCommunity'>;
@@ -44,13 +43,13 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
     // Simulation : le QR code de la communauté voisine est reconnu après 2,5 s.
     const t = setTimeout(() => {
       setScanning(false);
-      setScanned(congregations.find((k) => k.id === 'habad') ?? congregations[1]);
+      setScanned(congregations.find((k) => !myCongregations.includes(k.id)) ?? congregations[0]);
     }, 2500);
     return () => {
       loop.stop();
       clearTimeout(t);
     };
-  }, [scanning, scanLine, congregations]);
+  }, [scanning, scanLine, congregations, myCongregations]);
 
   const join = (k: Congregation) => {
     joinCongregation(k.id);
@@ -61,7 +60,8 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
   };
 
   const submitCode = () => {
-    const found = findByCode(code);
+    const norm = code.replace(/[\s-]/g, '').toUpperCase();
+    const found = congregations.find((k) => k.code.replace(/[\s-]/g, '').toUpperCase() === norm);
     if (!found) {
       setCodeError('Code inconnu. Vérifiez auprès de votre synagogue, le code est de la forme XX-0000.');
       return;
@@ -158,7 +158,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
         {/* ---- QR code ---- */}
         {method === 'qr' ? (
           <View style={{ marginTop: 16 }}>
-            <Muted style={{ marginBottom: 10 }}>Scannez le QR code affiché à l’entrée de la synagogue ou envoyé par votre Rav.</Muted>
+            <Muted style={{ marginBottom: 10 }}>Scannez le QR code affiché à l’entrée de votre lieu de culte ou envoyé par votre responsable.</Muted>
             <View style={styles.camera}>
               <View style={styles.frame}>
                 <View style={[styles.corner, styles.tl]} />
@@ -207,7 +207,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
         {/* ---- Code ---- */}
         {method === 'code' ? (
           <View style={{ marginTop: 16 }}>
-            <Muted style={{ marginBottom: 10 }}>Entrez le code communiqué par votre communauté. Pour la démo : BY-2026 (Beth Yaacov), HB-7700 (Beth Habad), OT-1800, OM-0613.</Muted>
+            <Muted style={{ marginBottom: 10 }}>Entrez le code communiqué par votre communauté. Pour la démo : {congregations.map((k) => `${k.code} (${k.name})`).join(', ')}.</Muted>
             <TextInput
               value={code}
               onChangeText={(v) => {
@@ -233,7 +233,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
           />
           {onboarding ? (
             <Muted style={{ textAlign: 'center', marginTop: 12, fontSize: 12 }}>
-              Maquette : demain, cette étape utilisera votre position, la caméra du téléphone et un code fourni par la synagogue.
+              Maquette : demain, cette étape utilisera votre position, la caméra du téléphone et un code fourni par votre communauté.
             </Muted>
           ) : null}
         </View>

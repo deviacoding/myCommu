@@ -14,10 +14,9 @@ import { money, formatNumeric, todayISO } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Receipt'>;
 
-const ORG = {
-  name: 'Synagogue Beth Yaacov',
-  legal: 'Association cultuelle Beth Yaacov',
-  address: '12 rue des Écoles, 75017 Paris',
+const ORG_BASE = {
+  legal: 'Association cultuelle',
+  address: '',
   israelNumber: '580-123-456',
   franceNumber: 'W751234567',
   president: 'M. Raphaël Benhamou, président',
@@ -42,7 +41,7 @@ const formatMeta: Record<ReceiptFormat, { title: string; hebrew?: string; subtit
 export function ReceiptScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { donations } = useAppState();
+  const { donations, seed, congregation } = useAppState();
   const { user } = useAuth();
   const [format, setFormat] = useState<ReceiptFormat>(route.params.format);
   const [year] = useState(route.params.year);
@@ -50,6 +49,7 @@ export function ReceiptScreen({ route, navigation }: Props) {
 
   const list = useMemo(() => donations.filter((d) => d.date.startsWith(String(year))), [donations, year]);
   const total = list.reduce((s, d) => s + d.amount, 0);
+  const ORG = { ...ORG_BASE, name: congregation.name, legal: `Association cultuelle ${congregation.name}`, address: `${congregation.address}, ${congregation.city}` };
   const meta = formatMeta[format];
   const receiptNumber = `${year}-${format === 'seif46' ? 'IL' : 'FR'}-${String(user.id).toUpperCase()}${String(list.length).padStart(3, '0')}`;
 
@@ -70,14 +70,16 @@ export function ReceiptScreen({ route, navigation }: Props) {
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader title="Reçu fiscal" subtitle={`Année ${year} · généré automatiquement`} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Segmented<ReceiptFormat>
-          options={[
-            { value: 'seif46', label: 'Seif 46 · Israël' },
-            { value: 'cerfa', label: 'Cerfa · France' },
-          ]}
-          value={format}
-          onChange={setFormat}
-        />
+        {seed.receiptFormats.length > 1 ? (
+          <Segmented<ReceiptFormat>
+            options={[
+              { value: 'seif46', label: 'Seif 46 · Israël' },
+              { value: 'cerfa', label: 'Cerfa · France' },
+            ]}
+            value={format}
+            onChange={setFormat}
+          />
+        ) : null}
 
         <View style={styles.actions}>
           <Button label="Imprimer" icon="print-outline" variant="secondary" onPress={print} style={{ flex: 1 }} />
@@ -95,7 +97,7 @@ export function ReceiptScreen({ route, navigation }: Props) {
         <Card style={[styles.doc, { borderColor: c.border }]}>
           <View style={styles.docHead}>
             <View style={[styles.logo, { backgroundColor: c.primary }]}>
-              <MaterialCommunityIcons name="star-david" size={22} color={c.secondary} />
+              <MaterialCommunityIcons name={seed.gamification.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={22} color={c.secondary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.orgName, { color: c.text }]}>{ORG.name}</Text>
@@ -144,7 +146,7 @@ export function ReceiptScreen({ route, navigation }: Props) {
 
           <View style={styles.sign}>
             <View style={{ flex: 1 }}>
-              <Muted>Fait à Paris, le {formatNumeric(todayISO())}</Muted>
+              <Muted>Fait à {congregation.city}, le {formatNumeric(todayISO())}</Muted>
               <Text style={{ color: c.text, fontWeight: '600', marginTop: 4 }}>{ORG.president}</Text>
             </View>
             <View style={[styles.stamp, { borderColor: c.primary }]}>

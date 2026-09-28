@@ -6,13 +6,22 @@ import { useAppState } from '../state/AppState';
 import { useAuth } from '../state/AuthContext';
 import { MemberDate, MemberDateType } from '../types';
 import { Card, Chip, Muted, Button, SectionTitle } from './ui';
-import { daysBetween, formatLong, capitalize, parseISODate, hebrewDateLabel } from '../utils/time';
+import { daysBetween, formatLong, capitalize, parseISODate } from '../utils/time';
 
 export const dateTypeMeta: Record<MemberDateType, { label: string; icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; color: string }> = {
   anniversaire: { label: 'Anniversaire', icon: 'cake-variant', color: '#DB2777' },
-  azkara: { label: 'Azkara', icon: 'candle', color: '#4B5563' },
+  azkara: { label: 'Souvenir', icon: 'candle', color: '#4B5563' },
   autre: { label: 'Autre', icon: 'calendar-star', color: '#2563EB' },
 };
+
+export function useDateTypeMeta() {
+  const { seed } = useAppState();
+  return {
+    anniversaire: { ...dateTypeMeta.anniversaire, label: seed.dateTypeLabels.anniversaire },
+    azkara: { ...dateTypeMeta.azkara, label: seed.dateTypeLabels.azkara },
+    autre: { ...dateTypeMeta.autre, label: seed.dateTypeLabels.autre },
+  } as typeof dateTypeMeta;
+}
 
 export function daysUntil(d: MemberDate): number {
   // Prochaine occurrence annuelle.
@@ -26,7 +35,7 @@ export function daysUntil(d: MemberDate): number {
 export function DateRow({ d, onRemove, showMember }: { d: MemberDate; onRemove?: () => void; showMember?: boolean }) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const meta = dateTypeMeta[d.type];
+  const meta = useDateTypeMeta()[d.type];
   const n = daysUntil(d);
   const when = n === 0 ? 'Aujourd’hui' : n === 1 ? 'Demain' : `Dans ${n} jours`;
   return (
@@ -61,7 +70,8 @@ export function DateRow({ d, onRemove, showMember }: { d: MemberDate; onRemove?:
 export function AddDateForm({ member, onAdded, big }: { member?: string; onAdded?: (label: string) => void; big?: boolean }) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { addMemberDate } = useAppState();
+  const { addMemberDate, seed } = useAppState();
+  const typeMeta = useDateTypeMeta();
   const [type, setType] = useState<MemberDateType>('anniversaire');
   const [label, setLabel] = useState('');
   const [date, setDate] = useState('');
@@ -73,7 +83,7 @@ export function AddDateForm({ member, onAdded, big }: { member?: string; onAdded
   const inputStyle = [styles.input, { borderColor: c.border, backgroundColor: c.surface, color: c.text, fontSize: fs }];
 
   const submit = () => {
-    const hebrew = hebrewDateLabel(parseISODate(date));
+    const hebrew = seed.religiousDate(parseISODate(date));
     addMemberDate({ member: member ?? who.trim(), type, label: label.trim(), date, hebrewDate: hebrew ?? undefined, note: note.trim() || undefined });
     onAdded?.(label.trim());
     setLabel('');
@@ -85,14 +95,14 @@ export function AddDateForm({ member, onAdded, big }: { member?: string; onAdded
     <View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 }}>
         {(Object.keys(dateTypeMeta) as MemberDateType[]).map((t) => (
-          <Chip key={t} label={dateTypeMeta[t].label} active={type === t} color={dateTypeMeta[t].color} onPress={() => setType(t)} />
+          <Chip key={t} label={typeMeta[t].label} active={type === t} color={typeMeta[t].color} onPress={() => setType(t)} />
         ))}
       </View>
       {!member ? <TextInput value={who} onChangeText={setWho} placeholder="Nom du fidèle" placeholderTextColor={c.textMuted} style={inputStyle} /> : null}
       <TextInput
         value={label}
         onChangeText={setLabel}
-        placeholder={type === 'azkara' ? 'Ex. : Azkara de ma mère, Rivka bat Sarah' : type === 'anniversaire' ? 'Ex. : Anniversaire de Léa' : 'Ex. : Anniversaire de mariage'}
+        placeholder={type === 'azkara' ? `Ex. : ${typeMeta.azkara.label} de ma mère` : type === 'anniversaire' ? 'Ex. : Anniversaire de Léa' : 'Ex. : Anniversaire de mariage'}
         placeholderTextColor={c.textMuted}
         style={[...inputStyle, { marginTop: 8 }]}
       />
@@ -118,7 +128,7 @@ export function MyDates({ compact }: { compact?: boolean }) {
     <>
       <SectionTitle title="Mes dates" action={showForm ? 'Fermer' : 'Ajouter'} onAction={() => setShowForm((v) => !v)} />
       <Card>
-        <Muted style={{ marginBottom: 4 }}>Anniversaires, azkarot… Votre Rav les voit et peut vous accompagner.</Muted>
+        <Muted style={{ marginBottom: 4 }}>Anniversaires, souvenirs… Votre responsable les voit et peut vous accompagner.</Muted>
         {mine.length === 0 ? <Muted>Aucune date pour l’instant.</Muted> : null}
         {(compact ? mine.slice(0, 3) : mine).map((d) => (
           <DateRow key={d.id} d={d} onRemove={() => removeMemberDate(d.id)} />

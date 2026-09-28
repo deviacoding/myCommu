@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import {
   AgendaEvent,
   Congregation,
@@ -19,14 +19,9 @@ import {
   QuestionCategory,
   SoulLevel,
 } from '../types';
-import { initialDonations, initialPledges, soulLevels, initialCategories } from '../mocks/donations';
-import { initialQuestions } from '../mocks/questions';
-import { courses as initialCourses } from '../mocks/courses';
-import { tishreiHolidays, dailyServices as initialServices, agendaEvents, initialDayEntries } from '../mocks/schedule';
-import { habadAgenda, habadCourses, habadDayEntries, habadPledges, habadQuestions } from '../mocks/habad';
-import { congregations, DEFAULT_CONGREGATION, findCongregation } from '../mocks/congregations';
-import { initialMemberDates } from '../mocks/memberDates';
-import { todayISO } from '../utils/time';
+import { Member } from '../mocks/members';
+import { ReligionSeed } from '../seeds/types';
+import { setCurrency, todayISO } from '../utils/time';
 
 interface DonateInput {
   type: DonationType;
@@ -88,6 +83,8 @@ export interface NewPledgeInput {
 }
 
 interface AppStateValue {
+  seed: ReligionSeed;
+  members: Member[];
   // Communautés
   congregations: Congregation[];
   congregation: Congregation; // communauté affichée
@@ -159,8 +156,6 @@ const AppStateContext = createContext<AppStateValue | undefined>(undefined);
 
 let seq = 100;
 
-const ofCongregation = (id: string) => (item: { congregationId?: string }) => (item.congregationId ?? DEFAULT_CONGREGATION) === id;
-
 // Découpe un texte libre en sections : une ligne seule courte devient un titre de section.
 function textToSections(text: string): Course['sections'] {
   const blocks = text
@@ -181,23 +176,56 @@ function textToSections(text: string): Course['sections'] {
   return sections.length ? sections : [{ text }];
 }
 
-export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [congregationId, setCongregation] = useState<string>(DEFAULT_CONGREGATION);
+export function AppStateProvider({ children, seed }: { children: ReactNode; seed: ReligionSeed }) {
+  const defaultCongregation = seed.defaultCongregation;
+  const ofCongregation = useCallback(
+    (id: string) => (item: { congregationId?: string }) => (item.congregationId ?? defaultCongregation) === id,
+    [defaultCongregation]
+  );
+  const findCongregation = useCallback((id: string) => seed.congregations.find((c) => c.id === id) ?? seed.congregations[0], [seed]);
+
+  // Changement de confession : on recharge toutes les données du nouveau seed sans remonter la navigation.
+  const [loadedSeed, setLoadedSeed] = useState(seed);
+  useEffect(() => {
+    setCurrency(seed.currency);
+    if (seed === loadedSeed) return;
+    setLoadedSeed(seed);
+    setCongregation(seed.defaultCongregation);
+    setMyCongregations([]);
+    setDonations(seed.donations);
+    setPledges(seed.pledges);
+    setQuestions(seed.questions);
+    setCourses(seed.courses);
+    setHolidays(seed.holidays);
+    setServices(seed.services);
+    setAgenda(seed.agenda);
+    setCategories(seed.categories);
+    setDayEntries(seed.dayEntries);
+    setReadCourses(seed.courses.filter((c) => c.featured).map((c) => c.id).slice(0, 1));
+    setCourseThemes(seed.themes);
+    setLive(null);
+    setMemberDates(seed.memberDates);
+    setMaasserInput(seed.tithe?.mode === 'wealth' ? { salary: 9000, school: 0, talmudTorah: 0, other: 0 } : { salary: seed.currency === '₪' ? 12000 : 2400, school: seed.currency === '₪' ? 2500 : 0, talmudTorah: seed.currency === '₪' ? 300 : 0, other: 0 });
+  }, [seed, loadedSeed]);
+
+  const [congregationId, setCongregation] = useState<string>(defaultCongregation);
   const [myCongregations, setMyCongregations] = useState<string[]>([]);
-  const [donations, setDonations] = useState<Donation[]>(initialDonations);
-  const [pledges, setPledges] = useState<Pledge[]>([...initialPledges, ...habadPledges]);
-  const [questions, setQuestions] = useState<Question[]>([...initialQuestions, ...habadQuestions]);
-  const [courses, setCourses] = useState<Course[]>([...initialCourses, ...habadCourses]);
-  const [holidays, setHolidays] = useState<Holiday[]>(tishreiHolidays);
-  const [services, setServices] = useState<DailyService[]>(initialServices);
-  const [agenda, setAgenda] = useState<AgendaEvent[]>([...agendaEvents, ...habadAgenda]);
-  const [categories, setCategories] = useState<DonationCategory[]>(initialCategories);
-  const [dayEntries, setDayEntries] = useState<DayEntry[]>([...initialDayEntries, ...habadDayEntries]);
-  const [readCourses, setReadCourses] = useState<string[]>(['souccot-refuge']);
-  const [courseThemes, setCourseThemes] = useState<string[]>(['Paracha', 'Fête', 'Halakha', 'Moussar', 'Michna']);
+  const [donations, setDonations] = useState<Donation[]>(seed.donations);
+  const [pledges, setPledges] = useState<Pledge[]>(seed.pledges);
+  const [questions, setQuestions] = useState<Question[]>(seed.questions);
+  const [courses, setCourses] = useState<Course[]>(seed.courses);
+  const [holidays, setHolidays] = useState<Holiday[]>(seed.holidays);
+  const [services, setServices] = useState<DailyService[]>(seed.services);
+  const [agenda, setAgenda] = useState<AgendaEvent[]>(seed.agenda);
+  const [categories, setCategories] = useState<DonationCategory[]>(seed.categories);
+  const [dayEntries, setDayEntries] = useState<DayEntry[]>(seed.dayEntries);
+  const [readCourses, setReadCourses] = useState<string[]>(seed.courses.filter((c) => c.featured).map((c) => c.id).slice(0, 1));
+  const [courseThemes, setCourseThemes] = useState<string[]>(seed.themes);
   const [live, setLive] = useState<LiveSession | null>(null);
-  const [memberDates, setMemberDates] = useState<MemberDate[]>(initialMemberDates);
-  const [maasserInput, setMaasserInput] = useState<MaasserInput>({ salary: 12000, school: 2500, talmudTorah: 300, other: 0 });
+  const [memberDates, setMemberDates] = useState<MemberDate[]>(seed.memberDates);
+  const [maasserInput, setMaasserInput] = useState<MaasserInput>(
+    seed.tithe?.mode === 'wealth' ? { salary: 9000, school: 0, talmudTorah: 0, other: 0 } : { salary: seed.currency === '₪' ? 12000 : 2400, school: seed.currency === '₪' ? 2500 : 0, talmudTorah: seed.currency === '₪' ? 300 : 0, other: 0 }
+  );
 
   const joinCongregation = useCallback((id: string) => {
     setMyCongregations((list) => (list.includes(id) ? list : [...list, id]));
@@ -265,7 +293,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         )
       );
     },
-    [congregationId]
+    [congregationId, findCongregation]
   );
 
   const markCourseRead = useCallback((id: string) => {
@@ -291,7 +319,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setCourses((list) => [course, ...list.map((c) => (ofCongregation(congregationId)(c) ? { ...c, featured: false } : c))]);
       return course;
     },
-    [congregationId]
+    [congregationId, findCongregation, ofCongregation]
   );
 
   const updateHolidayTime = useCallback((holidayId: string, index: number, value: string) => {
@@ -326,7 +354,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setPledges((list) => list.map((p) => (p.id === id ? { ...p, note } : p)));
   }, []);
 
-  // Le Rav marque un don comme acquitté : il passe dans « Réglés » et entre dans l'historique des dons.
+  // Le responsable marque un don comme acquitté : il passe dans « Réglés » et entre dans l'historique des dons.
   const settlePledge = useCallback((id: string) => {
     setPledges((list) => {
       const p = list.find((x) => x.id === id);
@@ -354,24 +382,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [congregationId]
   );
 
-  const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
-
   const addDayEntries = useCallback(
     (entries: { date: string; name: string; time: string }[]) => {
       setDayEntries((list) => {
-        const fresh = entries.filter((e) => !list.some((x) => x.date === e.date && x.name === e.name && (x.congregationId ?? DEFAULT_CONGREGATION) === congregationId));
+        const fresh = entries.filter((e) => !list.some((x) => x.date === e.date && x.name === e.name && (x.congregationId ?? defaultCongregation) === congregationId));
         return [...list, ...fresh.map((e) => ({ id: 'e' + seq++, congregationId, ...e }))];
       });
       return entries.length;
     },
-    [congregationId]
+    [congregationId, defaultCongregation]
   );
+
+  const removeDayEntry = useCallback((id: string) => setDayEntries((list) => list.filter((e) => e.id !== id)), []);
 
   const addTheme = useCallback((name: string) => {
     setCourseThemes((list) => (list.includes(name) ? list : [...list, name]));
   }, []);
 
-  // Le Rav rend une question-réponse publique, en l'anonymisant si demandé.
+  // Le responsable rend une question-réponse publique, en l'anonymisant si demandé.
   const publishQuestion = useCallback((id: string, anonymize: boolean) => {
     setQuestions((list) =>
       list.map((q) =>
@@ -388,9 +416,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const startLive = useCallback((title: string) => {
-    setLive({ title, startedAt: new Date().toISOString(), viewers: 0, notified: findCongregation(congregationId).members });
-  }, [congregationId]);
+  const startLive = useCallback(
+    (title: string) => {
+      setLive({ title, startedAt: new Date().toISOString(), viewers: 0, notified: findCongregation(congregationId).members });
+    },
+    [congregationId, findCongregation]
+  );
 
   const endLive = useCallback(() => setLive(null), []);
 
@@ -416,12 +447,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     const maasserGivenThisMonth = thisMonth.filter((d) => d.type === 'maasser').reduce((s, d) => s + d.amount, 0);
     const points = totalGiven + readCourses.length * 18 + questions.filter((q) => !q.anonymous).length * 5;
 
+    const levels = seed.gamification.levels;
     let levelIndex = 0;
-    for (let i = 0; i < soulLevels.length; i++) {
-      if (points >= soulLevels[i].min) levelIndex = i;
+    for (let i = 0; i < levels.length; i++) {
+      if (points >= levels[i].min) levelIndex = i;
     }
-    const level = soulLevels[levelIndex];
-    const nextLevel = soulLevels[levelIndex + 1] ?? null;
+    const level = levels[levelIndex];
+    const nextLevel = levels[levelIndex + 1] ?? null;
     const levelProgress = nextLevel ? (points - level.min) / (nextLevel.min - level.min) : 1;
 
     const months = new Set(donations.map((d) => d.date.slice(0, 7)));
@@ -433,7 +465,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
 
     return {
-      congregations,
+      seed,
+      members: seed.members,
+      congregations: seed.congregations,
       congregation: findCongregation(congregationId),
       congregationId,
       myCongregations,
@@ -497,6 +531,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeMemberDate,
     };
   }, [
+    seed,
+    ofCongregation,
+    findCongregation,
     congregationId,
     myCongregations,
     joinCongregation,

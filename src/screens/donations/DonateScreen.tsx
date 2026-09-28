@@ -9,26 +9,26 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Aura } from '../../components/Aura';
 import { Card, Chip, Muted, Button } from '../../components/ui';
-import { causes as baseCauses, quickAmounts, causeDetails } from '../../mocks/donations';
-const causes = Array.from(new Set([...causeDetails.map((x) => x.name), ...baseCauses]));
 import { money } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 
-const titles = {
-  tsedaka: { title: 'Donner la tsedaka', sub: 'Don ponctuel' },
-  maasser: { title: 'Verser mon maasser', sub: 'Dixième du mois' },
-  engagement: { title: 'Payer mon engagement', sub: 'Promesse de don' },
-};
 
 export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { type, pledgeId } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points } = useAppState();
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed } = useAppState();
+  const causes = seed.causes.map((x) => x.name);
+  const quickAmounts = seed.alms.amounts;
+  const titles = {
+    tsedaka: { title: seed.alms.title, sub: 'Don ponctuel' },
+    maasser: { title: `Verser ma ${(seed.tithe?.name ?? seed.alms.name).toLowerCase()}`, sub: seed.tithe ? seed.tithe.hint : 'Don libre' },
+    engagement: { title: 'Payer mon engagement', sub: 'Promesse de don' },
+  };
   const pledge = pledges.find((p) => p.id === pledgeId);
 
-  const [amount, setAmount] = useState<number>(route.params.amount ?? 18);
+  const [amount, setAmount] = useState<number>(route.params.amount ?? seed.alms.amounts[2] ?? 18);
   const [custom, setCustom] = useState('');
   const [cause, setCause] = useState(pledge ? pledge.label : route.params.cause ?? causes[0]);
   const [dedication, setDedication] = useState('');
@@ -57,7 +57,7 @@ export function DonateScreen({ route, navigation }: Props) {
           <Card style={{ marginTop: 24, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <MaterialCommunityIcons name="creation" size={28} color={c.secondary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>+{done} points d’ora</Text>
+              <Text style={{ color: c.text, fontWeight: '700' }}>+{done} points ({seed.gamification.name})</Text>
               <Muted>
                 {pointsBefore} → {points} · niveau {level.name}
                 {nextLevel ? ` · prochain : ${nextLevel.name} à ${nextLevel.min}` : ''}
@@ -68,16 +68,16 @@ export function DonateScreen({ route, navigation }: Props) {
             <Ionicons name="document-text" size={26} color={c.primary} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>Reçu fiscal généré automatiquement</Text>
-              <Muted>Seif 46 (Israël) ou Cerfa (France), à imprimer ou télécharger.</Muted>
+              <Muted>{seed.receiptFormats.includes('seif46') ? 'Seif 46 (Israël) ou Cerfa (France)' : 'Cerfa (France)'}, à imprimer ou télécharger.</Muted>
             </View>
             <Button
               label="Voir"
               variant="secondary"
-              onPress={() => navigation.navigate('Receipt', { format: 'seif46', year: new Date().getFullYear() })}
+              onPress={() => navigation.navigate('Receipt', { format: seed.receiptFormats[0], year: new Date().getFullYear() })}
               style={{ paddingVertical: 10, paddingHorizontal: 14 }}
             />
           </Card>
-          <Button label="Voir mon ora" icon="person-outline" onPress={() => navigation.navigate('MainTabs', { screen: 'AccountTab' })} style={{ alignSelf: 'stretch' }} />
+          <Button label={seed.gamification.ctaLabel} icon="person-outline" onPress={() => navigation.navigate('MainTabs', { screen: 'AccountTab' })} style={{ alignSelf: 'stretch' }} />
           <Button label="Fermer" variant="ghost" onPress={() => navigation.goBack()} style={{ alignSelf: 'stretch', marginTop: 10 }} />
         </ScrollView>
       </SafeAreaView>
@@ -109,7 +109,7 @@ export function DonateScreen({ route, navigation }: Props) {
               }}
               style={[styles.amount, { borderColor: amount === a && !custom ? c.primary : c.border, backgroundColor: amount === a && !custom ? c.primary : c.surface }]}
             >
-              <Text style={{ color: amount === a && !custom ? c.textOnPrimary : c.text, fontWeight: '800', fontSize: 16 }}>{a} ₪</Text>
+              <Text style={{ color: amount === a && !custom ? c.textOnPrimary : c.text, fontWeight: '800', fontSize: 16 }}>{a} {seed.currency}</Text>
             </Pressable>
           ))}
         </View>
@@ -121,7 +121,7 @@ export function DonateScreen({ route, navigation }: Props) {
             if (Number.isFinite(n) && n > 0) setAmount(n);
           }}
           keyboardType="number-pad"
-          placeholder="Autre montant en ₪"
+          placeholder={`Autre montant en ${seed.currency}`}
           placeholderTextColor={c.textMuted}
           style={[...inputStyle, { marginTop: 10 }]}
         />
@@ -141,7 +141,7 @@ export function DonateScreen({ route, navigation }: Props) {
         <TextInput
           value={dedication}
           onChangeText={setDedication}
-          placeholder="Leilouy nichmat… / Refoua chelema pour…"
+          placeholder="En mémoire de… / Pour la guérison de…"
           placeholderTextColor={c.textMuted}
           style={inputStyle}
         />

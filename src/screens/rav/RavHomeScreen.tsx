@@ -20,26 +20,26 @@ export function RavHomeScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { signOut, switchRole } = useAuth();
-  const { myQuestions: questions, myCourses: courses, myPledges: pledges, myAgenda: agenda, joinCongregation, myMemberDates, live, congregation } = useAppState();
+  const { myQuestions: questions, myCourses: courses, myPledges: pledges, myAgenda: agenda, joinCongregation, myMemberDates, live, congregation, seed, congregationId } = useAppState();
   const soonDates = myMemberDates.filter((d) => daysUntil(d) <= 7).length;
-  const datesSub = soonDates ? `${soonDates} date${soonDates > 1 ? 's' : ''} cette semaine : anniversaires, azkarot` : 'Anniversaires et azkarot de vos fidèles';
+  const datesSub = soonDates ? `${soonDates} date${soonDates > 1 ? 's' : ''} cette semaine` : `Anniversaires et souvenirs de vos ${seed.memberLabel}s`;
   const pending = questions.filter((q) => q.status === 'pending').length;
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
   const hebrew = hebrewDateLabel();
 
   const tiles: { key: keyof RavStackParamList; icon: IoniconName; title: string; sub: string; badge?: number; color: string }[] = [
-    { key: 'RavDvarTorah', icon: 'create', title: 'Partager un dvar Torah', sub: `${courses.length} partagés · texte, vidéo, photo ou audio`, color: c.primary },
+    { key: 'RavDvarTorah', icon: 'create', title: seed.teachingShareTitle, sub: `${courses.length} partagés · texte, vidéo, photo ou audio`, color: c.primary },
     { key: 'RavAnswers', icon: 'chatbubbles', title: 'Répondre aux questions', sub: pending ? `${pending} question${pending > 1 ? 's' : ''} sans réponse` : 'Toutes les questions ont une réponse', badge: pending, color: '#B45309' },
-    { key: 'RavSchedule', icon: 'time', title: 'Horaires des fêtes et offices', sub: 'Calendrier : ajoutez des horaires jour par jour', color: '#0F766E' },
+    { key: 'RavSchedule', icon: 'time', title: seed.scheduleTitle, sub: 'Calendrier : ajoutez des horaires jour par jour', color: '#0F766E' },
     { key: 'RavAgenda', icon: 'calendar', title: 'Agenda de la communauté', sub: `${upcoming} événements à venir`, color: '#7C3AED' },
-    { key: 'RavDates', icon: 'calendar-number', title: 'Dates des fidèles', sub: datesSub, badge: soonDates, color: '#DB2777' },
+    { key: 'RavDates', icon: 'calendar-number', title: seed.memberDatesTitle, sub: datesSub, badge: soonDates, color: '#DB2777' },
     { key: 'RavDons', icon: 'cash', title: 'Dons', sub: due ? `Enregistrer un don · ${due} don${due > 1 ? 's' : ''} à récupérer` : 'Enregistrer un don · rien à récupérer', badge: due, color: '#BE123C' },
   ];
 
   return (
     <RavScreen
-      title="Bonjour Rav"
+      title={`Bonjour ${seed.leaderShort}`}
       subtitle={`${capitalize(formatLong(todayISO()))}${hebrew ? ` · ${hebrew}` : ''}`}
       right={<Avatar source={rav.photo} name={rav.name} size={54} ring />}
     >
@@ -83,8 +83,8 @@ export function RavHomeScreen({ navigation }: Props) {
       </View>
 
       <View style={{ marginTop: 20, gap: 12 }}>
-        <BigButton label="Voir l’application comme un fidèle" icon="eye" color={c.primaryLight} textColor={c.primary} onPress={() => {
-            joinCongregation('sefarade');
+        <BigButton label={`Voir l’application comme un ${seed.memberLabel}`} icon="eye" color={c.primaryLight} textColor={c.primary} onPress={() => {
+            joinCongregation(congregationId);
             switchRole('member');
           }} />
         <BigButton label="Quitter la démo" icon="log-out-outline" color={c.surface} textColor={c.textMuted} onPress={signOut} style={{ borderWidth: 1, borderColor: c.border }} />

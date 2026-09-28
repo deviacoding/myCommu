@@ -13,7 +13,7 @@ type Props = NativeStackScreenProps<RavStackParamList, 'RavDons'>;
 export function RavDonsScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myPledges: pledges, donations, categories } = useAppState();
+  const { myPledges: pledges, donations, categories, seed } = useAppState();
   const due = pledges.filter((p) => p.status === 'due');
   const dueTotal = due.reduce((s, p) => s + p.amount, 0);
   const month = todayISO().slice(0, 7);
@@ -31,7 +31,7 @@ export function RavDonsScreen({ navigation }: Props) {
         <View style={{ flex: 1 }}>
           <Text style={styles.bigTxt}>1. Enregistrer un nouveau don</Text>
           <Text style={styles.bigSub}>
-            Attribuer une montée, un kiddouch ou une nédava à un fidèle. {categories.length} catégories, {items} types de dons préremplis.
+            Attribuer un don à un {seed.memberLabel}. {categories.length} catégories, {items} types de dons préremplis.
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={30} color="#fff" />

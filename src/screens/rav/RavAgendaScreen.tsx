@@ -26,7 +26,7 @@ export function RavAgendaScreen({ navigation }: Props) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [place, setPlace] = useState('Synagogue');
+  const [place, setPlace] = useState('');
   const [category, setCategory] = useState<AgendaCategory>('communaute');
   const [description, setDescription] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export function RavAgendaScreen({ navigation }: Props) {
   const upcoming = agenda.filter((e) => e.date >= todayISO());
 
   const submit = () => {
-    addEvent({ title: title.trim(), date, time: time.replace('h', ':'), place: place.trim() || 'Synagogue', category, description: description.trim() || undefined, poster: poster ?? undefined });
+    addEvent({ title: title.trim(), date, time: time.replace('h', ':'), place: place.trim() || 'Sur place', category, description: description.trim() || undefined, poster: poster ?? undefined });
     setPoster(null);
     setAdded(title.trim());
     setTitle('');
@@ -64,7 +64,7 @@ export function RavAgendaScreen({ navigation }: Props) {
       <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800' }}>Ajouter un événement</Text>
 
       <BigLabel>Quoi ?</BigLabel>
-      <BigInput value={title} onChangeText={setTitle} placeholder="Ex. : Cours du Rav, Sim’hat Beth Hachoéva…" />
+      <BigInput value={title} onChangeText={setTitle} placeholder="Ex. : Cours, repas communautaire…" />
 
       <BigLabel hint="Année-mois-jour, exemple 2026-10-15">Quel jour ?</BigLabel>
       <BigInput value={date} onChangeText={setDate} placeholder="2026-10-15" />
@@ -74,7 +74,7 @@ export function RavAgendaScreen({ navigation }: Props) {
       <BigInput value={time} onChangeText={setTime} placeholder="20:30" />
 
       <BigLabel>Où ?</BigLabel>
-      <BigInput value={place} onChangeText={setPlace} placeholder="Synagogue, salle des fêtes…" />
+      <BigInput value={place} onChangeText={setPlace} placeholder="Lieu, salle…" />
 
       <BigLabel>Type</BigLabel>
       <BigChoice options={categories} value={category} onChange={setCategory} />
@@ -83,7 +83,7 @@ export function RavAgendaScreen({ navigation }: Props) {
       <BigInput value={description} onChangeText={setDescription} multiline style={{ minHeight: 110 }} placeholder="Apportez un plat à partager…" />
       <AiAssist text={description} onAccept={setDescription} label="Corriger avec ChatGPT" />
 
-      <BigLabel hint="Facultatif : l’affiche s’affiche en grand dans l’agenda des fidèles.">Charger l’affiche de l’événement</BigLabel>
+      <BigLabel hint="Facultatif : l’affiche s’affiche en grand dans l’agenda de la communauté.">Charger l’affiche de l’événement</BigLabel>
       {poster ? (
         <RavCard style={{ padding: 0, overflow: 'hidden', borderColor: c.success, borderWidth: 2 }}>
           <View style={{ backgroundColor: poster.color, height: 140, alignItems: 'center', justifyContent: 'center' }}>
@@ -119,7 +119,7 @@ export function RavAgendaScreen({ navigation }: Props) {
       {added ? (
         <View style={[styles.ok, { backgroundColor: c.success + '22' }]}>
           <Ionicons name="checkmark-circle" size={24} color={c.success} />
-          <Text style={{ color: c.success, fontSize: BIG.small, fontWeight: '800', flex: 1 }}>« {added} » ajouté. Les fidèles le voient dans leur agenda.</Text>
+          <Text style={{ color: c.success, fontSize: BIG.small, fontWeight: '800', flex: 1 }}>« {added} » ajouté. Il apparaît dans l’agenda de la communauté.</Text>
         </View>
       ) : null}
 

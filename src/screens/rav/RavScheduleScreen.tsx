@@ -6,13 +6,14 @@ import { RavStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { RavScreen, BigInput, BigButton, RavCard, BIG } from './RavUi';
-import { capitalize, formatLong, hebrewDateLabel, parseISODate, todayISO } from '../../utils/time';
-import { simulateCalJ } from '../../utils/calj';
+import { capitalize, formatLong, parseISODate, todayISO } from '../../utils/time';
+import { simulateScheduleImport } from '../../utils/calj';
+import { useTheme as useThemeCtx } from '../../theme/ThemeProvider';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavSchedule'>;
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-const QUICK_NAMES = ['Allumage', 'Sortie de Chabbat', 'Chaharit', 'Minha', 'Arvit', 'Cours du Rav', 'Kiddouch', 'Séli’hot'];
+const QUICK_NAMES_FALLBACK = ['Office', 'Cours'];
 
 function monthLabel(y: number, m: number): string {
   return capitalize(new Date(y, m, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
@@ -25,7 +26,8 @@ function isoOf(y: number, m: number, d: number): string {
 export function RavScheduleScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myDayEntries: dayEntries, addDayEntry, addDayEntries, removeDayEntry } = useAppState();
+  const { myDayEntries: dayEntries, addDayEntry, addDayEntries, removeDayEntry, seed } = useAppState();
+  const { community } = useThemeCtx();
   const [calj, setCalj] = useState<'idle' | 'locating' | 'fetching' | 'done'>('idle');
   const [caljResult, setCaljResult] = useState<{ place: string; coords: string; count: number } | null>(null);
 
@@ -34,7 +36,7 @@ export function RavScheduleScreen({ navigation }: Props) {
     setTimeout(() => {
       setCalj('fetching');
       setTimeout(() => {
-        const r = simulateCalJ(4);
+        const r = simulateScheduleImport(community);
         const count = addDayEntries(r.entries);
         setCaljResult({ place: r.place, coords: r.coords, count });
         setCalj('done');
@@ -94,26 +96,26 @@ export function RavScheduleScreen({ navigation }: Props) {
   };
 
   const selDate = parseISODate(selected);
-  const hebrew = hebrewDateLabel(selDate);
+  const religious = seed.religiousDate(selDate);
 
   return (
-    <RavScreen title="Horaires" subtitle="Touchez un jour, puis ajoutez un horaire" onBack={() => navigation.goBack()}>
+    <RavScreen title={seed.scheduleTitle} subtitle="Touchez un jour, puis ajoutez un horaire" onBack={() => navigation.goBack()}>
       {/* CalJ */}
       <RavCard style={{ borderColor: c.primary, borderWidth: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Ionicons name="location" size={30} color={c.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800' }}>Horaires automatiques avec CalJ</Text>
+            <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800' }}>Horaires automatiques avec {seed.scheduleSource}</Text>
             <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>
-              {calj === 'idle' ? 'Allumage, sortie de Chabbat, Minha : récupérés pour votre ville, sans rien taper.' : null}
+              {calj === 'idle' ? 'Horaires récupérés pour votre ville, sans rien taper.' : null}
               {calj === 'locating' ? 'Géolocalisation en cours…' : null}
-              {calj === 'fetching' ? 'Connexion à CalJ, calcul des horaires…' : null}
-              {calj === 'done' && caljResult ? `${caljResult.count} horaires importés pour ${caljResult.place} (${caljResult.coords}) pour les 4 prochains Chabbat.` : null}
+              {calj === 'fetching' ? `Connexion à ${seed.scheduleSource}, calcul des horaires…` : null}
+              {calj === 'done' && caljResult ? `${caljResult.count} horaires importés pour ${caljResult.place} (${caljResult.coords}).` : null}
             </Text>
           </View>
         </View>
         <BigButton
-          label={calj === 'idle' ? 'Récupérer les horaires depuis CalJ en me géolocalisant' : calj === 'done' ? 'Horaires importés · relancer' : 'Patientez…'}
+          label={calj === 'idle' ? seed.scheduleFetchLabel : calj === 'done' ? 'Horaires importés · relancer' : 'Patientez…'}
           icon={calj === 'done' ? 'checkmark-circle' : 'navigate'}
           disabled={calj === 'locating' || calj === 'fetching'}
           color={calj === 'done' ? c.success : c.primary}
@@ -135,7 +137,7 @@ export function RavScheduleScreen({ navigation }: Props) {
         </View>
         <View style={styles.week}>
           {WEEKDAYS.map((d) => (
-            <Text key={d} style={[styles.weekday, { color: d === 'Sam' ? c.primary : c.textMuted }]}>
+            <Text key={d} style={[styles.weekday, { color: WEEKDAYS.indexOf(d) === (seed.serviceSecondColumnDay + 6) % 7 ? c.primary : c.textMuted }]}>
               {d}
             </Text>
           ))}
@@ -146,7 +148,7 @@ export function RavScheduleScreen({ navigation }: Props) {
             const d = parseISODate(iso);
             const isSel = iso === selected;
             const isToday = iso === today;
-            const isShabbat = d.getDay() === 6;
+            const isShabbat = d.getDay() === seed.serviceSecondColumnDay;
             const count = countByDate[iso] ?? 0;
             return (
               <Pressable
@@ -170,7 +172,7 @@ export function RavScheduleScreen({ navigation }: Props) {
           })}
         </View>
         <View style={{ flexDirection: 'row', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
-          <Legend color={c.primaryLight} label="Chabbat" border={c.border} />
+          <Legend color={c.primaryLight} label={seed.serviceColumns[1]} border={c.border} />
           <Legend color="transparent" label="Aujourd’hui" border={c.secondary} />
           <Legend color={c.primary} label="Jour choisi" border={c.primary} />
         </View>
@@ -178,7 +180,7 @@ export function RavScheduleScreen({ navigation }: Props) {
 
       {/* Jour sélectionné */}
       <Text style={{ color: c.text, fontSize: 24, fontWeight: '900', marginTop: 8 }}>{capitalize(formatLong(selected))}</Text>
-      {hebrew ? <Text style={{ color: c.textMuted, fontSize: BIG.small }}>{hebrew}</Text> : null}
+      {religious ? <Text style={{ color: c.textMuted, fontSize: BIG.small }}>{religious}</Text> : null}
 
       <RavCard style={{ marginTop: 12 }}>
         {dayItems.length === 0 ? (
@@ -198,7 +200,7 @@ export function RavScheduleScreen({ navigation }: Props) {
       {/* Ajouter */}
       <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginTop: 8, marginBottom: 8 }}>Ajouter un horaire ce jour</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-        {QUICK_NAMES.map((q) => (
+        {(seed.scheduleQuickNames ?? QUICK_NAMES_FALLBACK).map((q) => (
           <Pressable key={q} onPress={() => setName(q)} style={[styles.chip, { backgroundColor: name === q ? c.primary : c.surface, borderColor: name === q ? c.primary : c.border }]}>
             <Text style={{ color: name === q ? c.textOnPrimary : c.text, fontSize: 16, fontWeight: '700' }}>{q}</Text>
           </Pressable>
@@ -213,7 +215,7 @@ export function RavScheduleScreen({ navigation }: Props) {
       {added ? (
         <View style={[styles.ok, { backgroundColor: c.success + '22' }]}>
           <Ionicons name="checkmark-circle" size={24} color={c.success} />
-          <Text style={{ color: c.success, fontSize: BIG.small, fontWeight: '800', flex: 1 }}>{added} ajouté. Les fidèles le voient dans leurs horaires.</Text>
+          <Text style={{ color: c.success, fontSize: BIG.small, fontWeight: '800', flex: 1 }}>{added} ajouté. La communauté le voit dans ses horaires.</Text>
         </View>
       ) : null}
     </RavScreen>

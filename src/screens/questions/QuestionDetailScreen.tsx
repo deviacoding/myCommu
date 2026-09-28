@@ -16,7 +16,7 @@ type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
 export function QuestionDetailScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { questions, congregation } = useAppState();
+  const { questions, congregation, seed } = useAppState();
   const rav = congregation.rav;
   const q = questions.find((x) => x.id === route.params.questionId);
   if (!q) return null;
@@ -62,7 +62,7 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
         {q.status === 'pending' ? (
           <Card style={{ alignItems: 'center', gap: 6 }}>
             <Avatar source={rav.photo} name={rav.name} size={48} />
-            <Text style={{ color: c.text, fontWeight: '700', marginTop: 4 }}>Le Rav n’a pas encore répondu</Text>
+            <Text style={{ color: c.text, fontWeight: '700', marginTop: 4 }}>{rav.name} n’a pas encore répondu</Text>
             <Muted style={{ textAlign: 'center' }}>Vous recevrez une notification dès que la réponse sera publiée.</Muted>
           </Card>
         ) : (

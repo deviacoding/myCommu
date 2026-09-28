@@ -7,10 +7,11 @@ interface AuraProps {
   levelIndex: number; // 0..4
   progress: number; // 0..1 vers le niveau suivant
   size?: number;
+  icon?: string; // MaterialCommunityIcons, selon la confession
 }
 
 // L'ora : des cercles concentriques qui grandissent et s'intensifient avec le niveau.
-export function Aura({ levelIndex, progress, size = 220 }: AuraProps) {
+export function Aura({ levelIndex, progress, size = 220, icon = 'star-david' }: AuraProps) {
   const { theme } = useTheme();
   const pulse = useRef(new Animated.Value(0)).current;
 
@@ -72,7 +73,7 @@ export function Aura({ levelIndex, progress, size = 220 }: AuraProps) {
           },
         ]}
       >
-        <MaterialCommunityIcons name="star-david" size={coreSize * 0.45} color={gold} />
+        <MaterialCommunityIcons name={icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={coreSize * 0.45} color={gold} />
       </Animated.View>
     </View>
   );

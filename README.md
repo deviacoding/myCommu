@@ -6,7 +6,7 @@ Application mobile React Native (Expo + TypeScript) pour communautés religieuse
 
 **Maquette frontend uniquement** — toutes les données sont dans `src/mocks/`. Pas de backend, pas de paiement réel, connexion simulée.
 
-Seuls les contenus de la **communauté juive** sont réalisés pour l'instant (exemple de référence). Les autres communautés changent le thème mais affichent les mêmes contenus.
+Quatre confessions sont réalisées avec leurs propres contenus, vocabulaire, calendrier, dons et gamification : **juive**, **musulmane**, **chrétienne**, **bouddhiste**. Chaque confession est un « seed » (`src/seeds/*.ts`) chargé par `AppStateProvider` ; les écrans sont communs et lisent leurs libellés dans le seed.
 
 ## Stack
 
@@ -64,7 +64,7 @@ src/
 
 ## Monnaie
 
-Tous les montants sont en shekels (₪), constante `CURRENCY` dans `src/utils/time.ts`.
+La monnaie dépend de la confession (₪ pour la démo juive, € pour les autres), champ `currency` du seed appliqué par `setCurrency()` dans `src/utils/time.ts`.
 
 ## Horaires
 
@@ -72,7 +72,21 @@ Les horaires de Tichri 5787 (sept.–oct. 2026) sont indicatifs pour Paris. La d
 
 ## Multi-confessions
 
-Quatre confessions sont prévues : juive (démo complète), musulmane, chrétienne, bouddhiste. Le vocabulaire et les particularités de chacune sont dans `src/config/religions.ts`. Le modèle de base de données et le plan de déclinaison (imam, prêtre, enseignant bouddhiste) sont dans **`docs/MULTI-CONFESSIONS.md`**.
+Les quatre confessions sont jouables dans la démo (accès responsable et accès fidèle). Correspondances principales :
+
+| | Juif | Musulman | Chrétien | Bouddhiste |
+| --- | --- | --- | --- | --- |
+| Responsable | Rav | Imam | Père / Pasteur | Vénérable / Enseignant |
+| Enseignement | Dvar Torah | Khutba | Homélie | Enseignement du Dharma |
+| Part régulière | Maasser 10 % du revenu | Zakat 2,5 % de l'épargne au-delà du nisab | Dîme 10 % (repère, non obligatoire) | aucune (dana libre) |
+| Aumône | Tsedaka (18, 26 ₪…) | Sadaqa | Aumône (obole) | Dana (108) |
+| Horaires | CalJ, Chabbat, fêtes de Tichri | Aladhan, cinq prières, Jumu'a, Ramadan | calendrier liturgique, messes, Toussaint, Avent | calendrier lunaire, uposatha, Pavāraṇā, Kathina |
+| Date religieuse | hébraïque | hégirienne | liturgique | lunaire |
+| Dates des fidèles | anniversaires, azkarot | anniversaires, décès, aqiqa, nikah | anniversaires, décès, baptêmes, mariages | anniversaires, décès (49e jour), refuge |
+| Gamification | Ora (5 niveaux de l'âme) | Nur (niyya → taqwa) | Flamme (graine de sénevé → bon serviteur) | Pāramitās (dāna → paññā) |
+| Reçu fiscal | Seif 46 + Cerfa | Cerfa | Cerfa | Cerfa |
+
+Tous les contenus (khutbas, homélies, enseignements, questions-réponses) citent leurs sources (Coran, hadiths, Évangiles, Catéchisme, suttas). Le vocabulaire et les particularités de chacune sont dans `src/config/religions.ts`. Le modèle de base de données et le plan de déclinaison (imam, prêtre, enseignant bouddhiste) sont dans **`docs/MULTI-CONFESSIONS.md`**.
 
 ## Prochaines étapes
 

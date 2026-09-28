@@ -95,7 +95,7 @@ export interface QaMessage {
   date: string;
 }
 
-export type QuestionCategory = 'Fêtes' | 'Cacherout' | 'Chabbat' | 'Tsedaka' | 'Deuil' | 'Famille' | 'Autre';
+export type QuestionCategory = string; // catégories propres à chaque confession (voir seeds)
 
 export interface Question {
   id: string;

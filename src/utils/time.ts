@@ -48,7 +48,12 @@ export function eurosLegacy(n: number): string {
   return `${n.toLocaleString('fr-FR')} €`;
 }
 
-export const CURRENCY = '₪';
+// Monnaie de la confession courante (₪ pour la démo juive, € pour les autres). Mise à jour par AppStateProvider.
+export let CURRENCY = '₪';
+
+export function setCurrency(symbol: string) {
+  CURRENCY = symbol;
+}
 
 export function money(n: number): string {
   return `${n.toLocaleString('fr-FR')} ${CURRENCY}`;

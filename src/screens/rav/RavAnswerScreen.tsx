@@ -7,18 +7,18 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
 import { AiAssist } from '../../components/AiAssist';
-import { rav } from '../../mocks/rav';
 import { RavScreen, BigLabel, BigInput, BigButton, Done, RavCard, BIG } from './RavUi';
 import { capitalize, formatLong } from '../../utils/time';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavAnswer'>;
 
-const sourceShortcuts = ['Choulhan Aroukh, Orah Haïm', 'Choulhan Aroukh, Yoré Déa', 'Michna Beroura', 'Rama', 'Rambam, Michné Torah', 'Igrot Moché', 'Yalkout Yossef', 'Ben Ich Haï'];
 
 export function RavAnswerScreen({ navigation, route }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { questions, answerQuestion, publishQuestion } = useAppState();
+  const { questions, answerQuestion, publishQuestion, seed, congregation } = useAppState();
+  const sourceShortcuts = seed.sourceShortcuts;
+  const rav = congregation.rav;
   const q = questions.find((x) => x.id === route.params.questionId);
   const [text, setText] = useState('');
   const [sources, setSources] = useState<string[]>([]);
@@ -92,7 +92,7 @@ export function RavAnswerScreen({ navigation, route }: Props) {
         })}
       </View>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, alignItems: 'center' }}>
-        <BigInput value={customSource} onChangeText={setCustomSource} placeholder="Autre source, ex. : Souccah 11b" style={{ flex: 1 }} />
+        <BigInput value={customSource} onChangeText={setCustomSource} placeholder="Autre source" style={{ flex: 1 }} />
         <BigButton label="Ajouter" onPress={addCustom} color={c.primaryLight} textColor={c.primary} style={{ paddingHorizontal: 18 }} />
       </View>
 
@@ -101,7 +101,7 @@ export function RavAnswerScreen({ navigation, route }: Props) {
           <Ionicons name={makePublic ? 'earth' : 'lock-closed'} size={28} color={c.primary} />
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800' }}>Anonymiser et rendre cette question-réponse publique</Text>
-            <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>Toute la communauté profite de la réponse, sans le nom du fidèle.</Text>
+            <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>Toute la communauté profite de la réponse, sans le nom du {seed.memberLabel}.</Text>
           </View>
           <Switch value={makePublic} onValueChange={setMakePublic} trackColor={{ true: c.primary }} />
         </View>
