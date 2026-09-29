@@ -14,6 +14,7 @@ import {
   MediaAttachment,
   MemberDate,
   MemberDateType,
+  StaffMember,
   Pledge,
   Question,
   QuestionCategory,
@@ -73,6 +74,25 @@ export interface NewEventInput {
   poster?: AgendaEvent['poster'];
 }
 
+export interface NewStaffInput {
+  name: string;
+  contact: string;
+  role: StaffMember['role'];
+}
+
+export interface NewCongregationInput {
+  name: string;
+  rite: string;
+  leaderName: string;
+  leaderTitle: string;
+  leaderPhoto?: string; // uri
+  logo?: string; // uri
+  address: string;
+  city: string;
+  coords?: { lat: number; lng: number };
+  isPrivate: boolean;
+}
+
 export interface NewPledgeInput {
   member: string;
   category?: string;
@@ -93,6 +113,10 @@ interface AppStateValue {
   setCongregation: (id: string) => void;
   joinCongregation: (id: string) => void;
   leaveCongregation: (id: string) => void;
+  createCongregation: (input: NewCongregationInput) => Congregation;
+  myStaff: StaffMember[];
+  addStaff: (input: NewStaffInput) => StaffMember;
+  removeStaff: (id: string) => void;
   // Données brutes (toutes communautés)
   donations: Donation[];
   pledges: Pledge[];
@@ -182,7 +206,19 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     (id: string) => (item: { congregationId?: string }) => (item.congregationId ?? defaultCongregation) === id,
     [defaultCongregation]
   );
-  const findCongregation = useCallback((id: string) => seed.congregations.find((c) => c.id === id) ?? seed.congregations[0], [seed]);
+  // Communautés créées dans l'application par un responsable, en plus de celles de la démo.
+  const [createdCongregations, setCreatedCongregations] = useState<Congregation[]>([]);
+  // Équipe de démo de la communauté principale : un trésorier et un organisateur déjà actifs.
+  const demoStaff = useCallback(
+    (s: ReligionSeed): StaffMember[] => [
+      { id: 'st1', name: s.members[2]?.name ?? 'Trésorier', contact: '+33 6 11 22 33 44', role: 'treasurer', code: 'TR-4821', status: 'active' },
+      { id: 'st2', name: s.members[5]?.name ?? 'Organisateur', contact: 'organisation@mycommu.app', role: 'organizer', code: 'OR-3317', status: 'active' },
+    ],
+    []
+  );
+  const [staff, setStaff] = useState<StaffMember[]>(() => demoStaff(seed));
+  const allCongregations = useMemo(() => [...createdCongregations, ...seed.congregations], [createdCongregations, seed]);
+  const findCongregation = useCallback((id: string) => allCongregations.find((c) => c.id === id) ?? allCongregations[0], [allCongregations]);
 
   // Changement de confession : on recharge toutes les données du nouveau seed sans remonter la navigation.
   const [loadedSeed, setLoadedSeed] = useState(seed);
@@ -192,6 +228,8 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     setLoadedSeed(seed);
     setCongregation(seed.defaultCongregation);
     setMyCongregations([]);
+    setCreatedCongregations([]);
+    setStaff(demoStaff(seed));
     setDonations(seed.donations);
     setPledges(seed.pledges);
     setQuestions(seed.questions);
@@ -231,6 +269,40 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     setMyCongregations((list) => (list.includes(id) ? list : [...list, id]));
     setCongregation(id);
   }, []);
+
+  const createCongregation = useCallback((input: NewCongregationInput) => {
+    const prefix = input.name.replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 2).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') || 'CM';
+    const k: Congregation = {
+      id: 'k' + seq++,
+      name: input.name,
+      rite: input.rite,
+      city: input.city,
+      address: input.address,
+      distance: 'ici',
+      code: `${prefix}-${String(1000 + Math.floor(Math.random() * 9000))}`,
+      members: 1,
+      rav: { name: input.leaderName, title: input.leaderTitle, photo: input.leaderPhoto ? { uri: input.leaderPhoto } : undefined },
+      logo: input.logo ? { uri: input.logo } : undefined,
+      coords: input.coords,
+      isPrivate: input.isPrivate,
+      createdByMe: true,
+    };
+    setCreatedCongregations((list) => [k, ...list]);
+    setCongregation(k.id);
+    return k;
+  }, []);
+
+  const addStaff = useCallback(
+    (input: NewStaffInput) => {
+      const prefix = { deputy: 'RB', treasurer: 'TR', organizer: 'OR' }[input.role];
+      const s: StaffMember = { id: 'st' + seq++, congregationId, ...input, code: `${prefix}-${1000 + Math.floor(Math.random() * 9000)}`, status: 'invited' };
+      setStaff((list) => [...list, s]);
+      return s;
+    },
+    [congregationId]
+  );
+
+  const removeStaff = useCallback((id: string) => setStaff((list) => list.filter((s) => s.id !== id)), []);
 
   const leaveCongregation = useCallback(
     (id: string) => {
@@ -467,13 +539,17 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     return {
       seed,
       members: seed.members,
-      congregations: seed.congregations,
+      congregations: allCongregations,
       congregation: findCongregation(congregationId),
       congregationId,
       myCongregations,
       setCongregation,
       joinCongregation,
       leaveCongregation,
+      createCongregation,
+      myStaff: staff.filter(mine),
+      addStaff,
+      removeStaff,
       donations,
       pledges,
       questions,
@@ -538,6 +614,11 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     myCongregations,
     joinCongregation,
     leaveCongregation,
+    createCongregation,
+    allCongregations,
+    staff,
+    addStaff,
+    removeStaff,
     donations,
     pledges,
     questions,

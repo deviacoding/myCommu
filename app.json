@@ -25,6 +25,21 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "myCommu accède à vos photos pour ajouter la photo du responsable et le logo de la communauté.",
+          "cameraPermission": "myCommu utilise l’appareil photo pour photographier le responsable ou le logo."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "myCommu utilise votre position pour placer votre communauté sur la carte et la proposer aux fidèles proches."
+        }
+      ]
+    ]
   }
 }

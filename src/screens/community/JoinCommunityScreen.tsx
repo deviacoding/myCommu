@@ -127,7 +127,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
               <Ionicons name="location" size={18} color={c.primary} />
               <Muted>Communautés près de {user.city ?? 'vous'}, de la plus proche à la plus éloignée</Muted>
             </View>
-            {congregations.map((k) => {
+            {congregations.filter((k) => !k.isPrivate).map((k) => {
               const isMember = myCongregations.includes(k.id);
               return (
                 <Card key={k.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

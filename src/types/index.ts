@@ -178,6 +178,10 @@ export interface Congregation {
   code: string;
   members: number;
   rav: { name: string; title: string; photo?: ImageSourcePropType };
+  logo?: ImageSourcePropType;
+  coords?: { lat: number; lng: number };
+  createdByMe?: boolean;
+  isPrivate?: boolean; // privée : absente de « Autour de moi », rejointe seulement par code ou QR code
 }
 
 export type MemberDateType = 'anniversaire' | 'azkara' | 'autre';
@@ -192,6 +196,16 @@ export interface MemberDate {
   date: string; // ISO (grégorien)
   hebrewDate?: string;
   note?: string;
+}
+
+export interface StaffMember {
+  id: string;
+  congregationId?: string;
+  name: string;
+  contact: string;
+  role: 'deputy' | 'treasurer' | 'organizer';
+  code: string; // code d'accès personnel
+  status: 'invited' | 'active';
 }
 
 export interface LiveSession {

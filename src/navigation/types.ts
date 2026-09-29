@@ -9,6 +9,7 @@ export type AuthStackParamList = {
 };
 
 export type RavStackParamList = {
+  RavStart: undefined;
   RavHome: undefined;
   RavDvarTorah: undefined;
   RavAnswers: undefined;
@@ -19,6 +20,9 @@ export type RavStackParamList = {
   RavRecordDonation: undefined;
   RavCollect: undefined;
   RavLive: undefined;
+  RavCreateCommunity: undefined;
+  RavShareQr: undefined;
+  RavTeam: undefined;
   RavDates: undefined;
 };
 

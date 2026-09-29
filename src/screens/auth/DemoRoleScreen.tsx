@@ -89,6 +89,20 @@ export function DemoRoleScreen({ navigation, route }: Props) {
           <Ionicons name="chevron-forward" size={28} color={c.primary} />
         </Pressable>
 
+        <Pressable
+          onPress={() => enterDemo(community, 'treasurer')}
+          style={({ pressed }) => [styles.big, { backgroundColor: c.surface, borderWidth: 2, borderColor: '#BE123C', opacity: pressed ? 0.85 : 1 }]}
+        >
+          <View style={[styles.bigIcon, { backgroundColor: '#BE123C1A' }]}>
+            <Ionicons name="cash" size={34} color="#BE123C" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.bigTxt, { color: '#BE123C' }]}>Accès trésorier</Text>
+            <Text style={[styles.bigSub, { color: c.textMuted, opacity: 1 }]}>Ne voit que la partie dons : enregistrer, suivre et récupérer les dons</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={28} color="#BE123C" />
+        </Pressable>
+
         <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', marginTop: 10 }}>
           Démo : les données sont fictives et remises à zéro à chaque rechargement.
         </Text>

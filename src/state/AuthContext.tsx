@@ -3,8 +3,8 @@ import { CommunityId, UserProfile } from '../types';
 import { useTheme } from '../theme/ThemeProvider';
 import { getSeed } from '../seeds';
 
-export type AccessMode = 'none' | 'member' | 'rav';
-export type DemoRole = 'member' | 'rav';
+export type AccessMode = 'none' | 'member' | 'rav' | 'treasurer';
+export type DemoRole = 'member' | 'rav' | 'treasurer';
 
 interface AuthValue {
   mode: AccessMode;
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(getSeed(id).user);
       setCommunity(id);
       // Un fidèle qui arrive commence par rejoindre une communauté ; le responsable a déjà la sienne.
-      setOnboarded(role === 'rav');
+      setOnboarded(role !== 'member');
       setMode(role);
     },
     [setCommunity]

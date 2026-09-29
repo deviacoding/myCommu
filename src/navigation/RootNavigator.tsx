@@ -9,7 +9,7 @@ export function RootNavigator() {
   const { mode } = useAuth();
   return (
     <NavigationContainer>
-      {mode === 'rav' ? <RavStack /> : mode === 'member' ? <AppStack /> : <AuthStack />}
+      {mode === 'rav' || mode === 'treasurer' ? <RavStack /> : mode === 'member' ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }
