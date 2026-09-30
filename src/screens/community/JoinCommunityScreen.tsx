@@ -8,7 +8,8 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../state/AuthContext';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
-import { Card, Button, Segmented, Muted } from '../../components/ui';
+import { Card, Button, Segmented, Muted, Chip } from '../../components/ui';
+import { useI18n } from '../../i18n';
 import { Congregation } from '../../types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'JoinCommunity'>;
@@ -19,8 +20,12 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
   const c = theme.colors;
   const onboarding = route.params?.onboarding ?? false;
   const { user, finishOnboarding } = useAuth();
-  const { congregations, myCongregations, joinCongregation } = useAppState();
+  const { congregations, myCongregations, joinCongregation, currents, currentOf, groupOf } = useAppState();
+  const { t } = useI18n();
   const [method, setMethod] = useState<Method>('nearby');
+  const [currentFilter, setCurrentFilter] = useState<string | null>(null);
+  const nearbyList = congregations.filter((k) => !k.isPrivate && (!currentFilter || k.currentId === currentFilter));
+  const usedCurrents = currents.filter((cur) => congregations.some((k) => !k.isPrivate && k.currentId === cur.id));
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -84,33 +89,31 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
             <Ionicons name="chevron-back" size={28} color={c.text} />
           </Pressable>
         ) : null}
-        <Text style={[styles.title, { color: c.text }]}>{onboarding ? `Bienvenue ${firstName}` : 'Rejoindre une communauté'}</Text>
+        <Text style={[styles.title, { color: c.text }]}>{onboarding ? t('join.welcome', { name: firstName }) : t('join.title')}</Text>
         <Text style={[styles.sub, { color: c.textMuted }]}>
-          {onboarding
-            ? 'Pour commencer, rejoignez votre communauté. Vous pourrez en ajouter d’autres à tout moment et passer de l’une à l’autre.'
-            : 'Vous pouvez appartenir à plusieurs communautés et basculer entre elles depuis la barre du haut.'}
+          {onboarding ? t('join.intro') : t('join.introMore')}
         </Text>
 
         {joined.length ? (
           <View style={[styles.joinedRow, { backgroundColor: c.primaryLight }]}>
             <Ionicons name="checkmark-circle" size={20} color={c.primary} />
             <Text style={{ color: c.primary, fontWeight: '700', flex: 1, fontSize: 13 }}>
-              Mes communautés : {joined.map((k) => k.name).join(', ')}
+              {t('join.myCommunities', { list: joined.map((k) => k.name).join(', ') })}
             </Text>
           </View>
         ) : null}
         {joinedNow ? (
           <View style={[styles.joinedRow, { backgroundColor: c.success + '22' }]}>
             <Ionicons name="sparkles" size={20} color={c.success} />
-            <Text style={{ color: c.success, fontWeight: '800', flex: 1, fontSize: 14 }}>Vous avez rejoint {joinedNow} !</Text>
+            <Text style={{ color: c.success, fontWeight: '800', flex: 1, fontSize: 14 }}>{t('join.joinedNow', { name: joinedNow })}</Text>
           </View>
         ) : null}
 
         <Segmented<Method>
           options={[
-            { value: 'nearby', label: 'Autour de moi' },
-            { value: 'qr', label: 'QR code' },
-            { value: 'code', label: 'Code' },
+            { value: 'nearby', label: t('join.nearby') },
+            { value: 'qr', label: t('join.qr') },
+            { value: 'code', label: t('join.code') },
           ]}
           value={method}
           onChange={(m) => {
@@ -125,9 +128,15 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
           <View style={{ marginTop: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
               <Ionicons name="location" size={18} color={c.primary} />
-              <Muted>Communautés près de {user.city ?? 'vous'}, de la plus proche à la plus éloignée</Muted>
+              <Muted>{t('join.nearbyHint', { city: user.city ?? '—' })}</Muted>
             </View>
-            {congregations.filter((k) => !k.isPrivate).map((k) => {
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
+              <Chip label={t('affiliation.allCurrents')} active={currentFilter === null} onPress={() => setCurrentFilter(null)} />
+              {usedCurrents.map((cur) => (
+                <Chip key={cur.id} label={cur.name} active={currentFilter === cur.id} onPress={() => setCurrentFilter(currentFilter === cur.id ? null : cur.id)} />
+              ))}
+            </View>
+            {nearbyList.map((k) => {
               const isMember = myCongregations.includes(k.id);
               return (
                 <Card key={k.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -135,19 +144,24 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>{k.name}</Text>
                     <Muted>
-                      {k.rite} · {k.rav.name}
+                      {currentOf(k)?.name ?? k.rite} · {k.rav.name}
                     </Muted>
+                    {groupOf(k) ? (
+                      <Muted style={{ fontSize: 12 }}>
+                        <Ionicons name="git-network" size={12} /> {groupOf(k)?.name}
+                      </Muted>
+                    ) : null}
                     <Muted style={{ fontSize: 12 }}>
-                      {k.distance} · {k.address}, {k.city} · {k.members} membres
+                      {k.distance} · {k.address}, {k.city} · {t('common.members', { count: k.members })}
                     </Muted>
                   </View>
                   {isMember ? (
                     <View style={[styles.joinedPill, { backgroundColor: c.success + '22' }]}>
                       <Ionicons name="checkmark" size={16} color={c.success} />
-                      <Text style={{ color: c.success, fontWeight: '800', fontSize: 12 }}>Rejoint</Text>
+                      <Text style={{ color: c.success, fontWeight: '800', fontSize: 12 }}>{t('common.joined')}</Text>
                     </View>
                   ) : (
-                    <Button label="Rejoindre" onPress={() => join(k)} style={{ paddingVertical: 10, paddingHorizontal: 14 }} />
+                    <Button label={t('common.join')} onPress={() => join(k)} style={{ paddingVertical: 10, paddingHorizontal: 14 }} />
                   )}
                 </Card>
               );

@@ -15,6 +15,8 @@ import { Aura } from '../../components/Aura';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, SectionTitle, Muted, Button, Chip } from '../../components/ui';
 import { MyDates } from '../../components/MyDates';
+import { LanguagePicker } from '../../components/LanguagePicker';
+import { useI18n } from '../../i18n';
 import { CommunityId } from '../../types';
 import { money, formatNumeric } from '../../utils/time';
 
@@ -23,6 +25,7 @@ type Nav = NativeStackNavigationProp<AppStackParamList>;
 export function AccountScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
+  const { t } = useI18n();
   const navigation = useNavigation<Nav>();
   const { user, signOut, updateUser } = useAuth();
   const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed } = useAppState();
@@ -37,7 +40,7 @@ export function AccountScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader
-        title="Mon compte"
+        title={t('account.title')}
         communitySwitch
         right={
           <Pressable hitSlop={8}>
@@ -103,7 +106,7 @@ export function AccountScreen() {
           <Stat icon={g.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} label="Niveau" value={`${levelIndex + 1}/${soulLevels.length}`} />
         </View>
 
-        <SectionTitle title="Mes communautés" action="Rejoindre" onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
+        <SectionTitle title={t('account.myCommunities')} action={t('common.join')} onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
         <Card style={{ gap: 10 }}>
           {mine.map((k) => {
             const active = k.id === congregation.id;
@@ -132,8 +135,10 @@ export function AccountScreen() {
           <Info icon="gift-outline" label="Date de naissance" value={user.birthDate ? `${formatNumeric(user.birthDate)}${user.hebrewBirthDate ? ' · ' + user.hebrewBirthDate : ''}` : '—'} />
         </Card>
 
-        <SectionTitle title="Préférences" />
+        <SectionTitle title={t('account.preferences')} />
         <Card style={{ gap: 14 }}>
+          <LanguagePicker />
+          <Muted style={{ fontSize: 12 }}>{t('common.languageHint')}</Muted>
           <View style={styles.prefRow}>
             <Ionicons name="notifications-outline" size={20} color={c.primary} />
             <View style={{ flex: 1 }}>

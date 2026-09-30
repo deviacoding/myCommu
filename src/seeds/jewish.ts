@@ -10,7 +10,7 @@ import { initialDonations, initialPledges, initialCategories, causeDetails, quic
 import { initialMemberDates } from '../mocks/memberDates';
 import { hebrewDate } from '../utils/religiousDate';
 
-export const jewishSeed: ReligionSeed = {
+export const jewishSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   leaderShort: 'Rav',
   memberLabel: 'fidèle',
   teachingLabel: 'Dvar Torah',

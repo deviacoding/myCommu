@@ -6,59 +6,30 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../state/AuthContext';
+import { useI18n } from '../../i18n';
 import { Avatar } from '../../components/Avatar';
 import { getSeed } from '../../seeds';
-import { CommunityId } from '../../types';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'DemoRole'>;
-
-const labels: Record<CommunityId, { community: string; leader: string; leaderSub: string; member: string; memberSub: string }> = {
-  jewish: {
-    community: 'Communauté juive',
-    leader: 'Accès rabbin',
-    leaderSub: 'Publier les divré Torah, répondre aux questions, gérer horaires, agenda et dons',
-    member: 'Accès fidèle',
-    memberSub: 'Horaires, dvar Torah, questions au Rav, dons, mon compte',
-  },
-  muslim: {
-    community: 'Communauté musulmane',
-    leader: 'Accès imam',
-    leaderSub: 'Publier les khutbas, répondre aux questions, gérer horaires de prière, agenda et dons',
-    member: 'Accès fidèle',
-    memberSub: 'Horaires de prière, khutbas, questions à l’imam, zakat et sadaqa, mon compte',
-  },
-  buddhist: {
-    community: 'Communauté bouddhiste',
-    leader: 'Accès enseignant',
-    leaderSub: 'Publier les enseignements, répondre aux questions, gérer séances, agenda et dana',
-    member: 'Accès pratiquant',
-    memberSub: 'Séances et cérémonies, enseignements, questions, dana, mon compte',
-  },
-  christian: {
-    community: 'Communauté chrétienne',
-    leader: 'Accès prêtre',
-    leaderSub: 'Publier les homélies, répondre aux questions, gérer messes, agenda, dîme et offrandes',
-    member: 'Accès paroissien',
-    memberSub: 'Messes et fêtes, homélies, questions au prêtre, dîme et aumône, mon compte',
-  },
-};
 
 export function DemoRoleScreen({ navigation, route }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { enterDemo } = useAuth();
+  const { t, rtl } = useI18n();
   const { community } = route.params;
-  const l = labels[community];
+  const r = (k: string) => t(`religions.${community}.${k}`);
   const leader = getSeed(community).congregations[0].rav;
+  const chevron = rtl ? 'chevron-back' : 'chevron-forward';
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={{ alignSelf: 'flex-start' }}>
-          <Ionicons name="chevron-back" size={30} color={c.text} />
+          <Ionicons name={rtl ? 'chevron-forward' : 'chevron-back'} size={30} color={c.text} />
         </Pressable>
-        <Text style={[styles.title, { color: c.text }]}>{l.community}</Text>
-        <Text style={[styles.sub, { color: c.textMuted }]}>Avec quel rôle souhaitez-vous entrer ?</Text>
+        <Text style={[styles.title, { color: c.text }]}>{r('community')}</Text>
+        <Text style={[styles.sub, { color: c.textMuted }]}>{t('demo.roleQuestion')}</Text>
 
         <Pressable onPress={() => enterDemo(community, 'rav')} style={({ pressed }) => [styles.big, { backgroundColor: c.primary, opacity: pressed ? 0.85 : 1 }]}>
           {leader.photo ? (
@@ -69,10 +40,10 @@ export function DemoRoleScreen({ navigation, route }: Props) {
             </View>
           )}
           <View style={{ flex: 1 }}>
-            <Text style={styles.bigTxt}>{l.leader}</Text>
-            <Text style={styles.bigSub}>{l.leaderSub}</Text>
+            <Text style={styles.bigTxt}>{r('leaderAccess')}</Text>
+            <Text style={styles.bigSub}>{r('leaderSub')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={28} color="#fff" />
+          <Ionicons name={chevron} size={28} color="#fff" />
         </Pressable>
 
         <Pressable
@@ -83,10 +54,10 @@ export function DemoRoleScreen({ navigation, route }: Props) {
             <Ionicons name="people" size={34} color={c.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.bigTxt, { color: c.primary }]}>{l.member}</Text>
-            <Text style={[styles.bigSub, { color: c.textMuted, opacity: 1 }]}>{l.memberSub}</Text>
+            <Text style={[styles.bigTxt, { color: c.primary }]}>{r('memberAccess')}</Text>
+            <Text style={[styles.bigSub, { color: c.textMuted, opacity: 1 }]}>{r('memberSub')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={28} color={c.primary} />
+          <Ionicons name={chevron} size={28} color={c.primary} />
         </Pressable>
 
         <Pressable
@@ -97,15 +68,13 @@ export function DemoRoleScreen({ navigation, route }: Props) {
             <Ionicons name="cash" size={34} color="#BE123C" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.bigTxt, { color: '#BE123C' }]}>Accès trésorier</Text>
-            <Text style={[styles.bigSub, { color: c.textMuted, opacity: 1 }]}>Ne voit que la partie dons : enregistrer, suivre et récupérer les dons</Text>
+            <Text style={[styles.bigTxt, { color: '#BE123C' }]}>{t('demo.treasurer')}</Text>
+            <Text style={[styles.bigSub, { color: c.textMuted, opacity: 1 }]}>{t('demo.treasurerSub')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={28} color="#BE123C" />
+          <Ionicons name={chevron} size={28} color="#BE123C" />
         </Pressable>
 
-        <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', marginTop: 10 }}>
-          Démo : les données sont fictives et remises à zéro à chaque rechargement.
-        </Text>
+        <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'center', marginTop: 10 }}>{t('demo.footnote')}</Text>
       </ScrollView>
     </SafeAreaView>
   );

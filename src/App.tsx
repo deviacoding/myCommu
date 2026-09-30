@@ -8,6 +8,7 @@ import { AuthProvider } from './state/AuthContext';
 import { AppStateProvider } from './state/AppState';
 import { RootNavigator } from './navigation/RootNavigator';
 import { getSeed } from './seeds';
+import { I18nProvider } from './i18n';
 
 // L'état de l'application est rechargé avec les contenus de la confession choisie (sans remonter la navigation).
 function SeededApp() {
@@ -24,11 +25,13 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <SeededApp />
-          </AuthProvider>
-        </ThemeProvider>
+        <I18nProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SeededApp />
+            </AuthProvider>
+          </ThemeProvider>
+        </I18nProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

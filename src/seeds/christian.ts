@@ -356,7 +356,7 @@ export const christianMemberDates: MemberDate[] = [
   { id: 'cmd7', member: 'Paul Okoro', type: 'azkara', label: 'Anniversaire du décès de sa mère', date: '2026-11-03' },
 ];
 
-export const christianSeed: ReligionSeed = {
+export const christianSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   leaderShort: 'Père',
   memberLabel: 'paroissien',
   teachingLabel: 'Homélie',

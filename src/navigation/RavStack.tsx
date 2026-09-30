@@ -15,6 +15,7 @@ import { RavLiveScreen } from '../screens/rav/RavLiveScreen';
 import { RavCreateCommunityScreen } from '../screens/rav/RavCreateCommunityScreen';
 import { RavShareQrScreen } from '../screens/rav/RavShareQrScreen';
 import { RavTeamScreen } from '../screens/rav/RavTeamScreen';
+import { RavAffiliationScreen } from '../screens/rav/RavAffiliationScreen';
 import { useAuth } from '../state/AuthContext';
 import { RavDatesScreen } from '../screens/rav/RavDatesScreen';
 
@@ -38,6 +39,7 @@ export function RavStack() {
       <Stack.Screen name="RavCreateCommunity" component={RavCreateCommunityScreen} />
       <Stack.Screen name="RavShareQr" component={RavShareQrScreen} />
       <Stack.Screen name="RavTeam" component={RavTeamScreen} />
+      <Stack.Screen name="RavAffiliation" component={RavAffiliationScreen} />
       <Stack.Screen name="RavDates" component={RavDatesScreen} />
     </Stack.Navigator>
   );

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import {
   AgendaEvent,
+  CommunityGroup,
   Congregation,
   Course,
   CourseCategory,
@@ -18,6 +19,7 @@ import {
   Pledge,
   Question,
   QuestionCategory,
+  ReligiousCurrent,
   SoulLevel,
 } from '../types';
 import { Member } from '../mocks/members';
@@ -91,6 +93,9 @@ export interface NewCongregationInput {
   city: string;
   coords?: { lat: number; lng: number };
   isPrivate: boolean;
+  currentId?: string;
+  groupId?: string; // groupe à rejoindre
+  newGroupName?: string; // ou groupe à créer, dont la communauté devient chef
 }
 
 export interface NewPledgeInput {
@@ -114,6 +119,15 @@ interface AppStateValue {
   joinCongregation: (id: string) => void;
   leaveCongregation: (id: string) => void;
   createCongregation: (input: NewCongregationInput) => Congregation;
+  currents: ReligiousCurrent[];
+  groups: CommunityGroup[];
+  currentOf: (k: Congregation) => ReligiousCurrent | undefined;
+  groupOf: (k: Congregation) => CommunityGroup | undefined;
+  addCurrent: (name: string) => ReligiousCurrent;
+  setCongregationCurrent: (congregationId: string, currentId: string) => void;
+  joinGroup: (congregationId: string, groupId: string) => void;
+  leaveGroup: (congregationId: string) => void;
+  createGroup: (congregationId: string, name: string, description?: string) => CommunityGroup;
   myStaff: StaffMember[];
   addStaff: (input: NewStaffInput) => StaffMember;
   removeStaff: (id: string) => void;
@@ -217,7 +231,20 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     []
   );
   const [staff, setStaff] = useState<StaffMember[]>(() => demoStaff(seed));
-  const allCongregations = useMemo(() => [...createdCongregations, ...seed.congregations], [createdCongregations, seed]);
+  const [currents, setCurrents] = useState<ReligiousCurrent[]>(seed.currents);
+  const [groups, setGroups] = useState<CommunityGroup[]>(seed.groups);
+  // Modifications apportées aux communautés (courant, groupe) : appliquées par-dessus les données de démo.
+  const [congregationPatches, setCongregationPatches] = useState<Record<string, Partial<Congregation>>>({});
+  const allCongregations = useMemo(
+    () =>
+      [...createdCongregations, ...seed.congregations].map((k) => {
+        const p = congregationPatches[k.id];
+        const merged = p ? { ...k, ...p } : k;
+        const cur = currents.find((c) => c.id === merged.currentId);
+        return cur ? { ...merged, rite: cur.name } : merged;
+      }),
+    [createdCongregations, seed, congregationPatches, currents]
+  );
   const findCongregation = useCallback((id: string) => allCongregations.find((c) => c.id === id) ?? allCongregations[0], [allCongregations]);
 
   // Changement de confession : on recharge toutes les données du nouveau seed sans remonter la navigation.
@@ -229,6 +256,9 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     setCongregation(seed.defaultCongregation);
     setMyCongregations([]);
     setCreatedCongregations([]);
+    setCurrents(seed.currents);
+    setGroups(seed.groups);
+    setCongregationPatches({});
     setStaff(demoStaff(seed));
     setDonations(seed.donations);
     setPledges(seed.pledges);
@@ -285,12 +315,44 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       logo: input.logo ? { uri: input.logo } : undefined,
       coords: input.coords,
       isPrivate: input.isPrivate,
+      currentId: input.currentId,
+      groupId: input.groupId,
       createdByMe: true,
     };
     setCreatedCongregations((list) => [k, ...list]);
+    if (input.newGroupName) {
+      const g: CommunityGroup = { id: 'grp' + seq++, name: input.newGroupName, currentId: input.currentId, headCongregationId: k.id };
+      setGroups((list) => [...list, g]);
+      k.groupId = g.id;
+    }
     setCongregation(k.id);
     return k;
   }, []);
+
+  const patchCongregation = useCallback((id: string, p: Partial<Congregation>) => {
+    setCongregationPatches((all) => ({ ...all, [id]: { ...all[id], ...p } }));
+  }, []);
+
+  const addCurrent = useCallback((name: string) => {
+    const c: ReligiousCurrent = { id: 'cur' + seq++, name, custom: true };
+    setCurrents((list) => [...list, c]);
+    return c;
+  }, []);
+
+  const setCongregationCurrent = useCallback((id: string, currentId: string) => patchCongregation(id, { currentId }), [patchCongregation]);
+  const joinGroup = useCallback((id: string, groupId: string) => patchCongregation(id, { groupId }), [patchCongregation]);
+  const leaveGroup = useCallback((id: string) => patchCongregation(id, { groupId: undefined }), [patchCongregation]);
+
+  const createGroup = useCallback(
+    (id: string, name: string, description?: string) => {
+      const k = allCongregations.find((x) => x.id === id);
+      const g: CommunityGroup = { id: 'grp' + seq++, name, description, currentId: k?.currentId, headCongregationId: id };
+      setGroups((list) => [...list, g]);
+      patchCongregation(id, { groupId: g.id });
+      return g;
+    },
+    [allCongregations, patchCongregation]
+  );
 
   const addStaff = useCallback(
     (input: NewStaffInput) => {
@@ -548,6 +610,15 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       leaveCongregation,
       createCongregation,
       myStaff: staff.filter(mine),
+      currents,
+      groups,
+      currentOf: (k: Congregation) => currents.find((c) => c.id === k.currentId),
+      groupOf: (k: Congregation) => groups.find((g) => g.id === k.groupId),
+      addCurrent,
+      setCongregationCurrent,
+      joinGroup,
+      leaveGroup,
+      createGroup,
       addStaff,
       removeStaff,
       donations,
@@ -617,6 +688,13 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     createCongregation,
     allCongregations,
     staff,
+    currents,
+    groups,
+    addCurrent,
+    setCongregationCurrent,
+    joinGroup,
+    leaveGroup,
+    createGroup,
     addStaff,
     removeStaff,
     donations,

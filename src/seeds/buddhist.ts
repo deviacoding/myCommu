@@ -350,7 +350,7 @@ export const buddhistMemberDates: MemberDate[] = [
   { id: 'bmd6', member: 'Tenzin Dolma', type: 'autre', label: 'Anniversaire d’ordination de son frère', date: '2026-10-22' },
 ];
 
-export const buddhistSeed: ReligionSeed = {
+export const buddhistSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   leaderShort: 'Vénérable',
   memberLabel: 'pratiquant',
   teachingLabel: 'Enseignement du Dharma',

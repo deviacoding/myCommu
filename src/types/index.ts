@@ -182,6 +182,24 @@ export interface Congregation {
   coords?: { lat: number; lng: number };
   createdByMe?: boolean;
   isPrivate?: boolean; // privée : absente de « Autour de moi », rejointe seulement par code ou QR code
+  currentId?: string; // courant religieux (séfarade, sunnite, catholique…)
+  groupId?: string; // groupe / fédération de rattachement (consistoire, Beth Loubavitch…)
+}
+
+// Courant religieux : séfarade, ashkénaze, habad… ; sunnite, chiite… ; catholique, protestant…
+export interface ReligiousCurrent {
+  id: string;
+  name: string;
+  custom?: boolean; // ajouté par un responsable
+}
+
+// Groupe de communautés (fédération, réseau). Le chef de groupe est la communauté qui l'a créé.
+export interface CommunityGroup {
+  id: string;
+  name: string;
+  description?: string;
+  currentId?: string;
+  headCongregationId: string;
 }
 
 export type MemberDateType = 'anniversaire' | 'azkara' | 'autre';

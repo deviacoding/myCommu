@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, KeyboardAvoid
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -12,13 +13,14 @@ export const BIG = { title: 28, text: 20, label: 18, small: 16, button: 20 };
 export function RavScreen({ title, subtitle, onBack, children, right }: { title: string; subtitle?: string; onBack?: () => void; children: ReactNode; right?: ReactNode }) {
   const { theme } = useTheme();
   const c = theme.colors;
+  const { t, rtl } = useI18n();
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: c.surface, borderBottomColor: c.border }]}>
         {onBack ? (
           <Pressable onPress={onBack} style={[styles.back, { backgroundColor: c.primaryLight }]} hitSlop={10}>
-            <Ionicons name="arrow-back" size={26} color={c.primary} />
-            <Text style={{ color: c.primary, fontWeight: '800', fontSize: 17 }}>Retour</Text>
+            <Ionicons name={rtl ? 'arrow-forward' : 'arrow-back'} size={26} color={c.primary} />
+            <Text style={{ color: c.primary, fontWeight: '800', fontSize: 17 }}>{t('common.back')}</Text>
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>

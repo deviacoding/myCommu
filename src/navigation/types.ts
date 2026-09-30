@@ -23,6 +23,7 @@ export type RavStackParamList = {
   RavCreateCommunity: undefined;
   RavShareQr: undefined;
   RavTeam: undefined;
+  RavAffiliation: undefined;
   RavDates: undefined;
 };
 

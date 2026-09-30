@@ -39,7 +39,8 @@
         {
           "locationWhenInUsePermission": "myCommu utilise votre position pour placer votre communauté sur la carte et la proposer aux fidèles proches."
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }

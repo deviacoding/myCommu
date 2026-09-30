@@ -88,6 +88,9 @@ export interface ReligionSeed {
   categories: DonationCategory[];
   pendingLabel: string; // « À payer » / « Mes promesses »
   gamification: GamificationConfig;
+  // Courants et groupes
+  currents: import('../types').ReligiousCurrent[];
+  groups: import('../types').CommunityGroup[];
   // Données
   user: UserProfile;
   members: Member[];

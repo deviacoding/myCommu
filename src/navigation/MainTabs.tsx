@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MainTabsParamList } from './types';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppState } from '../state/AppState';
+import { useI18n } from '../i18n';
 import { ScheduleScreen } from '../screens/schedule/ScheduleScreen';
 import { CoursesScreen } from '../screens/courses/CoursesScreen';
 import { QuestionsScreen } from '../screens/questions/QuestionsScreen';
@@ -24,6 +25,7 @@ const icons: Record<keyof MainTabsParamList, [IoniconName, IoniconName]> = {
 
 export function MainTabs() {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const { myPledges: pledges } = useAppState();
   const due = pledges.filter((p) => p.status === 'due').length;
   return (
@@ -47,15 +49,15 @@ export function MainTabs() {
         },
       })}
     >
-      <Tab.Screen name="ScheduleTab" component={ScheduleScreen} options={{ tabBarLabel: 'Horaires' }} />
-      <Tab.Screen name="CoursesTab" component={CoursesScreen} options={{ tabBarLabel: 'Cours' }} />
-      <Tab.Screen name="QuestionsTab" component={QuestionsScreen} options={{ tabBarLabel: 'Questions' }} />
+      <Tab.Screen name="ScheduleTab" component={ScheduleScreen} options={{ tabBarLabel: t('tabs.schedule') }} />
+      <Tab.Screen name="CoursesTab" component={CoursesScreen} options={{ tabBarLabel: t('tabs.courses') }} />
+      <Tab.Screen name="QuestionsTab" component={QuestionsScreen} options={{ tabBarLabel: t('tabs.questions') }} />
       <Tab.Screen
         name="DonationsTab"
         component={DonationsScreen}
-        options={{ tabBarLabel: 'Dons', tabBarBadge: due > 0 ? due : undefined }}
+        options={{ tabBarLabel: t('tabs.donations'), tabBarBadge: due > 0 ? due : undefined }}
       />
-      <Tab.Screen name="AccountTab" component={AccountScreen} options={{ tabBarLabel: 'Compte' }} />
+      <Tab.Screen name="AccountTab" component={AccountScreen} options={{ tabBarLabel: t('tabs.account') }} />
     </Tab.Navigator>
   );
 }

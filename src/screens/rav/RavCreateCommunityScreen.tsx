@@ -8,6 +8,8 @@ import { RavStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { useReligion } from '../../state/useReligion';
+import { useI18n } from '../../i18n';
+import { CurrentPicker, GroupChoice, GroupPicker } from '../../components/AffiliationPickers';
 import { RavScreen, BigLabel, BigInput, BigButton, Done, RavCard, BIG } from './RavUi';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavCreateCommunity'>;
@@ -25,9 +27,11 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { profile } = useReligion();
-  const { createCongregation, seed } = useAppState();
+  const { createCongregation, seed, currents } = useAppState();
   const [name, setName] = useState('');
-  const [rite, setRite] = useState('');
+  const { t } = useI18n();
+  const [currentId, setCurrentId] = useState<string | undefined>(undefined);
+  const [groupChoice, setGroupChoice] = useState<GroupChoice>({ mode: 'none' });
   const [leaderName, setLeaderName] = useState('');
   const [leaderPhoto, setLeaderPhoto] = useState<string | null>(null);
   const [logo, setLogo] = useState<string | null>(null);
@@ -40,7 +44,8 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
 
   const place = profile.placeLabel.toLowerCase();
   const leader = profile.leaderTitle.toLowerCase();
-  const canCreate = name.trim().length > 2 && leaderName.trim().length > 2 && (address.trim().length > 3 || !!coords);
+  const groupOk = groupChoice.mode !== 'create' || groupChoice.name.trim().length > 2;
+  const canCreate = name.trim().length > 2 && leaderName.trim().length > 2 && (address.trim().length > 3 || !!coords) && groupOk;
 
   const locate = async () => {
     setGeo('locating');
@@ -74,7 +79,10 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
   const submit = () => {
     const k = createCongregation({
       name: name.trim(),
-      rite: rite.trim() || profile.communityLabel,
+      rite: currents.find((x) => x.id === currentId)?.name ?? profile.communityLabel,
+      currentId,
+      groupId: groupChoice.mode === 'join' ? groupChoice.groupId : undefined,
+      newGroupName: groupChoice.mode === 'create' ? groupChoice.name.trim() : undefined,
       leaderName: leaderName.trim(),
       leaderTitle: `${profile.leaderTitle} de la communauté`,
       leaderPhoto: leaderPhoto ?? undefined,
@@ -104,12 +112,15 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
   }
 
   return (
-    <RavScreen title="Créer ma communauté" subtitle="Quelques informations, et c’est prêt" onBack={() => navigation.goBack()}>
+    <RavScreen title={t('create.title')} subtitle={t('create.subtitle')} onBack={() => navigation.goBack()}>
       <BigLabel hint={`Exemple : ${seed.congregations[0]?.name ?? ''}`}>1. Le nom de la communauté</BigLabel>
       <BigInput value={name} onChangeText={setName} placeholder={`Nom de votre ${place}`} />
 
-      <BigLabel hint="Facultatif">Rite ou tradition</BigLabel>
-      <BigInput value={rite} onChangeText={setRite} placeholder={seed.congregations.map((k) => k.rite).slice(0, 2).join(', ')} />
+      <BigLabel hint={t('affiliation.currentHint')}>{t('create.currentStep')}</BigLabel>
+      <CurrentPicker value={currentId} onChange={setCurrentId} />
+
+      <BigLabel hint={t('affiliation.joinGroupHint')}>{t('create.groupStep')}</BigLabel>
+      <GroupPicker value={groupChoice} onChange={setGroupChoice} currentId={currentId} />
 
       <BigLabel>{`2. Le nom du ${leader}`}</BigLabel>
       <BigInput value={leaderName} onChangeText={setLeaderName} placeholder={seed.congregations[0]?.rav.name ?? 'Prénom et nom'} />

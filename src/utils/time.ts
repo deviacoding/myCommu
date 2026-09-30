@@ -22,16 +22,22 @@ export function hebrewDateLabel(d: Date = new Date()): string | null {
   return null;
 }
 
+// Langue des dates (fr-FR par défaut), mise à jour par le module multilingue.
+let DATE_LOCALE = 'fr-FR';
+export function setDateLocale(l: string) {
+  DATE_LOCALE = l;
+}
+
 export function formatLong(iso: string): string {
-  return parseISODate(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return parseISODate(iso).toLocaleDateString(DATE_LOCALE, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 export function formatShort(iso: string): string {
-  return parseISODate(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  return parseISODate(iso).toLocaleDateString(DATE_LOCALE, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export function formatNumeric(iso: string): string {
-  return parseISODate(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return parseISODate(iso).toLocaleDateString(DATE_LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export function todayISO(d: Date = new Date()): string {
@@ -56,5 +62,5 @@ export function setCurrency(symbol: string) {
 }
 
 export function money(n: number): string {
-  return `${n.toLocaleString('fr-FR')} ${CURRENCY}`;
+  return `${n.toLocaleString(DATE_LOCALE)} ${CURRENCY}`;
 }

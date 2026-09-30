@@ -358,7 +358,7 @@ export const muslimMemberDates: MemberDate[] = [
   { id: 'mmd6', member: 'Amina Diallo', type: 'autre', label: 'Nikah (mariage) d’Amina', date: '2026-10-24' },
 ];
 
-export const muslimSeed: ReligionSeed = {
+export const muslimSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   leaderShort: 'Imam',
   memberLabel: 'fidèle',
   teachingLabel: 'Khutba',
