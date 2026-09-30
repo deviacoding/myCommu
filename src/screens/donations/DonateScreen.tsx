@@ -10,6 +10,9 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Aura } from '../../components/Aura';
 import { Card, Chip, Muted, Button } from '../../components/ui';
 import { money } from '../../utils/time';
+import { useI18n } from '../../i18n';
+import { PaymentLogo } from '../../components/PaymentLogo';
+import { paymentProvider } from '../../config/paymentProviders';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 
@@ -18,7 +21,10 @@ export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { type, pledgeId } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed } = useAppState();
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks } = useAppState();
+  const { t: tr } = useI18n();
+  const [payWith, setPayWith] = useState<string | undefined>(() => (myPaymentLinks.find((p) => p.isDefault) ?? myPaymentLinks[0])?.id);
+  const payLink = myPaymentLinks.find((p) => p.id === payWith);
   const causes = seed.causes.map((x) => x.name);
   const quickAmounts = seed.alms.amounts;
   const titles = {
@@ -146,16 +152,40 @@ export function DonateScreen({ route, navigation }: Props) {
           style={inputStyle}
         />
 
-        <Card style={{ marginTop: 20, gap: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Ionicons name="card" size={22} color={c.primary} />
-            <Text style={{ color: c.text, fontWeight: '600', flex: 1 }}>Visa •••• 4242</Text>
-            <Text style={{ color: c.primary, fontWeight: '600', fontSize: 13 }}>Modifier</Text>
-          </View>
-          <Muted>Reçu fiscal envoyé par email après chaque don.</Muted>
-        </Card>
+        <Text style={[styles.label, { color: c.text, marginTop: 20 }]}>{tr('payments.member.payWith')}</Text>
+        {myPaymentLinks.length ? (
+          myPaymentLinks.map((link) => {
+            const p = paymentProvider(link.provider);
+            const active = link.id === payWith;
+            return (
+              <Pressable
+                key={link.id}
+                onPress={() => setPayWith(link.id)}
+                accessibilityRole="radio"
+                aria-checked={active}
+                style={[styles.pay, { borderColor: active ? c.primary : c.border, backgroundColor: active ? c.primaryLight : c.surface }]}
+              >
+                <PaymentLogo id={link.provider} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>{p.name}</Text>
+                  <Muted>{p.methods.join(' · ')}</Muted>
+                </View>
+                <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? c.primary : c.textMuted} />
+              </Pressable>
+            );
+          })
+        ) : (
+          <Card>
+            <Muted>{tr('payments.member.noneOnline')}</Muted>
+          </Card>
+        )}
+        <Muted style={{ marginBottom: 12 }}>Reçu fiscal envoyé par email après chaque don.</Muted>
 
-        <Button label={`Confirmer le don de ${money(amount)}`} icon="heart" onPress={confirm} />
+        <Button
+          label={payLink ? tr('payments.member.confirm', { amount: money(amount), name: paymentProvider(payLink.provider).name }) : `Confirmer le don de ${money(amount)}`}
+          icon="heart"
+          onPress={confirm}
+        />
         <Muted style={{ textAlign: 'center', marginTop: 12 }}>Maquette : aucun paiement réel n’est effectué.</Muted>
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -170,4 +200,5 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
   amounts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   amount: { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5 },
+  pay: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1.5, marginBottom: 8 },
 });

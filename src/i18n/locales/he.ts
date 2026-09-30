@@ -166,7 +166,7 @@ const he: DeepPartial<Translations> = {
     independent: 'עצמאית',
     allCurrents: 'כל הזרמים',
   },
-  create: { title: 'יצירת הקהילה שלי', subtitle: 'כמה פרטים, וזה מוכן', currentStep: 'הזרם הדתי', groupStep: 'הקבוצה' },
+  create: { title: 'יצירת הקהילה שלי', subtitle: 'כמה פרטים, וזה מוכן', currentStep: 'הזרם הדתי', groupStep: 'הקבוצה', country: 'המדינה', countryHint: 'בטלפון היא מתמלאת לבד בלחיצה על «איתור המיקום שלי».', otherCountry: 'מדינה אחרת', countryPlaceholder: 'שם המדינה' },
   join: {
     welcome: 'ברוכים הבאים {name}',
     title: 'הצטרפות לקהילה',
@@ -179,6 +179,7 @@ const he: DeepPartial<Translations> = {
     myCommunities: 'הקהילות שלי: {list}',
     joinedNow: 'הצטרפתם ל{name}!',
   },
+  payments: { title: 'אמצעי תשלום', subtitle: 'התרומות מגיעות ישירות לחשבון שלכם', tileConnected: 'מחוברים: {list}', tileNone: 'חברו Stripe,‏ Bit או Lemon Squeezy', connect: 'חיבור {name}', add: 'הוספת אמצעי תשלום', connected: 'חשבונות מחוברים', recommended: 'מומלץ במדינה שלכם' },
   account: { title: 'החשבון שלי', myCommunities: 'הקהילות שלי', preferences: 'העדפות' },
 };
 

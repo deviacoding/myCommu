@@ -10,6 +10,7 @@ import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
 import { Card, Button, Segmented, Muted, Chip } from '../../components/ui';
 import { useI18n } from '../../i18n';
+import { countryName } from '../../utils/countries';
 import { Congregation } from '../../types';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'JoinCommunity'>;
@@ -21,7 +22,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
   const onboarding = route.params?.onboarding ?? false;
   const { user, finishOnboarding } = useAuth();
   const { congregations, myCongregations, joinCongregation, currents, currentOf, groupOf } = useAppState();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [method, setMethod] = useState<Method>('nearby');
   const [currentFilter, setCurrentFilter] = useState<string | null>(null);
   const nearbyList = congregations.filter((k) => !k.isPrivate && (!currentFilter || k.currentId === currentFilter));
@@ -152,7 +153,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
                       </Muted>
                     ) : null}
                     <Muted style={{ fontSize: 12 }}>
-                      {k.distance} · {k.address}, {k.city} · {t('common.members', { count: k.members })}
+                      {k.distance} · {k.address}, {k.city}{k.country ? `, ${countryName(k.country, lang)}` : ''} · {t('common.members', { count: k.members })}
                     </Muted>
                   </View>
                   {isMember ? (

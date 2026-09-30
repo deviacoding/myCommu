@@ -173,6 +173,7 @@ export interface Congregation {
   name: string;
   rite: string;
   city: string;
+  country?: string; // code ISO (FR, IL…) ou nom saisi
   address: string;
   distance: string;
   code: string;
@@ -224,6 +225,18 @@ export interface StaffMember {
   role: 'deputy' | 'treasurer' | 'organizer';
   code: string; // code d'accès personnel
   status: 'invited' | 'active';
+}
+
+// Compte de paiement (Stripe, Bit, Lemon Squeezy…) relié à une communauté pour recevoir les dons.
+export interface PaymentLink {
+  id: string;
+  congregationId: string;
+  provider: 'stripe' | 'bit' | 'lemonsqueezy';
+  account: string; // e-mail, téléphone ou nom de boutique affiché
+  accountId: string; // identifiant chez le prestataire (acct_…, store_…)
+  connectedAt: string; // ISO
+  isDefault: boolean;
+  testPayments: number;
 }
 
 export interface LiveSession {

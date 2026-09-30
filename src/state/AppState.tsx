@@ -16,6 +16,7 @@ import {
   MemberDate,
   MemberDateType,
   StaffMember,
+  PaymentLink,
   Pledge,
   Question,
   QuestionCategory,
@@ -91,6 +92,7 @@ export interface NewCongregationInput {
   logo?: string; // uri
   address: string;
   city: string;
+  country: string;
   coords?: { lat: number; lng: number };
   isPrivate: boolean;
   currentId?: string;
@@ -129,6 +131,11 @@ interface AppStateValue {
   leaveGroup: (congregationId: string) => void;
   createGroup: (congregationId: string, name: string, description?: string) => CommunityGroup;
   myStaff: StaffMember[];
+  myPaymentLinks: PaymentLink[];
+  connectPayment: (input: { provider: PaymentLink['provider']; account: string; accountId: string }) => PaymentLink;
+  disconnectPayment: (id: string) => void;
+  setDefaultPayment: (id: string) => void;
+  testPayment: (id: string) => void;
   addStaff: (input: NewStaffInput) => StaffMember;
   removeStaff: (id: string) => void;
   // Données brutes (toutes communautés)
@@ -231,6 +238,14 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     []
   );
   const [staff, setStaff] = useState<StaffMember[]>(() => demoStaff(seed));
+  // Paiement de démo : la communauté principale a déjà relié son compte Stripe.
+  const demoPayments = useCallback(
+    (s: ReligionSeed): PaymentLink[] => [
+      { id: 'pay1', congregationId: s.defaultCongregation, provider: 'stripe', account: 'tresorerie@' + (s.congregations.find((k) => k.id === s.defaultCongregation)?.name ?? 'communaute').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '') + '.org', accountId: 'acct_1QmC' + s.defaultCongregation.slice(0, 4).toUpperCase() + '7Kz', connectedAt: '2026-03-02T10:00:00', isDefault: true, testPayments: 0 },
+    ],
+    []
+  );
+  const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>(() => demoPayments(seed));
   const [currents, setCurrents] = useState<ReligiousCurrent[]>(seed.currents);
   const [groups, setGroups] = useState<CommunityGroup[]>(seed.groups);
   // Modifications apportées aux communautés (courant, groupe) : appliquées par-dessus les données de démo.
@@ -260,6 +275,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     setGroups(seed.groups);
     setCongregationPatches({});
     setStaff(demoStaff(seed));
+    setPaymentLinks(demoPayments(seed));
     setDonations(seed.donations);
     setPledges(seed.pledges);
     setQuestions(seed.questions);
@@ -307,6 +323,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       name: input.name,
       rite: input.rite,
       city: input.city,
+      country: input.country,
       address: input.address,
       distance: 'ici',
       code: `${prefix}-${String(1000 + Math.floor(Math.random() * 9000))}`,
@@ -365,6 +382,36 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   );
 
   const removeStaff = useCallback((id: string) => setStaff((list) => list.filter((s) => s.id !== id)), []);
+
+  const connectPayment = useCallback(
+    (input: { provider: PaymentLink['provider']; account: string; accountId: string }) => {
+      const others = paymentLinks.filter((p) => !(p.congregationId === congregationId && p.provider === input.provider));
+      const hasDefault = others.some((p) => p.congregationId === congregationId && p.isDefault);
+      const created: PaymentLink = { id: 'pay' + seq++, congregationId, ...input, connectedAt: new Date().toISOString(), isDefault: !hasDefault, testPayments: 0 };
+      setPaymentLinks([...others, created]);
+      return created;
+    },
+    [congregationId, paymentLinks]
+  );
+  const disconnectPayment = useCallback(
+    (id: string) =>
+      setPaymentLinks((list) => {
+        const gone = list.find((p) => p.id === id);
+        const rest = list.filter((p) => p.id !== id);
+        // Le premier compte restant devient le compte par défaut.
+        if (gone?.isDefault) {
+          const next = rest.find((p) => p.congregationId === gone.congregationId);
+          if (next) return rest.map((p) => (p.id === next.id ? { ...p, isDefault: true } : p));
+        }
+        return rest;
+      }),
+    []
+  );
+  const setDefaultPayment = useCallback(
+    (id: string) => setPaymentLinks((list) => list.map((p) => (p.congregationId === congregationId ? { ...p, isDefault: p.id === id } : p))),
+    [congregationId]
+  );
+  const testPayment = useCallback((id: string) => setPaymentLinks((list) => list.map((p) => (p.id === id ? { ...p, testPayments: p.testPayments + 1 } : p))), []);
 
   const leaveCongregation = useCallback(
     (id: string) => {
@@ -610,6 +657,11 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       leaveCongregation,
       createCongregation,
       myStaff: staff.filter(mine),
+      myPaymentLinks: paymentLinks.filter((p) => p.congregationId === congregationId),
+      connectPayment,
+      disconnectPayment,
+      setDefaultPayment,
+      testPayment,
       currents,
       groups,
       currentOf: (k: Congregation) => currents.find((c) => c.id === k.currentId),
@@ -688,6 +740,11 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     createCongregation,
     allCongregations,
     staff,
+    paymentLinks,
+    connectPayment,
+    disconnectPayment,
+    setDefaultPayment,
+    testPayment,
     currents,
     groups,
     addCurrent,

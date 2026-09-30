@@ -24,6 +24,8 @@ export type RavStackParamList = {
   RavShareQr: undefined;
   RavTeam: undefined;
   RavAffiliation: undefined;
+  RavPayments: undefined;
+  RavPaymentConnect: { provider: 'stripe' | 'bit' | 'lemonsqueezy' };
   RavDates: undefined;
 };
 

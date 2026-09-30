@@ -14,6 +14,7 @@ import { RavScreen, BigButton, RavCard, BIG } from './RavUi';
 import { daysUntil } from '../../components/MyDates';
 import { can, Permission, roleLabel, StaffRole } from '../../config/roles';
 import { useReligion } from '../../state/useReligion';
+import { paymentProvider } from '../../config/paymentProviders';
 import { capitalize, formatLong, todayISO } from '../../utils/time';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavHome'>;
@@ -30,6 +31,7 @@ export function RavHomeScreen({ navigation }: Props) {
   const isTreasurer = role === 'treasurer';
   const {
     myStaff,
+    myPaymentLinks,
     myQuestions: questions,
     myCourses: courses,
     myPledges: pledges,
@@ -59,6 +61,14 @@ export function RavHomeScreen({ navigation }: Props) {
     { key: 'RavAgenda', perm: 'agenda', icon: 'calendar', title: t('rav.agenda'), sub: t('rav.agendaSub', { count: upcoming }), color: '#7C3AED' },
     { key: 'RavDates', perm: 'dates', icon: 'calendar-number', title: r('memberDates'), sub: soonDates ? t('rav.datesSoon', { count: soonDates }) : t('rav.datesNone', { members: r('members') }), badge: soonDates, color: '#DB2777' },
     { key: 'RavDons', perm: 'donations', icon: 'cash', title: t('rav.donations'), sub: due ? t('rav.donationsDue', { count: due }) : t('rav.donationsNone'), badge: due, color: '#BE123C' },
+    {
+      key: 'RavPayments',
+      perm: 'donations',
+      icon: 'card',
+      title: t('payments.title'),
+      sub: myPaymentLinks.length ? t('payments.tileConnected', { list: myPaymentLinks.map((p) => paymentProvider(p.provider).name).join(', ') }) : t('payments.tileNone'),
+      color: '#635BFF',
+    },
     {
       key: 'RavAffiliation',
       perm: 'team',

@@ -7,13 +7,14 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { RavScreen, BIG } from './RavUi';
 import { money, todayISO } from '../../utils/time';
+import { paymentProvider } from '../../config/paymentProviders';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavDons'>;
 
 export function RavDonsScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myPledges: pledges, donations, categories, seed } = useAppState();
+  const { myPledges: pledges, donations, categories, seed, myPaymentLinks } = useAppState();
   const due = pledges.filter((p) => p.status === 'due');
   const dueTotal = due.reduce((s, p) => s + p.amount, 0);
   const month = todayISO().slice(0, 7);
@@ -56,6 +57,22 @@ export function RavDonsScreen({ navigation }: Props) {
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={30} color={c.danger} />
+      </Pressable>
+
+      <Pressable
+        onPress={() => navigation.navigate('RavPayments')}
+        style={({ pressed }) => [styles.big, { backgroundColor: c.surface, borderWidth: 2, borderColor: '#635BFF', opacity: pressed ? 0.85 : 1 }]}
+      >
+        <View style={[styles.icon, { backgroundColor: '#635BFF18' }]}>
+          <Ionicons name="card" size={40} color="#635BFF" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.bigTxt, { color: '#635BFF' }]}>3. Moyens de paiement</Text>
+          <Text style={[styles.bigSub, { color: c.textMuted, opacity: 1 }]}>
+            {myPaymentLinks.length ? `Connectés : ${myPaymentLinks.map((p) => paymentProvider(p.provider).name).join(', ')}` : 'Connectez Stripe, Bit ou Lemon Squeezy pour recevoir les dons.'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={30} color="#635BFF" />
       </Pressable>
     </RavScreen>
   );

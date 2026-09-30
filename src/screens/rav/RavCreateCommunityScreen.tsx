@@ -10,6 +10,7 @@ import { useAppState } from '../../state/AppState';
 import { useReligion } from '../../state/useReligion';
 import { useI18n } from '../../i18n';
 import { CurrentPicker, GroupChoice, GroupPicker } from '../../components/AffiliationPickers';
+import { CountryPicker } from '../../components/CountryPicker';
 import { RavScreen, BigLabel, BigInput, BigButton, Done, RavCard, BIG } from './RavUi';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavCreateCommunity'>;
@@ -37,6 +38,7 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
   const [logo, setLogo] = useState<string | null>(null);
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [country, setCountry] = useState('FR');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geo, setGeo] = useState<GeoState>('idle');
   const [isPrivate, setIsPrivate] = useState(false);
@@ -45,7 +47,7 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
   const place = profile.placeLabel.toLowerCase();
   const leader = profile.leaderTitle.toLowerCase();
   const groupOk = groupChoice.mode !== 'create' || groupChoice.name.trim().length > 2;
-  const canCreate = name.trim().length > 2 && leaderName.trim().length > 2 && (address.trim().length > 3 || !!coords) && groupOk;
+  const canCreate = name.trim().length > 2 && leaderName.trim().length > 2 && (address.trim().length > 3 || !!coords) && country.trim().length > 1 && groupOk;
 
   const locate = async () => {
     setGeo('locating');
@@ -65,6 +67,8 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
           if (a) {
             setAddress([a.streetNumber, a.street].filter(Boolean).join(' ') || a.name || '');
             setCity(a.city ?? a.subregion ?? '');
+            if (a.isoCountryCode) setCountry(a.isoCountryCode.toUpperCase());
+            else if (a.country) setCountry(a.country);
           }
         } catch {
           // l'adresse reste à saisir à la main
@@ -89,6 +93,7 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
       logo: logo ?? undefined,
       address: address.trim() || (coords ? `Position ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : ''),
       city: city.trim() || '—',
+      country: country.trim(),
       coords: coords ?? undefined,
       isPrivate,
     });
@@ -149,6 +154,9 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
       <BigInput value={address} onChangeText={setAddress} placeholder="Numéro et rue" />
       <BigInput value={city} onChangeText={setCity} placeholder="Ville" style={{ marginTop: 8 }} />
 
+      <BigLabel hint={t('create.countryHint')}>{t('create.country')}</BigLabel>
+      <CountryPicker value={country} onChange={setCountry} />
+
       <BigLabel hint="Cochez une seule case.">6. Qui peut trouver la communauté ?</BigLabel>
       <VisibilityOption
         checked={!isPrivate}
@@ -168,7 +176,7 @@ export function RavCreateCommunityScreen({ navigation }: Props) {
       <View style={{ marginTop: 26 }}>
         <BigButton label="Créer ma communauté" icon="checkmark-circle" disabled={!canCreate} onPress={submit} />
         {!canCreate ? (
-          <Text style={{ color: c.textMuted, fontSize: BIG.small, textAlign: 'center', marginTop: 10 }}>Il manque le nom de la communauté, le nom du {leader} ou l’adresse.</Text>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small, textAlign: 'center', marginTop: 10 }}>Il manque le nom de la communauté, le nom du {leader}, l’adresse ou le pays.</Text>
         ) : null}
       </View>
     </RavScreen>

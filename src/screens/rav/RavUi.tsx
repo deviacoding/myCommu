@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, KeyboardAvoidingView, Platform, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -64,7 +64,7 @@ export function BigInput({
   placeholder?: string;
   multiline?: boolean;
   keyboardType?: 'default' | 'number-pad';
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<TextStyle>;
   onBlur?: () => void;
   onSelectionChange?: (sel: { start: number; end: number }) => void;
 }) {

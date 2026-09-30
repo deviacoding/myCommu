@@ -166,7 +166,7 @@ const ar: DeepPartial<Translations> = {
     independent: 'مستقل',
     allCurrents: 'كل التيارات',
   },
-  create: { title: 'إنشاء مجتمعي', subtitle: 'بعض المعلومات وينتهي الأمر', currentStep: 'التيار الديني', groupStep: 'المجموعة' },
+  create: { title: 'إنشاء مجتمعي', subtitle: 'بعض المعلومات وينتهي الأمر', currentStep: 'التيار الديني', groupStep: 'المجموعة', country: 'البلد', countryHint: 'على الهاتف يُملأ تلقائيًا عند الضغط على «تحديد موقعي».', otherCountry: 'بلد آخر', countryPlaceholder: 'اسم البلد' },
   join: {
     welcome: 'أهلًا {name}',
     title: 'الانضمام إلى مجتمع',
@@ -179,6 +179,7 @@ const ar: DeepPartial<Translations> = {
     myCommunities: 'مجتمعاتي: {list}',
     joinedNow: 'لقد انضممت إلى {name}!',
   },
+  payments: { title: 'وسائل الدفع', subtitle: 'تصل التبرعات مباشرة إلى حسابكم', tileConnected: 'متصل: {list}', tileNone: 'اربطوا Stripe أو Bit أو Lemon Squeezy', connect: 'ربط {name}', add: 'إضافة وسيلة دفع', connected: 'الحسابات المتصلة', recommended: 'موصى به في بلدكم' },
   account: { title: 'حسابي', myCommunities: 'مجتمعاتي', preferences: 'التفضيلات' },
 };
 

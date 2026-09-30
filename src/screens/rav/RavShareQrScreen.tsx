@@ -7,6 +7,7 @@ import { RavStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { RavScreen, BigButton, RavCard, BIG } from './RavUi';
+import { countryName } from '../../utils/countries';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavShareQr'>;
 
@@ -64,7 +65,7 @@ export function RavShareQrScreen({ navigation }: Props) {
         {congregation.logo ? <Image source={congregation.logo} style={styles.logo} /> : null}
         <Text style={{ color: c.text, fontSize: 24, fontWeight: '900', textAlign: 'center' }}>{congregation.name}</Text>
         <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 18, textAlign: 'center' }}>
-          {congregation.rav.name} · {congregation.city}
+          {congregation.rav.name} · {congregation.city}{congregation.country ? `, ${countryName(congregation.country)}` : ''}
         </Text>
         <View style={[styles.qrFrame, { borderColor: c.primary }]}>
           <QRCode value={link} size={230} color={c.primaryDark} backgroundColor="#FFFFFF" />

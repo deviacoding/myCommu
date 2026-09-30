@@ -16,7 +16,8 @@ function withAffiliations(id: CommunityId, base: BaseSeed): ReligionSeed {
     ...base,
     currents: a.currents,
     groups: a.groups,
-    congregations: base.congregations.map((k) => {
+    congregations: base.congregations.map((k0) => {
+      const k = { country: 'FR', ...k0 };
       const as = a.assignments[k.id];
       return as ? { ...k, currentId: as.currentId, groupId: as.groupId, rite: name(as.currentId) ?? k.rite } : k;
     }),
