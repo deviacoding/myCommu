@@ -33,8 +33,8 @@ Ces valeurs sont visibles dans le bundle web par nature : la sécurité repose s
 ## Déploiement
 
 ```bash
-# Règles et index Firestore
-node node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore --project mycommunity-b13de --non-interactive
+# Règles et index Firestore, règles Cloud Storage
+node node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore,storage --project mycommunity-b13de --non-interactive
 
 # Site web
 npx expo export --platform web
@@ -49,7 +49,7 @@ node node_modules/firebase-tools/lib/bin/firebase.js deploy --only hosting --pro
 | `src/data/db.ts` | couche d'écriture (`set`, `update`, `remove`, `batch`) en mode démo (no-op) ou Firestore ; `listenMerged` fusionne plusieurs requêtes temps réel |
 | `src/state/AuthContext.tsx` | session, profil `users/{uid}`, adhésions et rôles, inscription, connexion, code d'accès d'équipe |
 | `src/state/AppState.tsx` | toutes les données de l'application ; chaque mutation met à jour l'état local **et** Firestore |
-| `src/utils/images.ts` | photos réduites en data URL (Cloud Storage pas encore mis en place) |
+| `src/utils/images.ts` | photos réduites en JPEG puis envoyées dans Cloud Storage (`uploadImage`) ; repli en data URL si l'envoi échoue |
 
 Toutes les écritures sont **optimistes** : l'écran change tout de suite, Firestore confirme ensuite (les erreurs de règles apparaissent dans la console du navigateur avec le préfixe `[firestore]`).
 
@@ -88,5 +88,5 @@ Ces points demandent du code côté serveur (Cloud Functions) ou du stockage de 
 - **Notifications push** (live, rappels, dates) : l'envoi FCM se fait depuis un serveur.
 - **Live vidéo** : le document `lives` prévient les fidèles ; la diffusion elle-même demande un service de streaming (voir discussion bande passante).
 - **Reçus fiscaux PDF** : génération côté client pour l'instant.
-- **Photos** : stockées dans Firestore en data URL réduite (≈ 60 Ko) ; avec Cloud Storage, on passerait à des URLs de fichiers.
+- **Photos** : désormais dans Cloud Storage (bucket par défaut du projet, région `europe-west1`), chemins `congregations/{id}/rav.jpg` et `congregations/{id}/logo.jpg`, règles dans `storage.rules` (lecture connecté ; écriture réservée à l'équipe de la communauté, image < 2 Mo, rôle vérifié dans Firestore). Si l'envoi échoue, la photo réduite reste en data URL dans Firestore (≈ 60 Ko).
 - **Scan du QR code** avec la caméra sur téléphone : `expo-camera` à ajouter lors des builds natifs ; sur le web, le lien du QR code amène directement sur l'écran « Rejoindre ».

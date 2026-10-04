@@ -19,7 +19,7 @@ export interface ReligionProfile {
   tithe: { name: string; rate: number; hint: string } | null; // maasser 10 %, zakat 2,5 %, dîme 10 %, dana libre
   currency: string;
   calendar: string; // hébraïque, hégirien, liturgique, lunaire
-  icon: string; // MaterialCommunityIcons
+  icon: string; // MaterialCommunityIcons, ou 'greek-cross' (croix à bras égaux, voir components/ReligionIcon)
   ready: boolean; // contenus de démo disponibles
 }
 
@@ -78,7 +78,7 @@ export const religions: Record<CommunityId, ReligionProfile> = {
     tithe: { name: 'Dîme', rate: 0.1, hint: 'Un dixième des revenus, selon la tradition' },
     currency: '€',
     calendar: 'Calendrier liturgique',
-    icon: 'cross',
+    icon: 'greek-cross',
     ready: false,
   },
   buddhist: {

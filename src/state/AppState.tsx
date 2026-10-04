@@ -30,7 +30,7 @@ import { Member } from '../mocks/members';
 import { ReligionSeed } from '../seeds/types';
 import { entriesFromHolidays } from '../seeds/helpers';
 import { setCurrency, todayISO } from '../utils/time';
-import { toStoredImage } from '../utils/images';
+import { uploadImage } from '../utils/images';
 import { useAuth } from './AuthContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { chunks, Db, demoDb, FIELD_DELETE, FIELD_INCREMENT, firebaseDb, listenMerged } from '../data/db';
@@ -515,10 +515,13 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
           ...seededHolidays.map((h) => ({ type: 'set' as const, coll: 'holidays' as const, id: h.id, data: h })),
           ...entriesFromHolidays(seededHolidays, id).map((e) => ({ type: 'set' as const, coll: 'dayEntries' as const, id: db.newId('e'), data: { ...e, id: undefined } })),
           ...seed.categories.map((c) => ({ type: 'set' as const, coll: 'donationCategories' as const, id: db.newId('cat'), data: { ...c, id: undefined, congregationId: id } })),
-        ]).then(() => setLocalJoined((l) => [...l, id]));
-        // Les photos sont réduites puis ajoutées au document (plan gratuit : pas de stockage de fichiers).
-        if (input.leaderPhoto) toStoredImage(input.leaderPhoto).then((uri) => db.update('congregations', id, { 'rav.photo': { uri } }));
-        if (input.logo) toStoredImage(input.logo).then((uri) => db.update('congregations', id, { logo: { uri } }));
+        ]).then(() => {
+          setLocalJoined((l) => [...l, id]);
+          // Les photos sont réduites puis envoyées dans Cloud Storage, après le batch : les règles Storage
+          // exigent l'adhésion « leader » écrite juste au-dessus. L'URL obtenue est ajoutée au document.
+          if (input.leaderPhoto) uploadImage(`congregations/${id}/rav.jpg`, input.leaderPhoto).then((uri) => db.update('congregations', id, { 'rav.photo': { uri } }));
+          if (input.logo) uploadImage(`congregations/${id}/logo.jpg`, input.logo).then((uri) => db.update('congregations', id, { logo: { uri } }));
+        });
       }
       setCongregationState(id);
       return k;

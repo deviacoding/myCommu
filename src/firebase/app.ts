@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, browserLocalPersistence, getAuth, initializeAuth } from 'firebase/auth';
 import { Firestore, initializeFirestore } from 'firebase/firestore';
+import { FirebaseStorage, getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuration web Firebase, lue dans .env (variables EXPO_PUBLIC_FIREBASE_*).
@@ -21,6 +22,7 @@ export const firebaseConfigured = !!(config.apiKey && config.projectId && config
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
 
 function ensureApp(): FirebaseApp {
   if (!firebaseConfigured) throw new Error('Firebase non configuré : renseignez le fichier .env (voir .env.example).');
@@ -50,6 +52,13 @@ export function getDb(): Firestore {
     experimentalAutoDetectLongPolling: Platform.OS !== 'web',
   });
   return db;
+}
+
+// Cloud Storage (photos) : bucket par défaut du projet, voir storage.rules.
+export function getStorageBucket(): FirebaseStorage {
+  if (storage) return storage;
+  storage = getStorage(ensureApp());
+  return storage;
 }
 
 export { getAuth };

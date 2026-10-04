@@ -2,23 +2,23 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { CommunityId } from '../../types';
 import { themes } from '../../theme/themes';
 import { Button } from '../../components/ui';
 import { useI18n } from '../../i18n';
+import { ReligionIcon } from '../../components/ReligionIcon';
 import { useAuth, authErrorMessage } from '../../state/AuthContext';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
-type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const religions: { id: CommunityId; icon: MciName; hint: string }[] = [
-  { id: 'jewish', icon: 'star-david', hint: 'Horaires des fêtes, cours de Torah, tsedaka et maasser' },
-  { id: 'christian', icon: 'cross', hint: 'Messes, catéchèse, dîme et offrandes' },
-  { id: 'muslim', icon: 'star-crescent', hint: 'Horaires de prière, cours, zakat et sadaqa' },
-  { id: 'buddhist', icon: 'meditation', hint: 'Séances de méditation, enseignements du Dharma, dana' },
+// L'icône de chaque confession vient de ReligionIcon (croix grecque pour les chrétiens).
+const religions: { id: CommunityId; hint: string }[] = [
+  { id: 'jewish', hint: 'Horaires des fêtes, cours de Torah, tsedaka et maasser' },
+  { id: 'christian', hint: 'Messes, catéchèse, dîme et offrandes' },
+  { id: 'muslim', hint: 'Horaires de prière, cours, zakat et sadaqa' },
+  { id: 'buddhist', hint: 'Séances de méditation, enseignements du Dharma, dana' },
 ];
 
 export function SignupScreen({ navigation }: Props) {
@@ -85,7 +85,7 @@ export function SignupScreen({ navigation }: Props) {
             return (
               <Pressable key={r.id} onPress={() => choose(r.id)} accessibilityRole="radio" aria-checked={active} style={[styles.religion, { borderColor: active ? tint : c.border, backgroundColor: active ? tint + '14' : c.surface }]}>
                 <View style={[styles.religionIcon, { backgroundColor: tint + '22' }]}>
-                  <MaterialCommunityIcons name={r.icon} size={24} color={tint} />
+                  <ReligionIcon community={r.id} size={24} color={tint} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>{t(`religions.${r.id}.community`)}</Text>

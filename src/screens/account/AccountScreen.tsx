@@ -15,6 +15,7 @@ import { Aura } from '../../components/Aura';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, SectionTitle, Muted, Button, Chip } from '../../components/ui';
 import { MyDates } from '../../components/MyDates';
+import { IconByName } from '../../components/ReligionIcon';
 import { LanguagePicker } from '../../components/LanguagePicker';
 import { useI18n } from '../../i18n';
 import { CommunityId } from '../../types';
@@ -120,7 +121,7 @@ export function AccountScreen() {
           <Stat icon="fire" label="Mois d’affilée" value={String(streakMonths)} />
           <Stat icon="book-open-variant" label={`${seed.teachingPlural} lus`} value={String(readCourses.length)} />
           <Stat icon="comment-question" label="Questions" value={String(myQuestions)} />
-          <Stat icon={g.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} label="Niveau" value={`${levelIndex + 1}/${soulLevels.length}`} />
+          <Stat icon={g.icon} label="Niveau" value={`${levelIndex + 1}/${soulLevels.length}`} />
         </View>
 
         <SectionTitle title={t('account.myCommunities')} action={t('common.join')} onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
@@ -191,12 +192,12 @@ export function AccountScreen() {
   );
 }
 
-function Stat({ icon, label, value }: { icon: React.ComponentProps<typeof MaterialCommunityIcons>['name']; label: string; value: string }) {
+function Stat({ icon, label, value }: { icon: string; label: string; value: string }) {
   const { theme } = useTheme();
   const c = theme.colors;
   return (
     <View style={[styles.stat, { backgroundColor: c.card, borderColor: c.border }]}>
-      <MaterialCommunityIcons name={icon} size={20} color={c.primary} />
+      <IconByName icon={icon} size={20} color={c.primary} />
       <Text style={{ color: c.text, fontWeight: '800', fontSize: 16, marginTop: 6 }}>{value}</Text>
       <Muted style={{ fontSize: 11 }}>{label}</Muted>
     </View>

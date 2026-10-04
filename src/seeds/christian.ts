@@ -414,7 +414,7 @@ export const christianSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   gamification: {
     name: 'flamme',
     title: 'MA FLAMME',
-    icon: 'cross',
+    icon: 'greek-cross',
     levels: christianLevels,
     growHint: 'Votre flamme grandit à chaque aumône, chaque homélie lue et chaque question posée.',
     ctaLabel: 'Faire grandir ma flamme',

@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Règles Cloud Storage : photos de l'application (logo et photo du responsable d'une communauté,
+// photo de profil d'un utilisateur). Les rôles sont lus dans Firestore (memberships/{congId}_{uid}).
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function connecte() {
+      return request.auth != null;
+    }
+
+    // Image JPEG/PNG/… de moins de 2 Mo.
+    function imageValide() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+
+    // Membre de l'équipe (responsable ou adjoint) de la communauté, d'après Firestore.
+    function equipe(congId) {
+      return firestore.get(/databases/(default)/documents/memberships/$(congId + '_' + request.auth.uid)).data.role in ['leader', 'deputy'];
+    }
+
+    // Photos d'une communauté : rav.jpg, logo.jpg…
+    match /congregations/{congId}/{fileName} {
+      allow read: if connecte();
+      allow write: if connecte() && equipe(congId) && imageValide();
+    }
+
+    // Photos d'un utilisateur : écrites par lui seul.
+    match /users/{uid}/{fileName} {
+      allow read: if connecte();
+      allow write: if connecte() && request.auth.uid == uid && imageValide();
+    }
+
+    // Tout le reste est interdit.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

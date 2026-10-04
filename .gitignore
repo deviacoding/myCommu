@@ -50,3 +50,7 @@ yarn-error.*
 
 # Comptes de test locaux (jamais commités)
 test-accounts.local.md
+
+# Cloud Functions
+functions/node_modules
+functions/lib

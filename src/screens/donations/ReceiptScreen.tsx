@@ -8,6 +8,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { useAuth } from '../../state/AuthContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { IconByName } from '../../components/ReligionIcon';
 import { Card, Muted, Button, Segmented } from '../../components/ui';
 import { ReceiptFormat } from '../../types';
 import { money, formatNumeric, todayISO } from '../../utils/time';
@@ -97,7 +98,7 @@ export function ReceiptScreen({ route, navigation }: Props) {
         <Card style={[styles.doc, { borderColor: c.border }]}>
           <View style={styles.docHead}>
             <View style={[styles.logo, { backgroundColor: c.primary }]}>
-              <MaterialCommunityIcons name={seed.gamification.icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={22} color={c.secondary} />
+              <IconByName icon={seed.gamification.icon} size={22} color={c.secondary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.orgName, { color: c.text }]}>{ORG.name}</Text>

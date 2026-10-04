@@ -2,22 +2,17 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../../navigation/types';
 import { useTheme } from '../../theme/ThemeProvider';
 import { themes } from '../../theme/themes';
 import { useI18n } from '../../i18n';
 import { CommunityId } from '../../types';
+import { ReligionIcon } from '../../components/ReligionIcon';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'DemoCommunity'>;
-type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const communities: { id: CommunityId; icon: MciName }[] = [
-  { id: 'jewish', icon: 'star-david' },
-  { id: 'muslim', icon: 'star-crescent' },
-  { id: 'christian', icon: 'cross' },
-  { id: 'buddhist', icon: 'meditation' },
-];
+// L'icône de chaque confession vient de ReligionIcon (croix grecque pour les chrétiens).
+const communities: CommunityId[] = ['jewish', 'muslim', 'christian', 'buddhist'];
 
 export function DemoCommunityScreen({ navigation }: Props) {
   const { theme, setCommunity } = useTheme();
@@ -33,22 +28,22 @@ export function DemoCommunityScreen({ navigation }: Props) {
         <Text style={[styles.title, { color: c.text }]}>{t('demo.communityTitle')}</Text>
         <Text style={[styles.sub, { color: c.textMuted }]}>{t('demo.communitySubtitle')}</Text>
 
-        {communities.map((k) => {
-          const tint = themes[k.id].colors.primary;
+        {communities.map((id) => {
+          const tint = themes[id].colors.primary;
           return (
             <Pressable
-              key={k.id}
+              key={id}
               onPress={() => {
-                setCommunity(k.id);
-                navigation.navigate('DemoRole', { community: k.id });
+                setCommunity(id);
+                navigation.navigate('DemoRole', { community: id });
               }}
               style={({ pressed }) => [styles.big, { backgroundColor: tint, opacity: pressed ? 0.85 : 1 }]}
             >
               <View style={styles.bigIcon}>
-                <MaterialCommunityIcons name={k.icon} size={40} color="#fff" />
+                <ReligionIcon community={id} size={40} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.bigTxt}>{t(`religions.${k.id}.label`)}</Text>
+                <Text style={styles.bigTxt}>{t(`religions.${id}.label`)}</Text>
                 <Text style={styles.bigSub}>{t('demo.ready')}</Text>
               </View>
               <Ionicons name={rtl ? 'chevron-back' : 'chevron-forward'} size={28} color="#fff" />

@@ -45,7 +45,7 @@ export interface AlmsConfig {
 export interface GamificationConfig {
   name: string; // ora, nur, flamme, pāramitā
   title: string; // « MON ORA »
-  icon: string; // MaterialCommunityIcons
+  icon: string; // MaterialCommunityIcons, ou 'greek-cross' (rendu par components/ReligionIcon)
   levels: SoulLevel[];
   growHint: string; // « Votre ora grandit à chaque don… »
   ctaLabel: string; // « Faire grandir mon ora »

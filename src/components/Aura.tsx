@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Easing } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { IconByName } from './ReligionIcon';
 import { useTheme } from '../theme/ThemeProvider';
 
 interface AuraProps {
   levelIndex: number; // 0..4
   progress: number; // 0..1 vers le niveau suivant
   size?: number;
-  icon?: string; // MaterialCommunityIcons, selon la confession
+  icon?: string; // MaterialCommunityIcons ou 'greek-cross', selon la confession
 }
 
 // L'ora : des cercles concentriques qui grandissent et s'intensifient avec le niveau.
@@ -73,7 +73,7 @@ export function Aura({ levelIndex, progress, size = 220, icon = 'star-david' }: 
           },
         ]}
       >
-        <MaterialCommunityIcons name={icon as React.ComponentProps<typeof MaterialCommunityIcons>['name']} size={coreSize * 0.45} color={gold} />
+        <IconByName icon={icon} size={coreSize * 0.45} color={gold} />
       </Animated.View>
     </View>
   );

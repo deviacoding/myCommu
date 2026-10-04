@@ -1,0 +1,9 @@
+# Dépendances et sortie de compilation des Cloud Functions
+node_modules/
+lib/
+
+# Secrets et fichiers locaux de l'émulateur
+.env
+.env.*
+*.local
+.runtimeconfig.json
