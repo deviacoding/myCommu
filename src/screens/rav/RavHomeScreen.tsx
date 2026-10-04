@@ -25,9 +25,10 @@ export function RavHomeScreen({ navigation }: Props) {
   const c = theme.colors;
   const { t, rtl } = useI18n();
   const r = (k: string) => t(`religions.${community}.${k}`);
-  const { signOut, switchRole, mode } = useAuth();
+  const { signOut, switchRole, mode, staffRoleFor, isDemo } = useAuth();
   const { profile } = useReligion();
-  const role: StaffRole = mode === 'treasurer' ? 'treasurer' : 'leader';
+  const { congregationId: currentCongregationId } = useAppState();
+  const role: StaffRole = staffRoleFor(currentCongregationId) ?? (mode === 'treasurer' ? 'treasurer' : mode === 'organizer' ? 'organizer' : 'leader');
   const isTreasurer = role === 'treasurer';
   const {
     myStaff,
@@ -162,7 +163,7 @@ export function RavHomeScreen({ navigation }: Props) {
             }}
           />
         ) : null}
-        <BigButton label={t('rav.quitDemo')} icon="log-out-outline" color={c.surface} textColor={c.textMuted} onPress={signOut} style={{ borderWidth: 1, borderColor: c.border }} />
+        <BigButton label={isDemo ? t('rav.quitDemo') : t('auth.signOut')} icon="log-out-outline" color={c.surface} textColor={c.textMuted} onPress={signOut} style={{ borderWidth: 1, borderColor: c.border }} />
       </View>
     </RavScreen>
   );

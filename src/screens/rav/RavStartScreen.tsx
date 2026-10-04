@@ -19,9 +19,10 @@ export function RavStartScreen({ navigation }: Props) {
   const c = theme.colors;
   const { t, rtl } = useI18n();
   const r = (k: string) => t(`religions.${community}.${k}`);
-  const { signOut } = useAuth();
-  const { seed, setCongregation, congregations } = useAppState();
-  const demo = congregations.find((k) => k.id === seed.defaultCongregation) ?? congregations[0];
+  const { signOut, staffRoleFor } = useAuth();
+  const { seed, setCongregation, congregations, backendMode } = useAppState();
+  const real = backendMode === 'firebase';
+  const demo = real ? congregations.find((k) => staffRoleFor(k.id)) : (congregations.find((k) => k.id === seed.defaultCongregation) ?? congregations[0]);
   const chevron = rtl ? 'chevron-back' : 'chevron-forward';
 
   return (
@@ -39,6 +40,7 @@ export function RavStartScreen({ navigation }: Props) {
         <Ionicons name={chevron} size={30} color="#fff" />
       </Pressable>
 
+      {demo ? (
       <Pressable
         onPress={() => {
           setCongregation(demo.id);
@@ -55,6 +57,11 @@ export function RavStartScreen({ navigation }: Props) {
         </View>
         <Ionicons name={chevron} size={30} color={c.primary} />
       </Pressable>
+      ) : (
+        <RavCard style={{ marginBottom: 18 }}>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Vous n’avez pas encore de communauté. Créez-la ci-dessus : cela prend deux minutes. Si votre responsable vous a donné un code d’accès, entrez-le dans « Voir l’application comme un fidèle » → Rejoindre → Code.</Text>
+        </RavCard>
+      )}
 
       <RavCard style={{ marginTop: 10 }}>
         <LanguagePicker big />

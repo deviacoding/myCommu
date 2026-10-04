@@ -1,0 +1,159 @@
+rules_version = '2';
+
+// Règles de sécurité myCommu.
+// Principe : tout lecteur est connecté ; chaque contenu appartient à une communauté (congregationId) ;
+// les rôles (leader, deputy, treasurer, organizer, member) sont portés par memberships/{congregationId}_{uid}.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function membershipPath(congId) { return /databases/$(database)/documents/memberships/$(congId + '_' + uid()); }
+    // getAfter : dans un lot (création de communauté + adhésion + contenus copiés), le rôle est lu dans l'état final.
+    function roleIn(congId) { return existsAfter(membershipPath(congId)) ? getAfter(membershipPath(congId)).data.role : 'none'; }
+    function isMember(congId) { return roleIn(congId) != 'none'; }
+    function isStaff(congId) { return roleIn(congId) in ['leader', 'deputy', 'treasurer', 'organizer']; }
+    function isLeader(congId) { return roleIn(congId) in ['leader', 'deputy']; }
+    function hasRole(congId, roles) { return roleIn(congId) in roles; }
+    // Communauté du document lu ou écrit
+    function congOf() { return resource.data.congregationId; }
+    function newCongOf() { return request.resource.data.congregationId; }
+    function sameCong() { return request.resource.data.congregationId == resource.data.congregationId; }
+
+    // ---- Profil : chacun le sien.
+    match /users/{userId} {
+      allow read, write: if signedIn() && uid() == userId;
+    }
+
+    // ---- Communautés : lisibles par tous les connectés (une communauté privée est simplement absente
+    // de « Autour de moi » ; on la retrouve par son code). Créée par son responsable, modifiée par l'équipe.
+    match /congregations/{congId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.leaderUid == uid();
+      allow update: if signedIn() && (
+        isLeader(congId)
+        // Un fidèle qui rejoint ou quitte ne touche qu'au compteur de membres.
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        // L'organisateur règle les horaires réguliers.
+        || (hasRole(congId, ['organizer']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['services']))
+      );
+      allow delete: if signedIn() && roleIn(congId) == 'leader';
+    }
+
+    // ---- Adhésions. Id = congregationId_uid.
+    // Une invitation d'équipe (staffInvites/{code}) non utilisée, pour la même communauté et le même rôle.
+    function validInvite(data) {
+      return data.inviteCode is string
+        && exists(/databases/$(database)/documents/staffInvites/$(data.inviteCode))
+        && get(/databases/$(database)/documents/staffInvites/$(data.inviteCode)).data.congregationId == data.congregationId
+        && get(/databases/$(database)/documents/staffInvites/$(data.inviteCode)).data.role == data.role
+        && get(/databases/$(database)/documents/staffInvites/$(data.inviteCode)).data.status == 'invited';
+    }
+    match /memberships/{mid} {
+      allow read: if signedIn() && (resource.data.uid == uid() || isStaff(resource.data.congregationId));
+      // Rejoindre comme fidèle, devenir responsable de la communauté qu'on vient de créer,
+      // ou activer un code d'accès d'équipe.
+      allow create: if signedIn() && request.resource.data.uid == uid() && mid == newCongOf() + '_' + uid() && (
+        request.resource.data.role == 'member'
+        || (request.resource.data.role == 'leader' && getAfter(/databases/$(database)/documents/congregations/$(newCongOf())).data.leaderUid == uid())
+        || (request.resource.data.role in ['deputy', 'treasurer', 'organizer'] && validInvite(request.resource.data))
+      );
+      allow delete: if signedIn() && (resource.data.uid == uid() || isLeader(resource.data.congregationId));
+    }
+
+    // ---- Codes d'accès de l'équipe. Id = code (RB-1234…).
+    match /staffInvites/{code} {
+      allow get: if signedIn();
+      allow list: if signedIn() && isLeader(resource.data.congregationId);
+      allow create: if signedIn() && isLeader(newCongOf()) && request.resource.data.status == 'invited';
+      // Celui qui utilise le code le marque « active » ; le responsable peut le supprimer.
+      allow update: if signedIn() && resource.data.status == 'invited' && request.resource.data.claimedBy == uid()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'claimedBy']);
+      allow delete: if signedIn() && isLeader(resource.data.congregationId);
+    }
+
+    // ---- Courants et groupes : référentiel partagé par confession.
+    match /currents/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+    }
+    match /groups/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && isLeader(request.resource.data.headCongregationId);
+      allow update, delete: if signedIn() && isLeader(resource.data.headCongregationId);
+    }
+
+    // ---- Moyens de paiement : gérés par le responsable et le trésorier ; les fidèles les lisent pour choisir comment payer.
+    match /paymentLinks/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']);
+    }
+
+    // ---- Enseignements, agenda, horaires, fêtes, catégories de dons : lus par les membres, écrits par l'équipe.
+    match /courses/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && isLeader(newCongOf());
+      allow update, delete: if signedIn() && isLeader(congOf()) && sameCong();
+    }
+    match /agenda/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'organizer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'organizer']);
+    }
+    match /dayEntries/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'organizer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'organizer']);
+    }
+    match /holidays/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'organizer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'organizer']);
+    }
+    match /donationCategories/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']);
+    }
+
+    // ---- Questions : l'auteur et l'équipe ; publiques une fois partagées par le responsable.
+    match /questions/{id} {
+      allow read: if signedIn() && (resource.data.askerUid == uid() || resource.data.isPublic == true || isLeader(congOf()));
+      allow create: if signedIn() && request.resource.data.askerUid == uid() && isMember(newCongOf());
+      allow update: if signedIn() && isLeader(congOf()) && sameCong();
+      allow delete: if signedIn() && (resource.data.askerUid == uid() || isLeader(congOf()));
+    }
+
+    // ---- Dons et promesses : le fidèle voit les siens, l'équipe finance voit tout.
+    match /donations/{id} {
+      allow read: if signedIn() && (resource.data.uid == uid() || hasRole(congOf(), ['leader', 'deputy', 'treasurer']));
+      allow create: if signedIn() && (request.resource.data.uid == uid() || hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']));
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']);
+    }
+    match /pledges/{id} {
+      allow read: if signedIn() && (resource.data.memberUid == uid() || hasRole(congOf(), ['leader', 'deputy', 'treasurer']));
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']);
+      // Le fidèle qui paie sa promesse la marque réglée ; l'équipe fait le reste.
+      allow update: if signedIn() && (
+        hasRole(congOf(), ['leader', 'deputy', 'treasurer'])
+        || (resource.data.memberUid == uid() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'settledAt']))
+      );
+      allow delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']);
+    }
+
+    // ---- Dates des fidèles : le fidèle voit les siennes, l'équipe toutes.
+    match /memberDates/{id} {
+      allow read: if signedIn() && (resource.data.uid == uid() || hasRole(congOf(), ['leader', 'deputy', 'organizer']));
+      allow create: if signedIn() && (request.resource.data.uid == uid() && isMember(newCongOf()) || hasRole(newCongOf(), ['leader', 'deputy', 'organizer']));
+      allow update, delete: if signedIn() && (resource.data.uid == uid() || hasRole(congOf(), ['leader', 'deputy', 'organizer']));
+    }
+
+    // ---- Direct : un document par communauté.
+    match /lives/{congId} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && newCongOf() == congId && isLeader(congId);
+      allow update, delete: if signedIn() && isLeader(congId);
+    }
+  }
+}

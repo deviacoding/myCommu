@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "congregations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "religion", "order": "ASCENDING" },
+        { "fieldPath": "isPrivate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "questions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "congregationId", "order": "ASCENDING" },
+        { "fieldPath": "isPublic", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

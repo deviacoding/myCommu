@@ -47,3 +47,6 @@ yarn-error.*
 # Build web
 /dist
 .firebase/
+
+# Comptes de test locaux (jamais commités)
+test-accounts.local.md

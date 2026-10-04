@@ -4,6 +4,10 @@ export type CommunityId = 'jewish' | 'christian' | 'muslim' | 'buddhist';
 
 export interface UserProfile {
   id: string;
+  intent?: 'member' | 'leader'; // à l'inscription : fidèle, ou responsable qui va créer sa communauté
+  lang?: string;
+  readCourses?: string[];
+  maasserInput?: { salary: number; school: number; talmudTorah: number; other: number };
   name: string;
   hebrewName?: string;
   email: string;
@@ -25,6 +29,7 @@ export interface HolidayTime {
 
 export interface Holiday {
   id: string;
+  congregationId?: string;
   name: string;
   hebrewName: string;
   kind: HolidayKind;
@@ -74,6 +79,7 @@ export interface MediaAttachment {
 export interface Course {
   id: string;
   congregationId?: string; // communauté ; absent = sefarade
+  authorUid?: string;
   title: string;
   subtitle: string;
   teacher: string;
@@ -104,6 +110,7 @@ export interface Question {
   category: QuestionCategory;
   status: 'answered' | 'pending';
   askedBy: string;
+  askerUid?: string;
   anonymous?: boolean;
   isPublic?: boolean; // visible par toute la communauté (après anonymisation par le Rav)
   date: string;
@@ -114,6 +121,9 @@ export type DonationType = 'tsedaka' | 'maasser' | 'engagement';
 
 export interface Donation {
   id: string;
+  congregationId?: string;
+  uid?: string; // donateur
+  paymentLinkId?: string;
   type: DonationType;
   amount: number;
   cause: string;
@@ -125,6 +135,7 @@ export interface Pledge {
   id: string;
   congregationId?: string; // communauté ; absent = sefarade
   member?: string;
+  memberUid?: string;
   category?: string; // nom de la catégorie de don (Apéritif, Dons de Chabbat…)
   label: string;
   amount: number;
@@ -154,6 +165,7 @@ export interface DonationItem {
 
 export interface DonationCategory {
   id: string;
+  congregationId?: string;
   name: string;
   icon: string;
   items: DonationItem[];
@@ -170,6 +182,11 @@ export interface DayEntry {
 
 export interface Congregation {
   id: string;
+  religion?: CommunityId; // renseigné en base ; absent dans les seeds de démo (déduit de la confession)
+  leaderUid?: string;
+  themes?: string[]; // thèmes d'enseignement propres à la communauté (base)
+  services?: DailyService[]; // horaires réguliers (base)
+  createdAt?: string;
   name: string;
   rite: string;
   city: string;
@@ -190,6 +207,7 @@ export interface Congregation {
 // Courant religieux : séfarade, ashkénaze, habad… ; sunnite, chiite… ; catholique, protestant…
 export interface ReligiousCurrent {
   id: string;
+  religion?: CommunityId;
   name: string;
   custom?: boolean; // ajouté par un responsable
 }
@@ -197,6 +215,7 @@ export interface ReligiousCurrent {
 // Groupe de communautés (fédération, réseau). Le chef de groupe est la communauté qui l'a créé.
 export interface CommunityGroup {
   id: string;
+  religion?: CommunityId;
   name: string;
   description?: string;
   currentId?: string;
@@ -209,6 +228,7 @@ export type MemberDateType = 'anniversaire' | 'azkara' | 'autre';
 export interface MemberDate {
   id: string;
   congregationId?: string;
+  uid?: string; // fidèle concerné, quand il a un compte
   member: string;
   type: MemberDateType;
   label: string;
@@ -225,6 +245,21 @@ export interface StaffMember {
   role: 'deputy' | 'treasurer' | 'organizer';
   code: string; // code d'accès personnel
   status: 'invited' | 'active';
+  claimedBy?: string; // uid de la personne qui a utilisé le code
+  createdBy?: string;
+}
+
+// Appartenance d'un utilisateur à une communauté, avec son rôle. Id du document : `${congregationId}_${uid}`.
+export type MembershipRole = 'member' | 'leader' | 'deputy' | 'treasurer' | 'organizer';
+export interface Membership {
+  id: string;
+  uid: string;
+  congregationId: string;
+  role: MembershipRole;
+  name: string; // nom affiché (dénormalisé)
+  joinedAt: string;
+  joinedVia?: 'nearby' | 'qr' | 'code' | 'created' | 'staff';
+  inviteCode?: string; // code d'accès utilisé pour un rôle d'équipe
 }
 
 // Compte de paiement (Stripe, Bit, Lemon Squeezy…) relié à une communauté pour recevoir les dons.

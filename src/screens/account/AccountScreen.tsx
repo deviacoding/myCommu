@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,7 +27,10 @@ export function AccountScreen() {
   const c = theme.colors;
   const { t } = useI18n();
   const navigation = useNavigation<Nav>();
-  const { user, signOut, updateUser } = useAuth();
+  const { user, signOut, updateUser, isDemo, memberships, switchRole } = useAuth();
+  const staffMembership = memberships.find((m) => m.role !== 'member');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ name: user.name, phone: user.phone ?? '', city: user.city ?? '' });
   const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed } = useAppState();
   const soulLevels = seed.gamification.levels;
   const g = seed.gamification;
@@ -43,8 +46,8 @@ export function AccountScreen() {
         title={t('account.title')}
         communitySwitch
         right={
-          <Pressable hitSlop={8}>
-            <Ionicons name="create-outline" size={22} color={c.primary} />
+          <Pressable hitSlop={8} onPress={() => { setDraft({ name: user.name, phone: user.phone ?? '', city: user.city ?? '' }); setEditing((v) => !v); }}>
+            <Ionicons name={editing ? 'close-outline' : 'create-outline'} size={22} color={c.primary} />
           </Pressable>
         }
       />
@@ -57,6 +60,20 @@ export function AccountScreen() {
             <Muted>{theme.name} · membre depuis {formatNumeric(user.memberSince)}</Muted>
           </View>
         </View>
+
+        {editing ? (
+          <Card style={{ gap: 10 }}>
+            <Text style={{ color: c.text, fontWeight: '800' }}>Modifier mes informations</Text>
+            <TextInput value={draft.name} onChangeText={(v) => setDraft({ ...draft, name: v })} placeholder="Nom complet" placeholderTextColor={c.textMuted} style={[styles.input, { borderColor: c.border, color: c.text }]} />
+            <TextInput value={draft.phone} onChangeText={(v) => setDraft({ ...draft, phone: v })} placeholder="Téléphone" keyboardType="phone-pad" placeholderTextColor={c.textMuted} style={[styles.input, { borderColor: c.border, color: c.text }]} />
+            <TextInput value={draft.city} onChangeText={(v) => setDraft({ ...draft, city: v })} placeholder="Ville" placeholderTextColor={c.textMuted} style={[styles.input, { borderColor: c.border, color: c.text }]} />
+            <Button label={t('common.save')} icon="checkmark" disabled={draft.name.trim().length < 2} onPress={() => { updateUser({ name: draft.name.trim(), phone: draft.phone.trim() || undefined, city: draft.city.trim() || undefined }); setEditing(false); }} />
+          </Card>
+        ) : null}
+
+        {staffMembership ? (
+          <Button label={t('auth.leaderSpace')} icon="ribbon-outline" variant="secondary" onPress={() => switchRole(staffMembership.role === 'treasurer' ? 'treasurer' : staffMembership.role === 'organizer' ? 'organizer' : 'rav')} style={{ marginBottom: 12 }} />
+        ) : null}
 
         <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
           <Text style={[styles.oraTitle, { color: c.textMuted }]}>{g.title}</Text>
@@ -162,12 +179,12 @@ export function AccountScreen() {
                 <Chip key={id} label={themes[id].name.replace('Communauté ', '')} active={user.community === id} color={themes[id].colors.primary} onPress={() => updateUser({ community: id })} />
               ))}
             </View>
-            <Muted style={{ fontSize: 12 }}>Changer de confession recharge la démo avec les contenus correspondants.</Muted>
+            <Muted style={{ fontSize: 12 }}>{isDemo ? 'Changer de confession recharge la démo avec les contenus correspondants.' : 'Votre confession détermine le vocabulaire, le calendrier et les couleurs de l’application.'}</Muted>
           </View>
         </Card>
 
-        <Button label="Quitter la démo" variant="ghost" icon="log-out-outline" onPress={signOut} style={{ marginTop: 6 }} />
-        <Muted style={{ textAlign: 'center', marginTop: 14, fontSize: 11 }}>myCommu · maquette v0.2</Muted>
+        <Button label={isDemo ? 'Quitter la démo' : t('auth.signOut')} variant="ghost" icon="log-out-outline" onPress={signOut} style={{ marginTop: 6 }} />
+        <Muted style={{ textAlign: 'center', marginTop: 14, fontSize: 11 }}>myCommu · {isDemo ? 'maquette v0.2' : 'v0.3 · Firebase'}</Muted>
         <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
@@ -201,6 +218,7 @@ function Info({ icon, label, value }: { icon: React.ComponentProps<typeof Ionico
 }
 
 const styles = StyleSheet.create({
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 15 },
   root: { flex: 1 },
   content: { padding: 16, maxWidth: 640, width: '100%', alignSelf: 'center' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16, marginTop: 4 },

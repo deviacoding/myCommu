@@ -20,8 +20,12 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const onboarding = route.params?.onboarding ?? false;
-  const { user, finishOnboarding } = useAuth();
-  const { congregations, myCongregations, joinCongregation, currents, currentOf, groupOf } = useAppState();
+  const { user, finishOnboarding, claimStaffCode, switchRole, updateUser } = useAuth();
+  const { congregations, myCongregations, joinCongregation, currents, currentOf, groupOf, lookupCongregationByCode, backendMode, locateMe, userCoords } = useAppState();
+  const real = backendMode === 'firebase';
+  const [locating, setLocating] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [qrLink, setQrLink] = useState('');
   const { t, lang } = useI18n();
   const [method, setMethod] = useState<Method>('nearby');
   const [currentFilter, setCurrentFilter] = useState<string | null>(null);
@@ -57,23 +61,51 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
     };
   }, [scanning, scanLine, congregations, myCongregations]);
 
-  const join = (k: Congregation) => {
-    joinCongregation(k.id);
+  const join = (k: Congregation, via: 'nearby' | 'qr' | 'code' = 'nearby') => {
+    joinCongregation(k.id, via);
     setJoinedNow(k.name);
     setScanned(null);
     setCode('');
     setTimeout(() => setJoinedNow(null), 3000);
   };
 
-  const submitCode = () => {
-    const norm = code.replace(/[\s-]/g, '').toUpperCase();
-    const found = congregations.find((k) => k.code.replace(/[\s-]/g, '').toUpperCase() === norm);
-    if (!found) {
-      setCodeError('Code inconnu. Vérifiez auprès de votre synagogue, le code est de la forme XX-0000.');
-      return;
-    }
+  // Un code de communauté (XX-0000) fait rejoindre ; un code d'équipe (RB/TR/OR-0000) ouvre l'espace responsable.
+  const submitCode = async (raw: string = code, via: 'code' | 'qr' = 'code') => {
+    const norm = raw.replace(/[\s-]/g, '').toUpperCase();
+    setChecking(true);
     setCodeError(null);
-    join(found);
+    try {
+      if (real && /^(RB|TR|OR)\d{4}$/.test(norm)) {
+        await claimStaffCode(norm);
+        return;
+      }
+      const found = await lookupCongregationByCode(norm);
+      if (!found) {
+        setCodeError('Code inconnu. Vérifiez auprès de votre communauté : le code est de la forme XX-0000.');
+        return;
+      }
+      join(found, via);
+    } catch (e) {
+      setCodeError((e as Error).message);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // Lien du QR code (…/rejoindre/XX-0000) collé ou ouvert directement dans le navigateur.
+  const codeFromLink = (s: string) => (s.match(/([A-Z]{2}-?\d{4})(?![\w-])/i)?.[1] ?? '').toUpperCase();
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location) return;
+    const c0 = codeFromLink(window.location.pathname);
+    if (c0) {
+      setMethod('code');
+      setCode(c0);
+    }
+  }, []);
+
+  const becomeLeader = () => {
+    updateUser({ intent: 'leader' });
+    switchRole('rav');
   };
 
   const finish = () => {
@@ -129,8 +161,23 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
           <View style={{ marginTop: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
               <Ionicons name="location" size={18} color={c.primary} />
-              <Muted>{t('join.nearbyHint', { city: user.city ?? '—' })}</Muted>
+              <Muted style={{ flex: 1 }}>{real ? (userCoords ? 'Communautés publiques, de la plus proche à la plus éloignée' : 'Activez votre position pour voir les distances') : t('join.nearbyHint', { city: user.city ?? '—' })}</Muted>
             </View>
+            {real && !userCoords ? (
+              <Button
+                label={locating ? 'Recherche de votre position…' : 'Me géolocaliser'}
+                icon="navigate"
+                variant="secondary"
+                disabled={locating}
+                onPress={async () => {
+                  setLocating(true);
+                  await locateMe();
+                  setLocating(false);
+                }}
+                style={{ marginBottom: 10 }}
+              />
+            ) : null}
+            {real && nearbyList.length === 0 ? <Card><Muted>Aucune communauté publique de votre confession n’est encore inscrite. Rejoignez la vôtre par son code ou son QR code.</Muted></Card> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
               <Chip label={t('affiliation.allCurrents')} active={currentFilter === null} onPress={() => setCurrentFilter(null)} />
               {usedCurrents.map((cur) => (
@@ -171,7 +218,22 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
         ) : null}
 
         {/* ---- QR code ---- */}
-        {method === 'qr' ? (
+        {method === 'qr' && real ? (
+          <View style={{ marginTop: 16 }}>
+            <Muted style={{ marginBottom: 10 }}>Scannez le QR code de votre communauté avec l’appareil photo de votre téléphone : il ouvre un lien qui vous amène ici. Vous pouvez aussi coller ce lien.</Muted>
+            <TextInput
+              value={qrLink}
+              onChangeText={setQrLink}
+              placeholder="https://mycommunity-b13de.web.app/rejoindre/XX-0000"
+              autoCapitalize="none"
+              placeholderTextColor={c.textMuted}
+              style={[styles.codeInput, { borderColor: codeError ? c.danger : c.border, backgroundColor: c.surface, color: c.text, fontSize: 14, letterSpacing: 0 }]}
+            />
+            {codeError ? <Text style={{ color: c.danger, fontSize: 13, marginTop: 6 }}>{codeError}</Text> : null}
+            <Button label={checking ? 'Vérification…' : 'Rejoindre avec ce lien'} icon="link" disabled={!codeFromLink(qrLink) || checking} onPress={() => submitCode(codeFromLink(qrLink), 'qr')} style={{ marginTop: 12 }} />
+          </View>
+        ) : null}
+        {method === 'qr' && !real ? (
           <View style={{ marginTop: 16 }}>
             <Muted style={{ marginBottom: 10 }}>Scannez le QR code affiché à l’entrée de votre lieu de culte ou envoyé par votre responsable.</Muted>
             <View style={styles.camera}>
@@ -222,7 +284,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
         {/* ---- Code ---- */}
         {method === 'code' ? (
           <View style={{ marginTop: 16 }}>
-            <Muted style={{ marginBottom: 10 }}>Entrez le code communiqué par votre communauté. Pour la démo : {congregations.map((k) => `${k.code} (${k.name})`).join(', ')}.</Muted>
+            <Muted style={{ marginBottom: 10 }}>{real ? 'Entrez le code de votre communauté (XX-0000), ou le code d’accès d’équipe reçu de votre responsable (RB-, TR- ou OR-0000).' : `Entrez le code communiqué par votre communauté. Pour la démo : ${congregations.map((k) => `${k.code} (${k.name})`).join(', ')}.`}</Muted>
             <TextInput
               value={code}
               onChangeText={(v) => {
@@ -235,7 +297,7 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
               style={[styles.codeInput, { borderColor: codeError ? c.danger : c.border, backgroundColor: c.surface, color: c.text }]}
             />
             {codeError ? <Text style={{ color: c.danger, fontSize: 13, marginTop: 6 }}>{codeError}</Text> : null}
-            <Button label="Valider le code" icon="key" disabled={code.replace(/[\s-]/g, '').length < 6} onPress={submitCode} style={{ marginTop: 12 }} />
+            <Button label={checking ? 'Vérification…' : 'Valider le code'} icon="key" disabled={code.replace(/[\s-]/g, '').length < 6 || checking} onPress={() => submitCode()} style={{ marginTop: 12 }} />
           </View>
         ) : null}
 
@@ -246,10 +308,17 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
             disabled={onboarding && joined.length === 0}
             onPress={finish}
           />
-          {onboarding ? (
+          {onboarding && !real ? (
             <Muted style={{ textAlign: 'center', marginTop: 12, fontSize: 12 }}>
               Maquette : demain, cette étape utilisera votre position, la caméra du téléphone et un code fourni par votre communauté.
             </Muted>
+          ) : null}
+          {onboarding && real ? (
+            <Pressable onPress={becomeLeader} style={{ marginTop: 18, alignItems: 'center' }}>
+              <Text style={{ color: c.textMuted, fontSize: 13 }}>
+                {t('auth.areYouLeader')} <Text style={{ color: c.primary, fontWeight: '700' }}>{t('auth.createCommunity')}</Text>
+              </Text>
+            </Pressable>
           ) : null}
         </View>
         <View style={{ height: 24 }} />
