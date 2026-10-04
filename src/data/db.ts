@@ -10,6 +10,7 @@ import {
   deleteField,
   increment as fsIncrement,
   DocumentData,
+  FieldValue,
 } from 'firebase/firestore';
 import { getDb } from '../firebase/app';
 
@@ -86,9 +87,21 @@ export const firebaseDb: Db = {
   },
 };
 
-// Retire les fonctions et les images « require » (nombres) qui ne peuvent pas être stockées.
-function clean<T extends object>(data: T): T {
-  return JSON.parse(JSON.stringify(data, (k, v) => (typeof v === 'function' ? undefined : v)));
+// Retire les fonctions et les valeurs non sérialisables, en conservant les valeurs spéciales Firestore
+// (increment, deleteField…) qui doivent arriver intactes au SDK.
+function clean<T>(data: T): T {
+  if (data === null || data === undefined) return data;
+  if (data instanceof FieldValue) return data;
+  if (Array.isArray(data)) return data.map((v) => clean(v)).filter((v) => v !== undefined) as unknown as T;
+  if (typeof data === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+      if (typeof v === 'function' || v === undefined) continue;
+      out[k] = clean(v);
+    }
+    return out as T;
+  }
+  return typeof data === 'function' ? (undefined as T) : data;
 }
 
 // Abonnement à plusieurs requêtes fusionnées en une seule liste (dédoublonnée par id).
