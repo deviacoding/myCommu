@@ -54,3 +54,8 @@ test-accounts.local.md
 # Cloud Functions
 functions/node_modules
 functions/lib
+
+# Site vitrine (Next.js)
+site/node_modules
+site/.next
+site/out

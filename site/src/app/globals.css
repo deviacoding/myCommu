@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* Palette : bleu nuit, or doux, crème. Aucune confession n'est privilégiée. */
+:root {
+  color-scheme: light;
+  --bg: #faf6ee;
+  --bg-soft: #f3ecdd;
+  --surface: #ffffff;
+  --text: #14213d;
+  --muted: #5b6478;
+  --night: #0f1f3d;
+  --night-soft: #1c3160;
+  --gold: #b8902e;
+  --gold-soft: #e9d49a;
+  --gold-faint: #fbf3dc;
+  --border: #e6dfd0;
+  --on-night: #fbf7ee;
+  --shadow: 0 10px 30px -12px rgb(20 33 61 / 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0d1424;
+    --bg-soft: #121c33;
+    --surface: #17213a;
+    --text: #f3ede0;
+    --muted: #aeb6c8;
+    --night: #e9d49a;
+    --night-soft: #d9b65b;
+    --gold: #d9b65b;
+    --gold-soft: #5a4a1e;
+    --gold-faint: #2a2a2f;
+    --border: #2a3552;
+    --on-night: #0d1424;
+    --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-soft);
+  --color-surface: var(--surface);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-night: var(--night);
+  --color-night-soft: var(--night-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-faint: var(--gold-faint);
+  --color-line: var(--border);
+  --color-on-night: var(--on-night);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--gold-soft);
+  color: var(--text);
+}
+
+/* Articles de blog rendus depuis Markdown */
+.prose-mc {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+.prose-mc > * + * { margin-top: 1.1em; }
+.prose-mc h2 { font-size: 1.6rem; margin-top: 2.2em; line-height: 1.25; }
+.prose-mc h3 { font-size: 1.25rem; margin-top: 1.8em; }
+.prose-mc p, .prose-mc li { color: var(--text); }
+.prose-mc a { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+.prose-mc ul { list-style: disc; padding-inline-start: 1.4em; }
+.prose-mc ol { list-style: decimal; padding-inline-start: 1.4em; }
+.prose-mc li + li { margin-top: 0.4em; }
+.prose-mc blockquote {
+  border-inline-start: 3px solid var(--gold);
+  padding-inline-start: 1em;
+  color: var(--muted);
+  font-style: italic;
+}
+.prose-mc code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--bg-soft);
+  padding: 0.1em 0.4em;
+  border-radius: 0.35em;
+}
+.prose-mc pre {
+  background: var(--bg-soft);
+  padding: 1em 1.2em;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+}
+.prose-mc pre code { background: none; padding: 0; }
+.prose-mc table { width: 100%; border-collapse: collapse; font-size: 0.95em; display: block; overflow-x: auto; }
+.prose-mc th, .prose-mc td { border: 1px solid var(--border); padding: 0.5em 0.75em; text-align: start; }
+.prose-mc th { background: var(--bg-soft); }
+.prose-mc img { border-radius: 0.75rem; border: 1px solid var(--border); }
+.prose-mc hr { border: 0; border-top: 1px solid var(--border); }
+
+/* Version imprimable des guides */
+@media print {
+  @page { margin: 16mm; }
+  body { background: #fff; color: #111; }
+  .no-print { display: none !important; }
+  .print-step { break-after: page; page-break-after: always; }
+  .print-step:last-child { break-after: auto; page-break-after: auto; }
+  a { color: inherit; text-decoration: none; }
+}

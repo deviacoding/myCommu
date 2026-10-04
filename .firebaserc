@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "mycommunity-b13de"
-  }
+  },
+  "targets": {
+    "mycommunity-b13de": {
+      "hosting": {
+        "app": [
+          "mycommunity-b13de"
+        ],
+        "site": [
+          "mycommu-site"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
