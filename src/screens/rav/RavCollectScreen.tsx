@@ -129,8 +129,11 @@ export function RavCollectScreen({ navigation }: Props) {
         <RavCard style={{ alignItems: 'center' }}>
           <Ionicons name={allDue.length ? 'search' : 'checkmark-circle'} size={40} color={allDue.length ? c.textMuted : c.success} />
           <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8, textAlign: 'center' }}>
-            {allDue.length ? 'Aucun don ne correspond à cette recherche' : 'Tout est encaissé'}
+            {allDue.length ? 'Aucun don ne correspond à cette recherche' : 'Rien à récupérer'}
           </Text>
+          {!allDue.length ? (
+            <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4, textAlign: 'center' }}>Aucun don en attente. Enregistrez un don ci-dessous pour le suivre ici.</Text>
+          ) : null}
         </RavCard>
       ) : null}
 
@@ -280,6 +283,11 @@ export function RavCollectScreen({ navigation }: Props) {
       </View>
 
       <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginTop: 30, marginBottom: 10 }}>Réglés ({paid.length})</Text>
+      {paid.length === 0 ? (
+        <RavCard>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Aucun don réglé pour l’instant. Les dons acquittés apparaîtront ici.</Text>
+        </RavCard>
+      ) : null}
       {paid.map((p) => (
         <RavCard key={p.id} style={{ opacity: 0.7 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

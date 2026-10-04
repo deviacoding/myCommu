@@ -127,7 +127,13 @@ export function RavDatesScreen({ navigation }: Props) {
       <Section title="Plus tard" list={later} />
       {sorted.length === 0 ? (
         <RavCard style={{ alignItems: 'center', marginTop: 16 }}>
-          <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Aucune date dans cette catégorie.</Text>
+          <Ionicons name="calendar-number-outline" size={40} color={c.primary} />
+          <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8, textAlign: 'center' }}>
+            {myMemberDates.length === 0 ? 'Aucune date enregistrée' : 'Aucune date dans cette catégorie'}
+          </Text>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4, textAlign: 'center' }}>
+            {myMemberDates.length === 0 ? `Les ${seed.memberLabel}s ajoutent leurs dates depuis leur onglet « Compte » ; vous pouvez aussi en saisir une ci-dessus.` : 'Choisissez « Toutes » pour voir l’ensemble des dates.'}
+          </Text>
         </RavCard>
       ) : null}
     </RavScreen>

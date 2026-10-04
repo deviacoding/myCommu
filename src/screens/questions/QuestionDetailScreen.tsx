@@ -9,6 +9,7 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Pill, Muted, Button } from '../../components/ui';
+import { EmptyState } from '../../components/EmptyState';
 import { formatLong, capitalize } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
@@ -19,7 +20,16 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
   const { questions, congregation, seed } = useAppState();
   const rav = congregation.rav;
   const q = questions.find((x) => x.id === route.params.questionId);
-  if (!q) return null;
+  if (!q) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
+        <ScreenHeader title={seed.questionTitle} onBack={() => navigation.goBack()} />
+        <View style={{ padding: 16 }}>
+          <EmptyState icon="chatbubbles-outline" title="Cette question n’est plus disponible" hint="Elle a peut-être été retirée." />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
@@ -31,7 +41,7 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
         </View>
         <Text style={[styles.subject, { color: c.text }]}>{q.subject}</Text>
 
-        {q.messages.map((m) => {
+        {(q.messages ?? []).map((m) => {
           const isRav = m.author === 'rav';
           return (
             <Card key={m.id} style={[styles.msg, isRav && { borderColor: c.primary, borderWidth: 1 }]}>

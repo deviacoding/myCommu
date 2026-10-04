@@ -126,6 +126,14 @@ export function AccountScreen() {
 
         <SectionTitle title={t('account.myCommunities')} action={t('common.join')} onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
         <Card style={{ gap: 10 }}>
+          {mine.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 8, gap: 6 }}>
+              <Ionicons name="people-outline" size={28} color={c.primary} />
+              <Text style={{ color: c.text, fontWeight: '800', textAlign: 'center' }}>Vous n’avez rejoint aucune communauté</Text>
+              <Muted style={{ textAlign: 'center' }}>Rejoignez-en une par son code, son QR code ou autour de vous.</Muted>
+              <Button label={t('common.join')} icon="add-circle-outline" variant="secondary" onPress={() => navigation.navigate('JoinCommunity', { onboarding: false })} style={{ marginTop: 4 }} />
+            </View>
+          ) : null}
           {mine.map((k) => {
             const active = k.id === congregation.id;
             return (
@@ -139,7 +147,7 @@ export function AccountScreen() {
               </Pressable>
             );
           })}
-          <Muted style={{ fontSize: 12 }}>Touchez une communauté pour l’afficher. Le bouton en haut de chaque écran permet aussi de basculer.</Muted>
+          {mine.length > 0 ? <Muted style={{ fontSize: 12 }}>Touchez une communauté pour l’afficher. Le bouton en haut de chaque écran permet aussi de basculer.</Muted> : null}
         </Card>
 
         <MyDates compact />

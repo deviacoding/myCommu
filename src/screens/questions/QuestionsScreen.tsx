@@ -11,6 +11,7 @@ import { useAuth } from '../../state/AuthContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Chip, Pill, Muted } from '../../components/ui';
+import { EmptyState } from '../../components/EmptyState';
 import { formatShort } from '../../utils/time';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
@@ -59,9 +60,18 @@ export function QuestionsScreen() {
           <Chip label="Non répondues" active={filter === 'pending'} onPress={() => setFilter('pending')} />
         </View>
 
+        {list.length === 0 ? (
+          <EmptyState
+            icon="chatbubbles-outline"
+            title={questions.length === 0 ? 'Aucune question pour l’instant' : filter === 'pending' ? 'Aucune question en attente' : 'Aucune question répondue pour l’instant'}
+            hint={questions.length === 0 ? `Soyez le premier à poser une question à ${rav.name || 'votre responsable'} avec le bouton « Poser ».` : undefined}
+          />
+        ) : null}
         {list.map((q) => {
-          const first = q.messages[0];
-          const answer = q.messages.find((m) => m.author === 'rav');
+          const messages = q.messages ?? [];
+          const first = messages[0];
+          const firstText = first?.text ?? '';
+          const answer = messages.find((m) => m.author === 'rav');
           return (
             <Card key={q.id} onPress={() => navigation.navigate('QuestionDetail', { questionId: q.id })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -72,7 +82,7 @@ export function QuestionsScreen() {
               </View>
               <Text style={[styles.subject, { color: c.text }]}>{q.subject}</Text>
               <Muted style={{ marginTop: 4 }}>
-                {q.askedBy} · « {first.text.length > 90 ? first.text.slice(0, 90).trimEnd() + '…' : first.text} »
+                {q.askedBy}{firstText ? ` · « ${firstText.length > 90 ? firstText.slice(0, 90).trimEnd() + '…' : firstText} »` : ''}
               </Muted>
               {answer ? (
                 <View style={[styles.answer, { backgroundColor: c.primaryLight }]}>

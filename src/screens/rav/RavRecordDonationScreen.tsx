@@ -113,6 +113,13 @@ export function RavRecordDonationScreen({ navigation }: Props) {
         <>
           <BigInput value={search} onChangeText={setSearch} placeholder={`Chercher un ${seed.memberLabel} par son nom…`} />
           <View style={{ marginTop: 10 }}>
+            {members.length === 0 && !search.trim() ? (
+              <RavCard style={{ alignItems: 'center' }}>
+                <Ionicons name="people-outline" size={40} color={c.primary} />
+                <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8, textAlign: 'center' }}>Aucun {seed.memberLabel} n’a encore rejoint</Text>
+                <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4, textAlign: 'center' }}>Partagez votre QR code ou votre code pour accueillir vos {seed.memberLabel}s. Vous pouvez aussi taper un nom ci-dessus pour enregistrer un don à son intention.</Text>
+              </RavCard>
+            ) : null}
             {filteredMembers.map((m) => (
               <Pressable key={m.id} onPress={() => setMember(m.name)} style={({ pressed }) => [styles.member, { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
                 <Avatar name={m.name} size={48} />
@@ -138,6 +145,13 @@ export function RavRecordDonationScreen({ navigation }: Props) {
           <StepTitle n={2} title="Quelle catégorie ?" done={!!currentCategory} value={currentCategory?.name} />
           {!currentCategory ? (
             <View style={{ gap: 10 }}>
+              {categories.length === 0 ? (
+                <RavCard style={{ alignItems: 'center', marginBottom: 0 }}>
+                  <Ionicons name="pricetags-outline" size={40} color={c.primary} />
+                  <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8, textAlign: 'center' }}>Aucune catégorie de don</Text>
+                  <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4, textAlign: 'center' }}>Créez votre première catégorie ci-dessous (ex. : fêtes, offices, travaux…).</Text>
+                </RavCard>
+              ) : null}
               {categories.map((cat) => (
                 <Pressable key={cat.id} onPress={() => { setCategory(cat); setItem(null); }} style={({ pressed }) => [styles.cat, { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
                   <View style={[styles.catIcon, { backgroundColor: c.primaryLight }]}>
@@ -145,7 +159,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: c.text, fontSize: 20, fontWeight: '800' }}>{cat.name}</Text>
-                    <Text style={{ color: c.textMuted, fontSize: 15 }}>{cat.items.length ? cat.items.map((i) => i.name).slice(0, 4).join(', ') + (cat.items.length > 4 ? '…' : '') : 'Aucun type de don pour l’instant'}</Text>
+                    <Text style={{ color: c.textMuted, fontSize: 15 }}>{(cat.items ?? []).length ? (cat.items ?? []).map((i) => i.name).slice(0, 4).join(', ') + ((cat.items ?? []).length > 4 ? '…' : '') : 'Aucun type de don pour l’instant'}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={26} color={c.textMuted} />
                 </Pressable>
@@ -173,8 +187,11 @@ export function RavRecordDonationScreen({ navigation }: Props) {
       {member && currentCategory ? (
         <>
           <StepTitle n={3} title="Quel don ?" done={!!item} value={item ? `${item.name} · ${money(amountNum)}` : undefined} />
+          {(currentCategory.items ?? []).length === 0 ? (
+            <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 8 }}>Aucun type de don dans « {currentCategory.name} » pour l’instant. Ajoutez-en un ci-dessous.</Text>
+          ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {currentCategory.items.map((it) => {
+            {(currentCategory.items ?? []).map((it) => {
               const active = item?.name === it.name;
               return (
                 <Pressable key={it.id} onPress={() => chooseItem(it)} style={[styles.chip, { backgroundColor: active ? c.secondary : c.surface, borderColor: active ? c.secondary : c.border }]}>

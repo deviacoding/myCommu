@@ -177,13 +177,21 @@ export function JoinCommunityScreen({ navigation, route }: Props) {
                 style={{ marginBottom: 10 }}
               />
             ) : null}
-            {real && nearbyList.length === 0 ? <Card><Muted>Aucune communauté publique de votre confession n’est encore inscrite. Rejoignez la vôtre par son code ou son QR code.</Muted></Card> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
               <Chip label={t('affiliation.allCurrents')} active={currentFilter === null} onPress={() => setCurrentFilter(null)} />
               {usedCurrents.map((cur) => (
                 <Chip key={cur.id} label={cur.name} active={currentFilter === cur.id} onPress={() => setCurrentFilter(currentFilter === cur.id ? null : cur.id)} />
               ))}
             </View>
+            {nearbyList.length === 0 ? (
+              <Card>
+                <Muted>
+                  {currentFilter
+                    ? 'Aucune communauté publique dans ce courant pour l’instant. Essayez « Tous les courants », ou rejoignez la vôtre par son code ou son QR code.'
+                    : 'Aucune communauté publique de votre confession n’est encore inscrite. Rejoignez la vôtre par son code ou son QR code.'}
+                </Muted>
+              </Card>
+            ) : null}
             {nearbyList.map((k) => {
               const isMember = myCongregations.includes(k.id);
               return (

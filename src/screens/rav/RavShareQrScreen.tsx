@@ -71,7 +71,8 @@ export function RavShareQrScreen({ navigation }: Props) {
           <QRCode value={link} size={230} color={c.primaryDark} backgroundColor="#FFFFFF" />
         </View>
         <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 16 }}>Ou avec le code</Text>
-        <Text style={{ color: c.primary, fontSize: 38, fontWeight: '900', letterSpacing: 4 }}>{congregation.code}</Text>
+        <Text style={{ color: c.primary, fontSize: 38, fontWeight: '900', letterSpacing: 4 }}>{congregation.code || '—'}</Text>
+        {!congregation.code ? <Text style={{ color: c.textMuted, fontSize: 14, textAlign: 'center' }}>Aucun code disponible : créez ou sélectionnez d’abord votre communauté.</Text> : null}
         <Text selectable style={{ color: c.textMuted, fontSize: 14, marginTop: 6, textAlign: 'center' }}>{link}</Text>
       </RavCard>
 

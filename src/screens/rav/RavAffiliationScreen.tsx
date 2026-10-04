@@ -77,6 +77,7 @@ export function RavAffiliationScreen({ navigation }: Props) {
         {isHead ? (
           <View style={{ marginTop: 14 }}>
             <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginBottom: 8 }}>{t('affiliation.groupMembers', { count: members.length })}</Text>
+            {members.length === 0 ? <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Aucune communauté n’a encore rejoint ce groupe.</Text> : null}
             {members.map((k) => (
               <View key={k.id} style={[styles.member, { borderTopColor: c.border }]}>
                 <Avatar source={k.rav.photo} name={k.rav.name} size={40} />

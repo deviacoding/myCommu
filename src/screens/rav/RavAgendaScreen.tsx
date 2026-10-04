@@ -124,6 +124,13 @@ export function RavAgendaScreen({ navigation }: Props) {
       ) : null}
 
       <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginTop: 30, marginBottom: 10 }}>Événements à venir</Text>
+      {upcoming.length === 0 ? (
+        <RavCard style={{ alignItems: 'center' }}>
+          <Ionicons name="calendar-outline" size={40} color={c.primary} />
+          <Text style={{ color: c.text, fontSize: BIG.text, fontWeight: '700', marginTop: 8, textAlign: 'center' }}>Aucun événement prévu</Text>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 4, textAlign: 'center' }}>Ajoutez le premier avec le formulaire ci-dessus : la communauté le verra dans son agenda.</Text>
+        </RavCard>
+      ) : null}
       {upcoming.map((e) => (
         <RavCard key={e.id}>
           {e.poster ? (

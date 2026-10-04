@@ -56,7 +56,7 @@ export function DvarTorahBody({ course, showTitle = true }: { course: Course; sh
           <Text style={{ color: '#9CA3AF', fontSize: 12, marginTop: 2 }}>{course.media.name} · lecteur à venir (maquette)</Text>
         </View>
       ) : null}
-      {course.sections.map((s, i) => (
+      {(course.sections ?? []).map((s, i) => (
         <View key={i} style={{ marginTop: 18 }}>
           {s.heading ? <Text style={[styles.heading, { color: c.text }]}>{s.heading}</Text> : null}
           {s.source ? (

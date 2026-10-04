@@ -49,6 +49,13 @@ export function RavAnswersScreen({ navigation }: Props) {
       ))}
 
       <Text style={{ color: c.text, fontSize: BIG.label, fontWeight: '800', marginTop: 24, marginBottom: 10 }}>Déjà répondues</Text>
+      {answered.length === 0 ? (
+        <RavCard>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small }}>
+            {questions.length === 0 ? `Aucune question pour l’instant. Les ${seed.memberLabel}s peuvent vous écrire depuis l’onglet « Questions » de leur application.` : 'Aucune question répondue pour l’instant.'}
+          </Text>
+        </RavCard>
+      ) : null}
       {answered.map((q) => (
         <Pressable
           key={q.id}

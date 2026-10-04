@@ -9,6 +9,7 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { DvarTorahBody, RavByline } from '../../components/DvarTorah';
 import { Card, Muted, Button } from '../../components/ui';
+import { EmptyState } from '../../components/EmptyState';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'CourseDetail'>;
 
@@ -22,7 +23,16 @@ export function CourseDetailScreen({ route, navigation }: Props) {
     if (course) markCourseRead(course.id);
   }, [course, markCourseRead]);
 
-  if (!course) return null;
+  if (!course) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
+        <ScreenHeader title={seed.teachingLabel} onBack={() => navigation.goBack()} />
+        <View style={{ padding: 16 }}>
+          <EmptyState icon="book-outline" title="Ce cours n’est plus disponible" hint="Il a peut-être été retiré par votre responsable." />
+        </View>
+      </SafeAreaView>
+    );
+  }
   const read = readCourses.includes(course.id);
 
   return (

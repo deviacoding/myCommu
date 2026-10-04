@@ -103,6 +103,11 @@ export function RavTeamScreen({ navigation }: Props) {
           <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>Vous</Text>
         </View>
       </RavCard>
+      {myStaff.length === 0 ? (
+        <RavCard>
+          <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Vous êtes seul dans l’équipe pour l’instant. Créez un accès ci-dessus pour déléguer la trésorerie ou l’agenda.</Text>
+        </RavCard>
+      ) : null}
       {myStaff.map((s) => (
         <RavCard key={s.id}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

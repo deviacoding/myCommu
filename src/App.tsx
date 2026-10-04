@@ -9,6 +9,7 @@ import { AppStateProvider } from './state/AppState';
 import { RootNavigator } from './navigation/RootNavigator';
 import { getSeed } from './seeds';
 import { I18nProvider } from './i18n';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // L'état de l'application est rechargé avec les contenus de la confession choisie (sans remonter la navigation).
 function SeededApp() {
@@ -16,7 +17,9 @@ function SeededApp() {
   return (
     <AppStateProvider seed={getSeed(community)}>
       <StatusBar style="auto" />
-      <RootNavigator />
+      <ErrorBoundary>
+        <RootNavigator />
+      </ErrorBoundary>
     </AppStateProvider>
   );
 }

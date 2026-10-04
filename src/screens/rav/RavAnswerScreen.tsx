@@ -7,6 +7,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
 import { AiAssist } from '../../components/AiAssist';
+import { EmptyState } from '../../components/EmptyState';
 import { RavScreen, BigLabel, BigInput, BigButton, Done, RavCard, BIG } from './RavUi';
 import { capitalize, formatLong } from '../../utils/time';
 
@@ -27,9 +28,16 @@ export function RavAnswerScreen({ navigation, route }: Props) {
   const [makePublic, setMakePublic] = useState(true);
   const [anonymize, setAnonymize] = useState(true);
 
-  if (!q) return null;
-  const question = q.messages[0];
-  const existing = q.messages.filter((m) => m.author === 'rav');
+  if (!q) {
+    return (
+      <RavScreen title="Question introuvable" onBack={() => navigation.goBack()}>
+        <EmptyState icon="chatbubbles-outline" title="Cette question n’est plus disponible" hint="Elle a peut-être été retirée." />
+      </RavScreen>
+    );
+  }
+  const messages = q.messages ?? [];
+  const question = messages[0];
+  const existing = messages.filter((m) => m.author === 'rav');
 
   const toggleSource = (s: string) => setSources((list) => (list.includes(s) ? list.filter((x) => x !== s) : [...list, s]));
   const addCustom = () => {
@@ -62,7 +70,7 @@ export function RavAnswerScreen({ navigation, route }: Props) {
           </View>
         </View>
         <Text style={{ color: c.text, fontSize: 22, fontWeight: '900', marginTop: 14 }}>{q.subject}</Text>
-        <Text style={{ color: c.text, fontSize: BIG.text, lineHeight: 30, marginTop: 8 }}>{question.text}</Text>
+        <Text style={{ color: c.text, fontSize: BIG.text, lineHeight: 30, marginTop: 8 }}>{question?.text ?? 'Le texte de la question est indisponible.'}</Text>
       </RavCard>
 
       {existing.map((m) => (

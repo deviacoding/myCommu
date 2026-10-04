@@ -99,6 +99,7 @@ export function GroupPicker({ value, onChange, currentId }: { value: GroupChoice
       <Option mode="join" icon="git-network" title={t('affiliation.joinGroup')} text={t('affiliation.joinGroupHint')} />
       {value.mode === 'join' ? (
         <View style={{ gap: 8, marginBottom: 10, marginLeft: 12 }}>
+          {sorted.length === 0 ? <Text style={{ color: c.textMuted, fontSize: 15 }}>Aucun groupe existant pour l’instant : créez le vôtre ci-dessous.</Text> : null}
           {sorted.map((g) => {
             const active = value.groupId === g.id;
             return (

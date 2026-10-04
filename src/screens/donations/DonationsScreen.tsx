@@ -10,6 +10,7 @@ import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProgressBar } from '../../components/ProgressBar';
 import { Card, Segmented, SectionTitle, Muted, Button } from '../../components/ui';
+import { EmptyState } from '../../components/EmptyState';
 import { DonationType } from '../../types';
 import { money, formatShort, formatNumeric } from '../../utils/time';
 
@@ -226,6 +227,9 @@ export function DonationsScreen() {
                 <Muted>{due.length ? `${due.length} engagement${due.length > 1 ? 's' : ''} en attente` : 'Aucun engagement en attente'}</Muted>
               </View>
             </Card>
+            {pledges.length === 0 ? (
+              <EmptyState compact icon="document-text-outline" title="Aucune promesse de don enregistrée" hint="Les dons promis à votre communauté apparaîtront ici, prêts à être réglés en un geste." />
+            ) : null}
             {pledges.map((p) => (
               <Card key={p.id} style={p.status === 'paid' ? { opacity: 0.6 } : undefined}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -269,6 +273,9 @@ export function DonationsScreen() {
         </Card>
 
         <SectionTitle title="Historique" />
+        {donations.length === 0 ? (
+          <EmptyState compact icon="hand-left-outline" title="Aucun don pour l’instant" hint={`Votre premier don apparaîtra ici et fera grandir votre ${seed.gamification.name.toLowerCase()}.`} />
+        ) : null}
         {donations.map((d) => (
           <Card key={d.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }}>
             <View style={[styles.histIcon, { backgroundColor: c.primaryLight }]}>

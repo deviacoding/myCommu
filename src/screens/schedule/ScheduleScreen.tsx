@@ -9,6 +9,7 @@ import { Card, Segmented, SectionTitle, Pill, Muted } from '../../components/ui'
 import { useAppState } from '../../state/AppState';
 import { LiveBanner } from '../../components/LiveBanner';
 import { MyDates } from '../../components/MyDates';
+import { EmptyState } from '../../components/EmptyState';
 import { AgendaCategory, Holiday, HolidayKind } from '../../types';
 import { capitalize, daysBetween, formatLong, formatShort, parseISODate, todayISO } from '../../utils/time';
 
@@ -111,7 +112,7 @@ export function ScheduleScreen() {
                   <Text style={{ color: c.textOnPrimary, opacity: 0.8, fontSize: 12, fontWeight: '600' }}>{seed.nextHolidayLabel}</Text>
                   <Text style={{ color: c.textOnPrimary, fontSize: 20, fontWeight: '800', marginTop: 4 }}>{nextLighting.name}</Text>
                   <Text style={{ color: c.textOnPrimary, opacity: 0.9, marginTop: 2 }}>
-                    {capitalize(formatLong(nextLighting.start))} · {nextLighting.times[0].value}
+                    {capitalize(formatLong(nextLighting.start))} · {nextLighting.times[0]?.value ?? '—'}
                   </Text>
                 </View>
                 <MaterialCommunityIcons name="candle" size={44} color={c.secondary} />
@@ -139,6 +140,9 @@ export function ScheduleScreen() {
             <SectionTitle title={seed.seasonTitle} />
             <Muted style={{ marginTop: -6, marginBottom: 10 }}>Horaires indicatifs · {congregation.name}</Muted>
 
+            {tishreiHolidays.length === 0 ? (
+              <EmptyState compact icon="calendar-outline" title="Aucune fête ou date particulière publiée" hint={`${congregation.rav.name || 'Votre responsable'} n’a pas encore renseigné le calendrier de la saison.`} />
+            ) : null}
             {tishreiHolidays.map((h) => {
               const st = holidayStatus(h, today);
               const tone = st.tone === 'now' ? c.success : st.tone === 'soon' ? c.primary : c.textMuted;
@@ -156,12 +160,12 @@ export function ScheduleScreen() {
                       </Muted>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                      <Pill label={kindLabel[h.kind]} color={c.primary} />
+                      <Pill label={kindLabel[h.kind] ?? 'Fête'} color={c.primary} />
                       <Pill label={st.label} color={tone} />
                     </View>
                   </View>
                   <View style={[styles.times, { borderTopColor: c.border }]}>
-                    {h.times.map((t) => (
+                    {(h.times ?? []).map((t) => (
                       <View key={t.label} style={styles.timeRow}>
                         <Text style={{ color: c.textMuted, fontSize: 13, flex: 1 }}>{t.label}</Text>
                         <Text style={{ color: c.text, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{t.value}</Text>
@@ -185,6 +189,7 @@ export function ScheduleScreen() {
                 <Text style={[styles.colHead, { color: c.textMuted }]}>{seed.serviceColumns[0]}</Text>
                 <Text style={[styles.colHead, { color: c.textMuted }]}>{seed.serviceColumns[1]}</Text>
               </View>
+              {dailyServices.length === 0 ? <Muted>Aucun office régulier renseigné pour l’instant.</Muted> : null}
               {dailyServices.map((s) => (
                 <View key={s.name} style={styles.timeRow}>
                   <Text style={{ color: c.text, fontWeight: '600', flex: 1 }}>{s.name}</Text>
@@ -198,6 +203,9 @@ export function ScheduleScreen() {
         ) : (
           <>
             <SectionTitle title="À venir" action={`${saved.length} dans mon agenda`} />
+            {agendaByDate.length === 0 ? (
+              <EmptyState icon="calendar-outline" title="Aucun événement prévu" hint={`${congregation.rav.name || 'Votre responsable'} n’a pas encore publié d’événement. Vous serez prévenu dès le premier.`} />
+            ) : null}
             {agendaByDate.map((g) => {
               const d = daysBetween(today, parseISODate(g.date));
               const dayLabel = d === 0 ? 'Aujourd’hui' : d === 1 ? 'Demain' : capitalize(formatLong(g.date));
@@ -205,7 +213,7 @@ export function ScheduleScreen() {
                 <View key={g.date} style={{ marginBottom: 6 }}>
                   <Text style={[styles.dayLabel, { color: d === 0 ? c.primary : c.textMuted }]}>{dayLabel}</Text>
                   {g.events.map((e) => {
-                    const meta = categoryMeta[e.category];
+                    const meta = categoryMeta[e.category] ?? categoryMeta.communaute;
                     const isSaved = saved.includes(e.id);
                     return (
                       <Card key={e.id} style={{ gap: 12 }}>

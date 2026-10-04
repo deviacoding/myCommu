@@ -12,6 +12,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { DvarTorahBody, RavByline } from '../../components/DvarTorah';
 import { Card, Chip, SectionTitle, Pill, Muted } from '../../components/ui';
+import { EmptyState } from '../../components/EmptyState';
 import { CourseCategory } from '../../types';
 import { formatShort } from '../../utils/time';
 
@@ -29,12 +30,24 @@ export function CoursesScreen() {
   const [liked, setLiked] = useState(false);
 
   // Le dernier dvar Torah publié s'affiche directement, en entier.
-  const latest = [...courses].sort((a, b) => (a.date < b.date ? 1 : -1)).find((x) => x.featured) ?? courses[0];
-  const others = courses.filter((x) => x.id !== latest.id && (filter === 'Tous' || x.category === filter));
+  const latest: (typeof courses)[number] | undefined = [...courses].sort((a, b) => (a.date < b.date ? 1 : -1)).find((x) => x.featured) ?? courses[0];
+  const others = courses.filter((x) => x.id !== latest?.id && (filter === 'Tous' || x.category === filter));
 
   useEffect(() => {
-    markCourseRead(latest.id);
-  }, [latest.id, markCourseRead]);
+    if (latest) markCourseRead(latest.id);
+  }, [latest?.id, markCourseRead]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!latest) {
+    return (
+      <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
+        <ScreenHeader title={seed.teachingLabel} subtitle={seed.teachingSubtitle(congregation.rav.name)} communitySwitch />
+        <ScrollView contentContainerStyle={styles.content}>
+          <LiveBanner />
+          <EmptyState icon="book-outline" title="Pas de cours disponible" hint={`${congregation.rav.name} n’a pas encore publié de ${seed.teachingLabel.toLowerCase()}. Vous serez prévenu dès le premier.`} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
@@ -73,6 +86,7 @@ export function CoursesScreen() {
           ))}
         </ScrollView>
 
+        {others.length === 0 ? <EmptyState compact icon="book-outline" title="Pas d’autre cours disponible" hint={filter === 'Tous' ? undefined : `Aucun cours dans le thème « ${filter} ».`} /> : null}
         {others.map((course) => {
           const read = readCourses.includes(course.id);
           return (

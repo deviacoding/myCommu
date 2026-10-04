@@ -131,6 +131,11 @@ export function ReceiptScreen({ route, navigation }: Props) {
             <Text style={[styles.th, { color: c.textMuted, flex: 2 }]}>Destination</Text>
             <Text style={[styles.th, { color: c.textMuted, width: 80, textAlign: 'right' }]}>Montant</Text>
           </View>
+          {list.length === 0 ? (
+            <View style={[styles.tr, { borderBottomColor: c.border }]}>
+              <Muted style={{ flex: 1, textAlign: 'center' }}>Aucun don enregistré en {year}. Le reçu se remplira automatiquement après votre premier don.</Muted>
+            </View>
+          ) : null}
           {list.map((d) => (
             <View key={d.id} style={[styles.tr, { borderBottomColor: c.border }]}>
               <Text style={{ color: c.text, flex: 1, fontSize: 13 }}>{formatNumeric(d.date)}</Text>
