@@ -43,6 +43,8 @@ export function ScheduleScreen() {
   const c = theme.colors;
   const { user } = useAuth();
   const { holidays: tishreiHolidays, services: dailyServices, myAgenda: agendaEvents, myDayEntries: dayEntries, congregation, seed } = useAppState();
+  // Seuls les offices dont un horaire est renseigné s'affichent (une vraie communauté démarre sans horaires).
+  const filledServices = dailyServices.filter((s) => s.weekday || s.shabbat);
   const [mode, setMode] = useState<Mode>('horaires');
   const [saved, setSaved] = useState<string[]>(['a3', 'a7']);
   const today = useMemo(() => new Date(), []);
@@ -120,7 +122,9 @@ export function ScheduleScreen() {
             )}
 
             <SectionTitle title="Prochains horaires" />
-            {upcomingDays.length === 0 ? <Muted style={{ marginBottom: 10 }}>Aucun horaire publié pour les jours à venir.</Muted> : null}
+            {upcomingDays.length === 0 ? (
+              <EmptyState compact icon="time-outline" title="Pas d’horaire affiché pour l’instant" hint={`${congregation.rav.name || 'Votre responsable'} n’a pas encore publié d’horaires. Il les saisit depuis son espace, jour par jour.`} />
+            ) : null}
             {upcomingDays.map((g) => {
               const d = daysBetween(today, parseISODate(g.date));
               const dayLabel = d === 0 ? 'Aujourd’hui' : d === 1 ? 'Demain' : capitalize(formatLong(g.date));
@@ -189,8 +193,8 @@ export function ScheduleScreen() {
                 <Text style={[styles.colHead, { color: c.textMuted }]}>{seed.serviceColumns[0]}</Text>
                 <Text style={[styles.colHead, { color: c.textMuted }]}>{seed.serviceColumns[1]}</Text>
               </View>
-              {dailyServices.length === 0 ? <Muted>Aucun office régulier renseigné pour l’instant.</Muted> : null}
-              {dailyServices.map((s) => (
+              {filledServices.length === 0 ? <Muted>Aucun office régulier renseigné pour l’instant : {congregation.rav.name || 'votre responsable'} les publiera depuis son espace.</Muted> : null}
+              {filledServices.map((s) => (
                 <View key={s.name} style={styles.timeRow}>
                   <Text style={{ color: c.text, fontWeight: '600', flex: 1 }}>{s.name}</Text>
                   <Text style={[styles.col, { color: isShabbat ? c.textMuted : c.text }]}>{s.weekday}</Text>

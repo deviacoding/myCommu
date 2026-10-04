@@ -28,7 +28,6 @@ import {
 } from '../types';
 import { Member } from '../mocks/members';
 import { ReligionSeed } from '../seeds/types';
-import { entriesFromHolidays } from '../seeds/helpers';
 import { setCurrency, todayISO } from '../utils/time';
 import { uploadImage } from '../utils/images';
 import { useAuth } from './AuthContext';
@@ -428,7 +427,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   }, [real]);
 
   const congregation = findCongregation(congregationId);
-  const services = real ? (congregation.services ?? seed.services) : demoServices;
+  const services = real ? (congregation.services ?? []) : demoServices;
   const courseThemes = real ? (congregation.themes ?? seed.themes) : demoThemes;
   const readCourses = real ? (user.readCourses ?? []) : demoRead;
   const maasserInput = real ? ((user as { maasserInput?: MaasserInput }).maasserInput ?? defaultMaasser(seed)) : demoMaasser;
@@ -507,14 +506,13 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       }
       setCreatedCongregations((list) => [k, ...list]);
       if (real && uid) {
-        const seededHolidays = seed.holidays.map((h) => ({ ...h, id: db.newId('h'), congregationId: id }));
+        // Pas d'exemples dans une vraie communauté : les horaires, fêtes et catégories de dons sont à saisir par le responsable.
+        // Seuls les noms des offices réguliers (vocabulaire de la confession) sont proposés, sans horaire.
+        const emptyServices = seed.services.map((s) => ({ ...s, weekday: '', shabbat: '' }));
         db.batch([
-          { type: 'set', coll: 'congregations', id, data: { ...k, rav: { name: k.rav.name, title: k.rav.title }, logo: undefined, themes: seed.themes, services: seed.services } },
+          { type: 'set', coll: 'congregations', id, data: { ...k, rav: { name: k.rav.name, title: k.rav.title }, logo: undefined, themes: seed.themes, services: emptyServices } },
           { type: 'set', coll: 'memberships', id: `${id}_${uid}`, data: { uid, congregationId: id, role: 'leader', name: user.name, joinedAt: todayISO(), joinedVia: 'created' } },
           ...(group ? [{ type: 'set' as const, coll: 'groups' as const, id: group.id, data: group }] : []),
-          ...seededHolidays.map((h) => ({ type: 'set' as const, coll: 'holidays' as const, id: h.id, data: h })),
-          ...entriesFromHolidays(seededHolidays, id).map((e) => ({ type: 'set' as const, coll: 'dayEntries' as const, id: db.newId('e'), data: { ...e, id: undefined } })),
-          ...seed.categories.map((c) => ({ type: 'set' as const, coll: 'donationCategories' as const, id: db.newId('cat'), data: { ...c, id: undefined, congregationId: id } })),
         ]).then(() => {
           setLocalJoined((l) => [...l, id]);
           // Les photos sont réduites puis envoyées dans Cloud Storage, après le batch : les règles Storage
