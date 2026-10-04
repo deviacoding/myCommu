@@ -156,6 +156,13 @@ service cloud.firestore {
       allow update, delete: if signedIn() && (resource.data.uid == uid() || hasRole(congOf(), ['leader', 'deputy', 'organizer']));
     }
 
+    // ---- Activité quotidienne (points d'assiduité) : chacun écrit la sienne ; l'équipe lit celle de sa communauté.
+    match /activity/{id} {
+      allow read: if signedIn() && (resource.data.uid == uid() || isStaff(resource.data.congregationId));
+      allow create, update: if signedIn() && request.resource.data.uid == uid() && id == uid() + '_' + request.resource.data.date + '_' + request.resource.data.type;
+      allow delete: if false;
+    }
+
     // ---- Direct : un document par communauté.
     match /lives/{congId} {
       allow read: if signedIn() && isMember(congOf());

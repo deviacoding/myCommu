@@ -33,9 +33,16 @@ export function CoursesScreen() {
   const latest: (typeof courses)[number] | undefined = [...courses].sort((a, b) => (a.date < b.date ? 1 : -1)).find((x) => x.featured) ?? courses[0];
   const others = courses.filter((x) => x.id !== latest?.id && (filter === 'Tous' || x.category === filter));
 
+  // Le dernier enseignement, affiché en entier : compté lu après 30 secondes ou en atteignant le bas de la page.
   useEffect(() => {
-    if (latest) markCourseRead(latest.id);
+    if (!latest) return;
+    const t = setTimeout(() => markCourseRead(latest.id), 30000);
+    return () => clearTimeout(t);
   }, [latest?.id, markCourseRead]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onScroll = (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } } }) => {
+    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+    if (latest && contentOffset.y + layoutMeasurement.height >= contentSize.height - 60) markCourseRead(latest.id);
+  };
 
   if (!latest) {
     return (
@@ -56,7 +63,7 @@ export function CoursesScreen() {
         subtitle={seed.teachingSubtitle(congregation.rav.name)}
         communitySwitch
       />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} onScroll={onScroll} scrollEventThrottle={400}>
         <LiveBanner />
         <SectionTitle title={seed.teachingLatestTitle} action={`${readCourses.length} lus`} />
         <Card style={{ padding: 18 }}>

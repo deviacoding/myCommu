@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useMemo, useCall
 import { collection, documentId, getDocs, limit, query, Query, where } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import {
+  ActivityEvent,
   AgendaEvent,
   Association,
   CommunityGroup,
@@ -29,6 +30,7 @@ import {
   receiptFormatFor,
 } from '../types';
 import { demoAssociations } from '../seeds/associations';
+import { ActivityType, computeGamification, DAILY_POINTS, demoActivity, GamificationSummary, pointsForLevel } from '../config/gamification';
 import { Member } from '../mocks/members';
 import { ReligionSeed } from '../seeds/types';
 import { setCurrency, todayISO } from '../utils/time';
@@ -191,6 +193,13 @@ interface AppStateValue {
   nextLevel: SoulLevel | null;
   levelProgress: number;
   streakMonths: number;
+  // « L'ora qui grandit »
+  ora: GamificationSummary;
+  activity: ActivityEvent[];
+  communityActivity: ActivityEvent[]; // équipe : activité des fidèles de la communauté
+  recordActivity: (type: ActivityType) => number; // points gagnés (0 si déjà compté aujourd'hui)
+  lastGain: { points: number; label: string; at: number } | null;
+  clearLastGain: () => void;
   donate: (input: DonateInput) => number;
   askQuestion: (input: AskInput) => Question;
   answerQuestion: (id: string, text: string, sources: string[]) => void;
@@ -289,7 +298,7 @@ function useLiveList<T extends { id: string }>(real: boolean, demoValue: T[], re
 }
 
 export function AppStateProvider({ children, seed }: { children: ReactNode; seed: ReligionSeed }) {
-  const { uid, memberships, staffRoleFor, user, updateUser } = useAuth();
+  const { uid, memberships, staffRoleFor, user, updateUser, isDemo } = useAuth();
   const { community: religion } = useTheme();
   const real = !!uid && firebaseConfigured;
   const db: Db = real ? firebaseDb : demoDb;
@@ -372,6 +381,11 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   const [staff, setStaff] = useLiveList<StaffMember>(real, [], seed, () => staffQueries('staffInvites', leaderIds), leaderIds.join(','));
   const [paymentLinks, setPaymentLinks] = useLiveList<PaymentLink>(real, [], seed, () => mineQueries('paymentLinks'), myKey);
   const [associations, setAssociations] = useLiveList<Association>(real, [], seed, () => mineQueries('associations'), myKey);
+  const [activity, setActivity] = useLiveList<ActivityEvent>(real, demoActivity(seed.user.id, todayISO()), seed, () => [query(col('activity'), where('uid', '==', uid ?? '-'))], uid ?? '-');
+  const [lastGain, setLastGain] = useState<{ points: number; label: string; at: number } | null>(null);
+  // Activité de tous les fidèles des communautés où l'on est responsable (vue « fidèles engagés »).
+  const [communityActivity] = useLiveList<ActivityEvent>(real, [], seed, () => staffQueries('activity', leaderIds), leaderIds.join(','));
+  const clearLastGain = useCallback(() => setLastGain(null), []);
   const [demoAssos, setDemoAssos] = useState<Association[]>(() => demoAssociations(religion, seed.congregations, seed.defaultCongregation));
   const [donations, setDonations] = useLiveList<Donation>(real, seed.donations, seed, () => [...staffQueries('donations', financeIds), query(col('donations'), where('uid', '==', uid ?? '-'))], `${financeIds.join(',')}|${uid}`);
   const [pledges, setPledges] = useLiveList<Pledge>(real, seed.pledges, seed, () => [...staffQueries('pledges', financeIds), query(col('pledges'), where('memberUid', '==', uid ?? '-'))], `${financeIds.join(',')}|${uid}`);
@@ -1003,6 +1017,32 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     [db, setMemberDates]
   );
 
+  // Action quotidienne : une seule fois par jour et par type (l'id du document l'impose aussi en base).
+  const recordActivity = useCallback(
+    (type: ActivityType) => {
+      const me = uid ?? user.id;
+      const date = todayISO();
+      const id = `${me}_${date}_${type}`;
+      if (activity.some((e) => e.id === id)) return 0;
+      const e: ActivityEvent = { id, uid: me, congregationId: congregationId || undefined, type, date };
+      setActivity((list) => (list.some((x) => x.id === id) ? list : [...list, e]));
+      db.set('activity', id, e);
+      const pts = DAILY_POINTS[type];
+      const label = type === 'open' ? 'Ouverture du jour' : type === 'schedule' ? 'Horaires consultés' : 'Agenda consulté';
+      setLastGain({ points: pts, label, at: Date.now() });
+      return pts;
+    },
+    [uid, user.id, activity, congregationId, db, setActivity]
+  );
+
+  // Ouverture de l'application : comptée dès qu'un utilisateur (réel ou démo) est entré.
+  const entered = real || isDemo;
+  useEffect(() => {
+    if (!entered) return;
+    recordActivity('open');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entered, uid]);
+
   const sendReminder = useCallback(
     (id: string) => {
       setPledges((list) => list.map((p) => (p.id === id ? { ...p, lastReminder: todayISO() } : p)));
@@ -1020,17 +1060,28 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     const thisMonth = myDonations.filter((d) => d.date.startsWith(month));
     const givenThisMonth = thisMonth.reduce((s, d) => s + d.amount, 0);
     const maasserGivenThisMonth = thisMonth.filter((d) => d.type === 'maasser').reduce((s, d) => s + d.amount, 0);
-    const myAsked = real ? questions.filter((q) => q.askerUid === uid) : questions;
-    const points = totalGiven + readCourses.length * 18 + myAsked.filter((q) => !q.anonymous).length * 5;
-
+    const myAsked = real ? questions.filter((q) => q.askerUid === uid) : questions.filter((q) => q.askedBy === user.name);
     const levels = seed.gamification.levels;
-    let levelIndex = 0;
-    for (let i = 0; i < levels.length; i++) {
-      if (points >= levels[i].min) levelIndex = i;
-    }
-    const level = levels[levelIndex];
-    const nextLevel = levels[levelIndex + 1] ?? null;
-    const levelProgress = nextLevel ? (points - level.min) / (nextLevel.min - level.min) : 1;
+    const ora = computeGamification({
+      activity,
+      donations: myDonations,
+      questions: myAsked,
+      readCourses,
+      joinedCommunity: myCongregations.length > 0,
+      profileComplete: !!(user.phone && user.city && user.birthDate),
+      currency: seed.currency,
+      levels,
+      today: todayISO(),
+    });
+    const points = ora.points;
+    const level = ora.tier;
+    const levelIndex = ora.tierIndex;
+    // « Niveau suivant » au sens de l'ancien écran : le prochain palier nommé (tous les 10 niveaux).
+    const nextTierStart = (Math.floor(Math.max(0, ora.level - 1) / 10) + 1) * 10 + 1;
+    const nextTierRaw = Math.floor((nextTierStart - 1) / 10);
+    const nextBase = levels[nextTierRaw % levels.length];
+    const nextLevel: SoulLevel | null = { ...nextBase, min: pointsForLevel(nextTierStart) };
+    const levelProgress = ora.progress;
 
     const months = new Set(myDonations.map((d) => d.date.slice(0, 7)));
     let streakMonths = 0;
@@ -1103,6 +1154,12 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       nextLevel,
       levelProgress,
       streakMonths,
+      ora,
+      activity,
+      communityActivity: real ? communityActivity.filter((e) => e.congregationId === congregationId) : activity,
+      recordActivity,
+      lastGain,
+      clearLastGain,
       donate,
       askQuestion,
       answerQuestion,
@@ -1185,6 +1242,15 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     readCourses,
     maasserInput,
     categories,
+    activity,
+    communityActivity,
+    recordActivity,
+    lastGain,
+    clearLastGain,
+    user.name,
+    user.phone,
+    user.city,
+    user.birthDate,
     donate,
     askQuestion,
     answerQuestion,

@@ -5,6 +5,7 @@ import { Logo } from "./Logo";
 const nav = [
   { href: "/#responsable", label: "Fonctions" },
   { href: "/#dons", label: "Dons" },
+  { href: "/#niveau", label: "Niveau" },
   { href: "/#faq", label: "FAQ" },
   { href: "/blog", label: "Blog" },
   { href: "/apprendre", label: "Apprendre" },

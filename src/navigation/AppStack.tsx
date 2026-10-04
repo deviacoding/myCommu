@@ -7,6 +7,7 @@ import { QuestionDetailScreen } from '../screens/questions/QuestionDetailScreen'
 import { AskQuestionScreen } from '../screens/questions/AskQuestionScreen';
 import { DonateScreen } from '../screens/donations/DonateScreen';
 import { ReceiptScreen } from '../screens/donations/ReceiptScreen';
+import { AttestationScreen } from '../screens/account/AttestationScreen';
 import { JoinCommunityScreen } from '../screens/community/JoinCommunityScreen';
 import { useAuth } from '../state/AuthContext';
 
@@ -23,6 +24,7 @@ export function AppStack() {
       <Stack.Screen name="AskQuestion" component={AskQuestionScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="Donate" component={DonateScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="Receipt" component={ReceiptScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="Attestation" component={AttestationScreen} options={{ presentation: 'modal' }} />
     </Stack.Navigator>
   );
 }

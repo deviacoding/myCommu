@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { remark } from "remark";
+import gfm from "remark-gfm";
 import html from "remark-html";
 
 export type PostMeta = {
@@ -49,7 +50,7 @@ export async function getPost(slug: string): Promise<Post> {
   const raw = readFile(slug);
   const meta = toMeta(slug, raw);
   const { content } = matter(raw);
-  const processed = await remark().use(html, { sanitize: false }).process(content);
+  const processed = await remark().use(gfm).use(html, { sanitize: false }).process(content);
   return { ...meta, html: processed.toString() };
 }
 

@@ -65,6 +65,14 @@ export function RavHomeScreen({ navigation }: Props) {
     { key: 'RavDates', perm: 'dates', icon: 'calendar-number', title: r('memberDates'), sub: soonDates ? t('rav.datesSoon', { count: soonDates }) : t('rav.datesNone', { members: r('members') }), badge: soonDates, color: '#DB2777' },
     { key: 'RavDons', perm: 'donations', icon: 'cash', title: t('rav.donations'), sub: due ? t('rav.donationsDue', { count: due }) : t('rav.donationsNone'), badge: due, color: '#BE123C' },
     {
+      key: 'RavEngagement',
+      perm: 'team',
+      icon: 'trophy',
+      title: 'Fidèles engagés',
+      sub: 'Les plus assidus et les plus généreux du mois, pour les remercier',
+      color: '#B45309',
+    },
+    {
       key: 'RavAssociations',
       perm: 'donations',
       icon: 'business',

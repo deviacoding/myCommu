@@ -305,6 +305,15 @@ export interface PaymentLink {
   payoutsEnabled?: boolean;
 }
 
+// Action quotidienne d'un fidèle (une fois par jour et par type). Id : `${uid}_${date}_${type}`.
+export interface ActivityEvent {
+  id: string;
+  uid: string;
+  congregationId?: string;
+  type: 'open' | 'schedule' | 'agenda';
+  date: string; // ISO jour
+}
+
 export interface LiveSession {
   title: string;
   startedAt: string; // ISO datetime

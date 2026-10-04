@@ -5,6 +5,8 @@ import { MainTabsParamList } from './types';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAppState } from '../state/AppState';
 import { useI18n } from '../i18n';
+import { View } from 'react-native';
+import { PointsToast } from '../components/PointsToast';
 import { ScheduleScreen } from '../screens/schedule/ScheduleScreen';
 import { CoursesScreen } from '../screens/courses/CoursesScreen';
 import { QuestionsScreen } from '../screens/questions/QuestionsScreen';
@@ -29,6 +31,7 @@ export function MainTabs() {
   const { myPledges: pledges } = useAppState();
   const due = pledges.filter((p) => p.status === 'due').length;
   return (
+    <View style={{ flex: 1 }}>
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -59,5 +62,7 @@ export function MainTabs() {
       />
       <Tab.Screen name="AccountTab" component={AccountScreen} options={{ tabBarLabel: t('tabs.account') }} />
     </Tab.Navigator>
+    <PointsToast />
+    </View>
   );
 }

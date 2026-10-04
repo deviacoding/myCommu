@@ -9,7 +9,7 @@ import { PhoneFrame } from "@/components/PhoneFrame";
 export const metadata: Metadata = {
   title: "myCommu — L'application qui relie une communauté religieuse et ses fidèles",
   description:
-    "Synagogue, mosquée, église, temple : horaires, enseignements, questions, dons avec reçu fiscal (Cerfa, Seif 46), agenda, live et équipe. Multilingue, données en Europe, dons versés directement à l'association.",
+    "Synagogue, mosquée, église, temple : horaires, enseignements, questions, dons avec reçu fiscal (Cerfa, Seif 46), agenda, live, équipe et un niveau qui grandit avec l'assiduité et les dons. Multilingue, données en Europe, dons versés directement à l'association.",
   alternates: { canonical: "/" },
   openGraph: { title: "myCommu", description: "L'application qui relie une communauté religieuse et ses fidèles.", url: "/" },
 };
@@ -172,6 +172,64 @@ export default function Home() {
           </Link>
           .
         </p>
+      </Section>
+
+      {/* Niveau : l'ora qui grandit */}
+      <Section
+        id="niveau"
+        eyebrow="L'ora qui grandit"
+        title="L'ora, le nur, la flamme : un niveau qui grandit avec vous"
+        intro="Un seul niveau par fidèle, qui monte sans fin et ne redescend jamais. Il est nourri par deux sources, visibles séparément : l'assiduité (la présence dans l'application) et la générosité (les dons confirmés). Ora pour le judaïsme, nur pour l'islam, flamme pour le christianisme, pāramitā pour le bouddhisme."
+        tone="soft"
+      >
+        <div className="grid items-start gap-10 md:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">Extrait du barème</p>
+            <ul className="mt-4 divide-y divide-line rounded-2xl border border-line bg-surface">
+              {[
+                ["Ouvrir l'application", "1 point, une fois par jour"],
+                ["Lire un cours en entier", "2 points par cours (texte lu jusqu'en bas, vidéo regardée à 80 %)"],
+                ["Poser une question", "2 points, +1 quand le responsable répond"],
+                ["Série de 7 jours d'ouverture", "+5 points · série de 30 jours : +20"],
+                ["Tsedaka · sadaqa · offrande · dana", "4 points par tranche de 10 €"],
+                ["Maasser · zakat · dîme", "10 points par tranche de 100 € (40 ₪ et 400 ₪ en Israël)"],
+              ].map(([t, d]) => (
+                <li key={t} className="flex items-start justify-between gap-4 px-5 py-3.5">
+                  <span className="font-sans text-[15px] font-semibold">{t}</span>
+                  <span className="shrink-0 text-right text-sm text-muted sm:max-w-[55%]">{d}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm leading-relaxed text-muted">
+              Le niveau 1 coûte 5 points, chaque niveau suivant un point de plus : niveau 10 à 95 points, niveau 20 à 290. Un palier nommé tous les dix niveaux, sans fin.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {["Étincelle", "Lueur", "Flamme", "Torche", "Phare", "Soleil", "…"].map((p) => (
+                <Pill key={p}>{p}</Pill>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-5">
+            <Card title="Jauge d'assiduité" icon={<Icon.Clock />}>
+              Les jours actifs sur douze mois glissants donnent un titre : <strong className="font-semibold text-ink">Régulier</strong> à 30 jours,{" "}
+              <strong className="font-semibold text-ink">Fidèle</strong> à 100, <strong className="font-semibold text-ink">Pilier</strong> à 365.
+            </Card>
+            <Card title="Jauge de générosité" icon={<Icon.Gift />}>
+              Les dons confirmés dans l&apos;année donnent un second titre : <strong className="font-semibold text-ink">Généreux</strong> à 180 €,{" "}
+              <strong className="font-semibold text-ink">Bienfaiteur</strong> à 1 000 €, <strong className="font-semibold text-ink">Mécène</strong> à 5 000 €.
+            </Card>
+            <Card title="Attestation annuelle" icon={<Icon.Receipt />}>
+              Imprimable en un geste : jours actifs, cours lus, questions posées, dons par association, titres obtenus. La preuve qu&apos;on est très assidu ou bon donateur.
+            </Card>
+            <p className="px-1 text-sm leading-relaxed text-muted">
+              Les points de don viennent des dons confirmés, impossibles à s&apos;attribuer soi-même. Une action compte une fois par jour. Mode discret possible ; le responsable voit les fidèles les plus engagés du mois, lui seul, jamais de classement public sans accord.{" "}
+              <Link href="/blog/l-ora-qui-grandit-points-et-niveaux" className="font-medium text-gold underline underline-offset-4">
+                Le barème complet
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
       </Section>
 
       {/* Dons */}

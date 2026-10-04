@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -42,7 +42,12 @@ export function ScheduleScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const { user } = useAuth();
-  const { holidays: tishreiHolidays, services: dailyServices, myAgenda: agendaEvents, myDayEntries: dayEntries, congregation, seed } = useAppState();
+  const { holidays: tishreiHolidays, services: dailyServices, myAgenda: agendaEvents, myDayEntries: dayEntries, congregation, seed, recordActivity } = useAppState();
+  // Consulter les horaires rapporte 1 point par jour ; l'agenda aussi.
+  useEffect(() => {
+    recordActivity('schedule');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Seuls les offices dont un horaire est renseigné s'affichent (une vraie communauté démarre sans horaires).
   const filledServices = dailyServices.filter((s) => s.weekday || s.shabbat);
   const [mode, setMode] = useState<Mode>('horaires');
@@ -100,7 +105,10 @@ export function ScheduleScreen() {
             { value: 'agenda', label: 'Agenda' },
           ]}
           value={mode}
-          onChange={setMode}
+          onChange={(m) => {
+            setMode(m);
+            if (m === 'agenda') recordActivity('agenda');
+          }}
         />
 
         <View style={{ marginTop: 14 }}>

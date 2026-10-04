@@ -28,6 +28,10 @@ const items: { q: string; a: string }[] = [
     a: "Pour le judaïsme, non : l'application propose les horaires d'allumage, de sortie de Chabbat et de fête, les jeûnes, fêtes, Roch Hodech et paracha pour la position de la communauté (calculs Hebcal, hors ligne). Vous ajoutez d'un geste, corrigez avant ou après. Pour les autres confessions, des horaires sont aussi proposés, et tout reste modifiable.",
   },
   {
+    q: "Comment gagne-t-on des points ?",
+    a: "Par l'assiduité et par la générosité. Ouvrir l'application, les Horaires ou l'Agenda rapporte 1 point chacun, une fois par jour ; lire un cours en entier 2 points ; poser une question 2 points, plus 1 quand le responsable répond ; une série de 7 jours +5, de 30 jours +20. Les dons confirmés comptent 4 points par tranche de 10 € (tsedaka, sadaqa, offrande, dana) ou 10 points par tranche de 100 € (maasser, zakat, dîme). Le niveau 1 coûte 5 points, chaque niveau suivant un point de plus ; il ne descend jamais. Deux titres à entretenir s'y ajoutent (Régulier, Fidèle, Pilier pour l'assiduité ; Généreux, Bienfaiteur, Mécène pour la générosité) et une attestation annuelle imprimable. Un mode discret permet de ne rien afficher.",
+  },
+  {
     q: "Peut-on essayer avant de créer un compte ?",
     a: "Oui : le bouton « Accès démo » de l'application ouvre une démo complète, pour chaque confession et chaque rôle (responsable, fidèle, trésorier), avec des données fictives remises à zéro à chaque rechargement.",
   },

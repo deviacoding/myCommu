@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
-export function ProgressBar({ progress, height = 10 }: { progress: number; height?: number }) {
+export function ProgressBar({ progress, height = 10, color }: { progress: number; height?: number; color?: string }) {
   const { theme } = useTheme();
   const pct = Math.max(0, Math.min(1, progress));
   return (
@@ -10,7 +10,7 @@ export function ProgressBar({ progress, height = 10 }: { progress: number; heigh
       <View
         style={[
           styles.fill,
-          { backgroundColor: theme.colors.primary, width: `${pct * 100}%`, borderRadius: height / 2 },
+          { backgroundColor: color ?? theme.colors.primary, width: `${pct * 100}%`, borderRadius: height / 2 },
         ]}
       />
     </View>

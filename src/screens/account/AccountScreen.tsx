@@ -11,8 +11,7 @@ import { useAppState } from '../../state/AppState';
 import { themes } from '../../theme/themes';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
-import { Aura } from '../../components/Aura';
-import { ProgressBar } from '../../components/ProgressBar';
+import { OraCard } from '../../components/OraCard';
 import { Card, SectionTitle, Muted, Button, Chip } from '../../components/ui';
 import { MyDates } from '../../components/MyDates';
 import { IconByName } from '../../components/ReligionIcon';
@@ -32,8 +31,7 @@ export function AccountScreen() {
   const staffMembership = memberships.find((m) => m.role !== 'member');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ name: user.name, phone: user.phone ?? '', city: user.city ?? '' });
-  const { points, level, levelIndex, nextLevel, levelProgress, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed } = useAppState();
-  const soulLevels = seed.gamification.levels;
+  const { ora, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed } = useAppState();
   const g = seed.gamification;
   const mine = congregations.filter((k) => myCongregations.includes(k.id));
   const [notif, setNotif] = useState(true);
@@ -76,44 +74,7 @@ export function AccountScreen() {
           <Button label={t('auth.leaderSpace')} icon="ribbon-outline" variant="secondary" onPress={() => switchRole(staffMembership.role === 'treasurer' ? 'treasurer' : staffMembership.role === 'organizer' ? 'organizer' : 'rav')} style={{ marginBottom: 12 }} />
         ) : null}
 
-        <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
-          <Text style={[styles.oraTitle, { color: c.textMuted }]}>{g.title}</Text>
-          <Aura levelIndex={levelIndex} progress={levelProgress} size={230} icon={g.icon} />
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-            <Text style={{ color: c.text, fontSize: 26, fontWeight: '900' }}>{level.name}</Text>
-            <Text style={{ color: c.textMuted, fontSize: 18 }}>{level.hebrew}</Text>
-          </View>
-          <Muted style={{ textAlign: 'center', marginTop: 4, maxWidth: 300 }}>{level.description}</Muted>
-          <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>{points} points</Text>
-              {nextLevel ? <Muted>{nextLevel.min - points} points avant {nextLevel.name}</Muted> : <Muted>Niveau maximal</Muted>}
-            </View>
-            <ProgressBar progress={levelProgress} />
-          </View>
-          <View style={styles.levels}>
-            {soulLevels.map((l, i) => (
-              <View key={l.id} style={{ alignItems: 'center', flex: 1 }}>
-                <View
-                  style={[
-                    styles.levelDot,
-                    { backgroundColor: i <= levelIndex ? c.primary : c.primaryLight, borderColor: i === levelIndex ? c.secondary : 'transparent' },
-                  ]}
-                />
-                <Text style={{ color: i <= levelIndex ? c.text : c.textMuted, fontSize: 10, fontWeight: '600', marginTop: 4 }}>{l.name}</Text>
-              </View>
-            ))}
-          </View>
-          <Muted style={{ textAlign: 'center', marginTop: 12, fontSize: 12 }}>
-            {g.growHint}
-          </Muted>
-          <Button
-            label={g.ctaLabel}
-            icon="heart"
-            onPress={() => navigation.navigate('Donate', { type: 'tsedaka' })}
-            style={{ alignSelf: 'stretch', marginTop: 14 }}
-          />
-        </Card>
+        <OraCard onDonate={() => navigation.navigate('Donate', { type: 'tsedaka' })} onAttestation={() => navigation.navigate('Attestation')} />
 
         <View style={styles.stats}>
           <Stat icon="hand-heart" label="Total donné" value={money(totalGiven)} />
@@ -121,7 +82,7 @@ export function AccountScreen() {
           <Stat icon="fire" label="Mois d’affilée" value={String(streakMonths)} />
           <Stat icon="book-open-variant" label={`${seed.teachingPlural} lus`} value={String(readCourses.length)} />
           <Stat icon="comment-question" label="Questions" value={String(myQuestions)} />
-          <Stat icon={g.icon} label="Niveau" value={`${levelIndex + 1}/${soulLevels.length}`} />
+          <Stat icon={g.icon} label={`Niveau · ${ora.tier.name}`} value={String(ora.level)} />
         </View>
 
         <SectionTitle title={t('account.myCommunities')} action={t('common.join')} onAction={() => navigation.navigate('JoinCommunity', { onboarding: false })} />
