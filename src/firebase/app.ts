@@ -3,6 +3,7 @@ import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
 import { Auth, browserLocalPersistence, browserPopupRedirectResolver, getAuth, initializeAuth } from 'firebase/auth';
 import { Firestore, initializeFirestore } from 'firebase/firestore';
 import { FirebaseStorage, getStorage } from 'firebase/storage';
+import { Functions, getFunctions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuration web Firebase, lue dans .env (variables EXPO_PUBLIC_FIREBASE_*).
@@ -23,6 +24,7 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
+let functions: Functions | undefined;
 
 function ensureApp(): FirebaseApp {
   if (!firebaseConfigured) throw new Error('Firebase non configuré : renseignez le fichier .env (voir .env.example).');
@@ -60,6 +62,13 @@ export function getStorageBucket(): FirebaseStorage {
   if (storage) return storage;
   storage = getStorage(ensureApp());
   return storage;
+}
+
+// Cloud Functions (paiements Stripe, notifications) : déployées en Europe, la région doit être explicite.
+export function getFunctionsClient(): Functions {
+  if (functions) return functions;
+  functions = getFunctions(ensureApp(), 'europe-west1');
+  return functions;
 }
 
 export { getAuth };

@@ -45,7 +45,9 @@ export const createStripeConnectLink = onCall({ secrets: [STRIPE_SECRET_KEY] }, 
 
   if (!accountId) {
     const country = /^[A-Z]{2}$/.test(congregation.country ?? '') ? congregation.country : 'FR';
-    const account = await stripe.accounts.create({
+    let account: Stripe.Account;
+    try {
+      account = await stripe.accounts.create({
       type: 'express',
       country,
       email,
@@ -53,7 +55,15 @@ export const createStripeConnectLink = onCall({ secrets: [STRIPE_SECRET_KEY] }, 
       capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
       business_profile: { name: congregation.name },
       metadata: { congregationId, createdBy: uid },
-    });
+      });
+    } catch (err) {
+      // Pays non couvert par Stripe (Israël, par exemple) : message clair plutôt qu'une erreur interne.
+      const code = (err as { code?: string }).code;
+      if (code === 'country_unsupported') {
+        throw new HttpsError('failed-precondition', `Stripe n'est pas disponible dans le pays de la communauté (${country}). Utilisez un autre moyen de paiement (Bit en Israël).`);
+      }
+      throw err;
+    }
     accountId = account.id;
 
     // Premier moyen de paiement de la communauté → par défaut.
@@ -139,7 +149,10 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   if (dedication) metadata.dedication = dedication;
   if (pledgeId) metadata.pledgeId = pledgeId;
 
-  const session = await stripe.checkout.sessions.create({
+  // Paiement « direct » (choix Connect : les communautés encaissent directement) : la session est créée
+  // sur le compte connecté de la communauté ; les fonds n'arrivent jamais sur le compte de la plateforme.
+  const session = await stripe.checkout.sessions.create(
+    {
     mode: 'payment',
     client_reference_id: uid,
     customer_email: request.auth.token.email ?? undefined,
@@ -154,9 +167,7 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
       },
     ],
     payment_intent_data: {
-      // Paiement « destination » : les fonds vont au compte connecté de la communauté.
-      transfer_data: { destination: link.accountId },
-      // Pas de commission pour l'instant. Pour en prélever une (en centimes), décommenter :
+      // Pas de commission myCommu pour l'instant. Pour en prélever une (en centimes), décommenter :
       // application_fee_amount: Math.round(amount * 100 * 0.02),
       metadata,
       description: `Don ${cause} — ${congregation.name}`,
@@ -164,7 +175,9 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
     metadata,
     success_url: `${base}/?checkout=success&session_id={CHECKOUT_SESSION_ID}&congregationId=${encodeURIComponent(congregationId)}`,
     cancel_url: `${base}/?checkout=cancel&congregationId=${encodeURIComponent(congregationId)}`,
-  });
+    },
+    { stripeAccount: link.accountId }
+  );
 
   logger.info('Checkout créé', { congregationId, uid, amount, currency, sessionId: session.id });
   return { url: session.url, sessionId: session.id };

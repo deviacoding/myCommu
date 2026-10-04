@@ -13,6 +13,7 @@ import { money } from '../../utils/time';
 import { useI18n } from '../../i18n';
 import { PaymentLogo } from '../../components/PaymentLogo';
 import { paymentProvider } from '../../config/paymentProviders';
+import { openStripeUrl, startStripeCheckout, stripeErrorMessage } from '../../utils/stripe';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 
@@ -21,7 +22,10 @@ export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { type, pledgeId } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks } = useAppState();
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks, backendMode, congregationId } = useAppState();
+  const real = backendMode === 'firebase';
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const { t: tr } = useI18n();
   const [payWith, setPayWith] = useState<string | undefined>(() => (myPaymentLinks.find((p) => p.isDefault) ?? myPaymentLinks[0])?.id);
   const payLink = myPaymentLinks.find((p) => p.id === payWith);
@@ -44,8 +48,25 @@ export function DonateScreen({ route, navigation }: Props) {
   const inputStyle = [styles.input, { borderColor: c.border, backgroundColor: c.surface, color: c.text }];
   const t = titles[type];
 
-  const confirm = () => {
-    const gained = donate({ type, amount, cause, dedication: dedication.trim() || undefined, pledgeId });
+  const stripeReal = real && payLink?.provider === 'stripe';
+  const stripeReady = !stripeReal || payLink?.status === 'active';
+
+  const confirm = async () => {
+    if (stripeReal) {
+      // Paiement réel : page Stripe de la communauté ; le don est inscrit en base par le webhook.
+      setPaying(true);
+      setPayError(null);
+      try {
+        const r = await startStripeCheckout({ congregationId, amount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type });
+        await openStripeUrl(r.url);
+      } catch (e) {
+        setPayError(stripeErrorMessage(e));
+      } finally {
+        setPaying(false);
+      }
+      return;
+    }
+    const gained = donate({ type, amount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id });
     setDone(gained);
   };
 
@@ -181,12 +202,15 @@ export function DonateScreen({ route, navigation }: Props) {
         )}
         <Muted style={{ marginBottom: 12 }}>Reçu fiscal envoyé par email après chaque don.</Muted>
 
+        {stripeReal && !stripeReady ? <Muted style={{ marginBottom: 10 }}>Le paiement en ligne de cette communauté n’est pas encore actif : son responsable doit finaliser l’inscription Stripe.</Muted> : null}
         <Button
-          label={payLink ? tr('payments.member.confirm', { amount: money(amount), name: paymentProvider(payLink.provider).name }) : `Confirmer le don de ${money(amount)}`}
+          label={paying ? 'Ouverture du paiement…' : payLink ? tr('payments.member.confirm', { amount: money(amount), name: paymentProvider(payLink.provider).name }) : `Confirmer le don de ${money(amount)}`}
           icon="heart"
+          disabled={paying || !stripeReady}
           onPress={confirm}
         />
-        <Muted style={{ textAlign: 'center', marginTop: 12 }}>Maquette : aucun paiement réel n’est effectué.</Muted>
+        {payError ? <Text style={{ color: c.danger, fontSize: 13, marginTop: 10, textAlign: 'center' }}>{payError}</Text> : null}
+        <Muted style={{ textAlign: 'center', marginTop: 12 }}>{stripeReal ? 'Paiement sécurisé sur la page Stripe de votre communauté (carte bancaire, Apple Pay, Google Pay).' : real ? 'Ce moyen de paiement est encore simulé : aucun paiement réel.' : 'Maquette : aucun paiement réel n’est effectué.'}</Muted>
         <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,10 +7,11 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { useI18n } from '../../i18n';
 import { PaymentLogo } from '../../components/PaymentLogo';
-import { PAYMENT_PROVIDERS, PaymentProvider, paymentProvider } from '../../config/paymentProviders';
+import { PAYMENT_PROVIDERS, PaymentProvider, paymentProvider, STRIPE_UNSUPPORTED_COUNTRIES } from '../../config/paymentProviders';
 import { RavScreen, RavCard, BigButton, BIG } from './RavUi';
 import { formatLong } from '../../utils/time';
 import { PaymentLink } from '../../types';
+import { clearStripeReturn, openStripeUrl, readStripeReturn, startStripeConnect, stripeErrorMessage } from '../../utils/stripe';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavPayments'>;
 
@@ -19,19 +20,51 @@ export function RavPaymentsScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { t } = useI18n();
-  const { myPaymentLinks, congregation, seed } = useAppState();
+  const { myPaymentLinks, congregation, congregationId, seed, backendMode } = useAppState();
+  const real = backendMode === 'firebase';
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
+
+  // Retour de Stripe après l'inscription de la communauté (web).
+  useEffect(() => {
+    const r = readStripeReturn();
+    if (r.stripe === 'return') setNotice({ kind: 'info', text: 'Inscription Stripe terminée. Le compte passe « Actif » dès que Stripe a validé les informations (quelques secondes à quelques minutes).' });
+    if (r.stripe === 'refresh') setNotice({ kind: 'error', text: 'Le lien Stripe a expiré. Relancez l’inscription.' });
+    if (r.stripe) clearStripeReturn();
+  }, []);
+
+  // Stripe réel : la fonction crée le compte Express de la communauté et renvoie la page d'inscription
+  // (ou le tableau de bord Stripe si le compte est déjà actif).
+  const connectStripe = async () => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const r = await startStripeConnect(congregationId);
+      await openStripeUrl(r.url);
+    } catch (e) {
+      setNotice({ kind: 'error', text: stripeErrorMessage(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
   const country = congregation.country ?? (seed.currency === '₪' ? 'IL' : 'FR');
   const connectedIds = myPaymentLinks.map((p) => p.provider);
+  const stripeUnavailable = real && STRIPE_UNSUPPORTED_COUNTRIES.includes(country);
   // Les services recommandés dans le pays de la communauté passent en premier.
   const available = [...PAYMENT_PROVIDERS].sort((a, b) => Number(b.countries.includes(country)) - Number(a.countries.includes(country)));
 
   return (
     <RavScreen title={t('payments.title')} subtitle={t('payments.subtitle')} onBack={() => navigation.goBack()}>
       <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 14, lineHeight: 23 }}>{t('payments.intro')}</Text>
+      {notice ? (
+        <RavCard style={{ borderColor: notice.kind === 'error' ? c.danger : c.success, borderWidth: 2 }}>
+          <Text style={{ color: notice.kind === 'error' ? c.danger : c.success, fontSize: BIG.small, fontWeight: '700' }}>{notice.text}</Text>
+        </RavCard>
+      ) : null}
 
       <Text style={[styles.section, { color: c.text }]}>{t('payments.connected')}</Text>
       {myPaymentLinks.length ? (
-        myPaymentLinks.map((link) => <ConnectedCard key={link.id} link={link} />)
+        myPaymentLinks.map((link) => <ConnectedCard key={link.id} link={link} real={real} busy={busy} onStripe={connectStripe} />)
       ) : (
         <RavCard>
           <Text style={{ color: c.textMuted, fontSize: BIG.small }}>{t('payments.none')}</Text>
@@ -45,16 +78,20 @@ export function RavPaymentsScreen({ navigation }: Props) {
           provider={p}
           connected={connectedIds.includes(p.id)}
           recommended={p.countries.includes(country)}
-          onConnect={() => navigation.navigate('RavPaymentConnect', { provider: p.id })}
+          busy={busy && p.id === 'stripe'}
+          unavailable={p.id === 'stripe' && stripeUnavailable ? 'Stripe n’ouvre pas de compte dans ce pays. En Israël, utilisez Bit.' : undefined}
+          onConnect={() => (real && p.id === 'stripe' ? connectStripe() : navigation.navigate('RavPaymentConnect', { provider: p.id }))}
         />
       ))}
 
-      <Text style={{ color: c.textMuted, fontSize: 13, textAlign: 'center', marginTop: 12 }}>{t('payments.demoNote')}</Text>
+      <Text style={{ color: c.textMuted, fontSize: 13, textAlign: 'center', marginTop: 12 }}>{real ? 'Stripe : paiement réel (mode test tant que les clés de test sont utilisées). Bit et Lemon Squeezy : connexion simulée.' : t('payments.demoNote')}</Text>
     </RavScreen>
   );
 }
 
-function ConnectedCard({ link }: { link: PaymentLink }) {
+function ConnectedCard({ link, real, busy, onStripe }: { link: PaymentLink; real: boolean; busy: boolean; onStripe: () => void }) {
+  const realStripe = real && link.provider === 'stripe';
+  const pending = realStripe && link.status !== 'active';
   const { theme } = useTheme();
   const c = theme.colors;
   const { t } = useI18n();
@@ -69,9 +106,9 @@ function ConnectedCard({ link }: { link: PaymentLink }) {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Text style={{ color: c.text, fontSize: 21, fontWeight: '900' }}>{p.name}</Text>
-            <View style={[styles.badge, { backgroundColor: c.success + '1F' }]}>
-              <View style={[styles.dot, { backgroundColor: c.success }]} />
-              <Text style={{ color: c.success, fontWeight: '800', fontSize: 13 }}>{t('payments.active')}</Text>
+            <View style={[styles.badge, { backgroundColor: (pending ? c.warning : c.success) + '1F' }]}>
+              <View style={[styles.dot, { backgroundColor: pending ? c.warning : c.success }]} />
+              <Text style={{ color: pending ? c.warning : c.success, fontWeight: '800', fontSize: 13 }}>{pending ? 'Inscription à finaliser' : t('payments.active')}</Text>
             </View>
             {link.isDefault ? (
               <View style={[styles.badge, { backgroundColor: p.color + '1F' }]}>
@@ -108,7 +145,11 @@ function ConnectedCard({ link }: { link: PaymentLink }) {
         </View>
       ) : (
         <View style={styles.actions}>
-          <SmallAction icon="flask" label={t('payments.test')} color={c.primary} onPress={() => testPayment(link.id)} />
+          {realStripe ? (
+            <SmallAction icon={pending ? 'open-outline' : 'stats-chart'} label={busy ? 'Patientez…' : pending ? 'Finaliser l’inscription Stripe' : 'Tableau de bord Stripe'} color={c.primary} onPress={() => !busy && onStripe()} />
+          ) : (
+            <SmallAction icon="flask" label={t('payments.test')} color={c.primary} onPress={() => testPayment(link.id)} />
+          )}
           {!link.isDefault ? <SmallAction icon="star-outline" label={t('payments.makeDefault')} color={c.primary} onPress={() => setDefaultPayment(link.id)} /> : null}
           <SmallAction icon="unlink" label={t('payments.disconnect')} color={c.danger} onPress={() => setConfirming(true)} />
         </View>
@@ -126,7 +167,7 @@ function SmallAction({ icon, label, color, onPress }: { icon: React.ComponentPro
   );
 }
 
-function ProviderCard({ provider: p, connected, recommended, onConnect }: { provider: PaymentProvider; connected: boolean; recommended: boolean; onConnect: () => void }) {
+function ProviderCard({ provider: p, connected, recommended, onConnect, busy, unavailable }: { provider: PaymentProvider; connected: boolean; recommended: boolean; onConnect: () => void; busy?: boolean; unavailable?: string }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { t } = useI18n();
@@ -156,13 +197,18 @@ function ProviderCard({ provider: p, connected, recommended, onConnect }: { prov
         <InfoRow icon="card-outline" label={t('payments.methods')} value={p.methods.join(' · ')} />
       </View>
 
-      {connected ? (
+      {unavailable ? (
+        <View style={[styles.test, { backgroundColor: c.warning + '14', borderColor: c.warning }]}>
+          <Ionicons name="alert-circle" size={22} color={c.warning} />
+          <Text style={{ color: c.warning, fontWeight: '800', fontSize: BIG.small, flex: 1 }}>{unavailable}</Text>
+        </View>
+      ) : connected ? (
         <View style={[styles.test, { backgroundColor: c.success + '14', borderColor: c.success }]}>
           <Ionicons name="checkmark-circle" size={22} color={c.success} />
           <Text style={{ color: c.success, fontWeight: '800', fontSize: BIG.small }}>{t('payments.alreadyConnected')}</Text>
         </View>
       ) : (
-        <BigButton label={t('payments.connect', { name: p.name })} icon="link" color={p.color} textColor={p.onColor} onPress={onConnect} style={{ marginTop: 14 }} />
+        <BigButton label={busy ? 'Connexion à Stripe…' : t('payments.connect', { name: p.name })} icon="link" color={p.color} textColor={p.onColor} disabled={!!busy} onPress={onConnect} style={{ marginTop: 14 }} />
       )}
     </RavCard>
   );

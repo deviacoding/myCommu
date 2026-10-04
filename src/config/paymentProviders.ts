@@ -20,6 +20,9 @@ export const PAYMENT_PROVIDERS: PaymentProvider[] = [
   { id: 'lemonsqueezy', name: 'Lemon Squeezy', color: '#FFC233', onColor: '#1F1F1F', login: 'email', countries: [], methods: ['Carte bancaire', 'PayPal', 'Apple Pay'] },
 ];
 
+// Pays où Stripe ne peut pas ouvrir de compte pour une communauté (Stripe n'y opère pas) : Bit prend le relais en Israël.
+export const STRIPE_UNSUPPORTED_COUNTRIES = ['IL'];
+
 export function paymentProvider(id: PaymentProviderId): PaymentProvider {
   return PAYMENT_PROVIDERS.find((p) => p.id === id) ?? PAYMENT_PROVIDERS[0];
 }

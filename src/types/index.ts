@@ -273,6 +273,9 @@ export interface PaymentLink {
   connectedAt: string; // ISO
   isDefault: boolean;
   testPayments: number;
+  status?: 'pending' | 'active'; // Stripe réel : inscription en cours, ou compte prêt à encaisser
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
 }
 
 export interface LiveSession {

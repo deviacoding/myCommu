@@ -1,7 +1,7 @@
 # Cloud Functions myCommu
 
 Code serveur du projet Firebase `mycommunity-b13de` (plan Blaze), dans le dossier `functions/` :
-TypeScript, `firebase-functions` v2, `firebase-admin` v13, Node 20, région `europe-west1` (au plus près de Firestore `eur3`).
+TypeScript, `firebase-functions` v2, `firebase-admin` v13, Node 22, région `europe-west1` (au plus près de Firestore `eur3`).
 
 Deux domaines : **paiements Stripe Connect** (`functions/src/stripe.ts`) et **notifications push FCM** (`functions/src/push.ts`).
 `functions/src/shared.ts` porte l'initialisation (Admin SDK, région, `maxInstances: 10`) et les utilitaires (rôle d'un membre, devise, dates ISO).
@@ -10,7 +10,7 @@ Deux domaines : **paiements Stripe Connect** (`functions/src/stripe.ts`) et **no
 
 ### Paiements Stripe Connect (`stripe.ts`)
 
-Chaque communauté possède **son propre compte Stripe Express** ; les dons des fidèles sont encaissés sur le compte de la plateforme puis transférés automatiquement au compte de la communauté (paiement « destination »). Aucune commission n'est prélevée pour l'instant (`application_fee_amount` est en commentaire dans `createDonationCheckout`).
+Chaque communauté possède **son propre compte Stripe Express** ; les dons sont encaissés **directement** sur ce compte (paiement « direct » : la session Checkout est créée sur le compte connecté, l'argent ne transite jamais par la plateforme — c'est le modèle « Sellers will collect payments directly » choisi dans Connect). Aucune commission n'est prélevée pour l'instant (`application_fee_amount` est en commentaire dans `createDonationCheckout`).
 
 | Fonction | Type | Rôle |
 |---|---|---|
@@ -44,7 +44,7 @@ Les notifications portent un champ `data.type` (`live`, `question`, `agenda`, `p
 
 ```json
 "functions": [
-  { "source": "functions", "codebase": "default", "runtime": "nodejs20" }
+  { "source": "functions", "codebase": "default", "runtime": "nodejs22" }
 ]
 ```
 
@@ -66,7 +66,7 @@ npm install
 npm run build        # tsc → functions/lib
 ```
 
-Node 20 est le runtime ciblé ; en local, Node 22/24 compile sans problème (l'avertissement `EBADENGINE` de npm est sans conséquence).
+Node 22 est le runtime ciblé ; en local, Node 22/24 compile sans problème (l'avertissement `EBADENGINE` de npm est sans conséquence).
 
 ### 4. Secrets Stripe (jamais en clair dans le dépôt)
 
@@ -111,8 +111,8 @@ https://europe-west1-mycommunity-b13de.cloudfunctions.net/stripeWebhook
   - `checkout.session.completed`
   - `checkout.session.async_payment_succeeded`
   - `account.updated`
-- Stripe sépare les sources : les événements `checkout.*` viennent de **votre compte** (plateforme), `account.updated` vient des **comptes connectés**. Créer donc **deux endpoints** vers la même URL : le premier « Événements sur votre compte » avec `checkout.session.completed` et `checkout.session.async_payment_succeeded`, le second « Événements sur les comptes connectés » avec `account.updated`.
-- Chaque endpoint a son **secret de signature** (`whsec_…`). Les mettre tous les deux dans `STRIPE_WEBHOOK_SECRET`, **séparés par une virgule** (`whsec_aaa,whsec_bbb`) : la fonction essaie chaque secret. Puis redéployer les fonctions pour qu'elles prennent la nouvelle version du secret.
+- Avec les paiements directs, **tous** ces événements viennent des **comptes connectés** : créer **un seul endpoint** de type « Événements sur les comptes connectés » (*Listen to events on Connected accounts*) vers cette URL, avec les trois événements ci-dessus.
+- L'endpoint a un **secret de signature** (`whsec_…`) à mettre dans `STRIPE_WEBHOOK_SECRET` (plusieurs secrets possibles, séparés par une virgule : la fonction essaie chacun). Puis redéployer les fonctions pour qu'elles prennent la nouvelle version du secret.
 
 En test local : `stripe listen --forward-to http://127.0.0.1:5001/mycommunity-b13de/europe-west1/stripeWebhook` avec l'émulateur (`npm run serve`).
 

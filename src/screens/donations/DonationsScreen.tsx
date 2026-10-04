@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import { Card, Segmented, SectionTitle, Muted, Button } from '../../components/u
 import { EmptyState } from '../../components/EmptyState';
 import { DonationType } from '../../types';
 import { money, formatShort, formatNumeric } from '../../utils/time';
+import { clearStripeReturn, readStripeReturn } from '../../utils/stripe';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Tab = 'tithe' | 'alms' | 'engagements';
@@ -35,6 +36,14 @@ export function DonationsScreen() {
 
   // L'onglet « part obligatoire » (maasser, zakat, dîme) s'ouvre par défaut quand il existe ; sinon l'aumône (dana).
   const [tab, setTab] = useState<Tab>(tithe ? 'tithe' : 'alms');
+  const [stripeNotice, setStripeNotice] = useState<'success' | 'cancel' | null>(null);
+  useEffect(() => {
+    const r = readStripeReturn();
+    if (r.checkout) {
+      setStripeNotice(r.checkout);
+      clearStripeReturn();
+    }
+  }, []);
   const [salary, setSalary] = useState(maasserInput.salary ? String(maasserInput.salary) : '');
   const [d1, setD1] = useState(maasserInput.school ? String(maasserInput.school) : '');
   const [d2, setD2] = useState(maasserInput.talmudTorah ? String(maasserInput.talmudTorah) : '');
@@ -71,6 +80,12 @@ export function DonationsScreen() {
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader title="Dons" subtitle={`${money(givenThisMonth)} donnés ce mois · ${money(totalGiven)} au total`} communitySwitch />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {stripeNotice ? (
+          <Card style={{ borderColor: stripeNotice === 'success' ? c.success : c.border, borderWidth: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Ionicons name={stripeNotice === 'success' ? 'checkmark-circle' : 'close-circle'} size={24} color={stripeNotice === 'success' ? c.success : c.textMuted} />
+            <Text style={{ color: c.text, fontWeight: '700', flex: 1 }}>{stripeNotice === 'success' ? 'Merci ! Votre don est confirmé par Stripe et apparaît dans votre historique.' : 'Paiement annulé : aucun montant n’a été prélevé.'}</Text>
+          </Card>
+        ) : null}
         <Segmented<Tab> options={options} value={tab} onChange={setTab} />
 
         {tab === 'tithe' && tithe && (
