@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
-import { Auth, browserLocalPersistence, getAuth, initializeAuth } from 'firebase/auth';
+import { Auth, browserLocalPersistence, browserPopupRedirectResolver, getAuth, initializeAuth } from 'firebase/auth';
 import { Firestore, initializeFirestore } from 'firebase/firestore';
 import { FirebaseStorage, getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,7 +34,8 @@ export function getFirebaseAuth(): Auth {
   if (auth) return auth;
   const a = ensureApp();
   if (Platform.OS === 'web') {
-    auth = initializeAuth(a, { persistence: browserLocalPersistence });
+    // Le résolveur est indispensable à signInWithPopup (Google) quand Auth est initialisé à la main.
+    auth = initializeAuth(a, { persistence: browserLocalPersistence, popupRedirectResolver: browserPopupRedirectResolver });
   } else {
     // Sur téléphone, la session est conservée dans AsyncStorage.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
