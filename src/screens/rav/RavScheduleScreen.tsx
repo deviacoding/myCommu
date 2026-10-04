@@ -8,6 +8,7 @@ import { useAppState } from '../../state/AppState';
 import { RavScreen, BigInput, BigButton, RavCard, BIG } from './RavUi';
 import { capitalize, formatLong, parseISODate, todayISO } from '../../utils/time';
 import { simulateScheduleImport } from '../../utils/calj';
+import { HebcalSuggestions } from '../../components/HebcalSuggestions';
 import { useTheme as useThemeCtx } from '../../theme/ThemeProvider';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavSchedule'>;
@@ -100,7 +101,9 @@ export function RavScheduleScreen({ navigation }: Props) {
 
   return (
     <RavScreen title={seed.scheduleTitle} subtitle="Touchez un jour, puis ajoutez un horaire" onBack={() => navigation.goBack()}>
-      {/* CalJ */}
+      {/* Juif : propositions calculées hors ligne (Hebcal). Autres confessions : import simulé. */}
+      {community === 'jewish' ? <HebcalSuggestions /> : null}
+      {community !== 'jewish' ? (
       <RavCard style={{ borderColor: c.primary, borderWidth: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Ionicons name="location" size={30} color={c.primary} />
@@ -123,6 +126,7 @@ export function RavScheduleScreen({ navigation }: Props) {
           style={{ marginTop: 12 }}
         />
       </RavCard>
+      ) : null}
 
       {/* Calendrier */}
       <RavCard style={{ padding: 12 }}>

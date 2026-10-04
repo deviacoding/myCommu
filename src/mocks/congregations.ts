@@ -12,6 +12,7 @@ export const congregations: Congregation[] = [
     distance: '350 m',
     code: 'BY-2026',
     members: 320,
+    coords: { lat: 48.884, lng: 2.312 },
     rav: {
       name: 'Rav Yaacov Attias',
       title: 'Rabbin de la communauté',

@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@hebcal/core": "^6.11.1",
+    "@hebcal/locales": "^6.5.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.16.0",
     "@react-navigation/native": "^7.2.4",
