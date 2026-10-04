@@ -6,6 +6,7 @@ import { useTheme } from '../theme/ThemeProvider';
 import { AuthStack } from './AuthStack';
 import { AppStack } from './AppStack';
 import { RavStack } from './RavStack';
+import { ChooseReligionScreen } from '../screens/auth/ChooseReligionScreen';
 
 export function RootNavigator() {
   const { mode, authReady } = useAuth();
@@ -19,5 +20,5 @@ export function RootNavigator() {
     );
   }
   const staff = mode === 'rav' || mode === 'treasurer' || mode === 'organizer';
-  return <NavigationContainer>{staff ? <RavStack /> : mode === 'member' ? <AppStack /> : <AuthStack />}</NavigationContainer>;
+  return <NavigationContainer>{mode === 'setup' ? <ChooseReligionScreen /> : staff ? <RavStack /> : mode === 'member' ? <AppStack /> : <AuthStack />}</NavigationContainer>;
 }

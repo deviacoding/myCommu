@@ -5,6 +5,7 @@ export type CommunityId = 'jewish' | 'christian' | 'muslim' | 'buddhist';
 export interface UserProfile {
   id: string;
   intent?: 'member' | 'leader'; // à l'inscription : fidèle, ou responsable qui va créer sa communauté
+  needsSetup?: boolean; // première connexion (Google) : la confession n'a pas encore été choisie
   lang?: string;
   readCourses?: string[];
   maasserInput?: { salary: number; school: number; talmudTorah: number; other: number };

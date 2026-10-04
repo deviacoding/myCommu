@@ -273,6 +273,14 @@ const en: DeepPartial<Translations> = {
       confirm: 'Give {amount} with {name}',
     },
   },
+  setup: {
+    hello: 'Welcome {name}',
+    title: 'What are you looking for?',
+    intro: 'We assume nothing: pick your faith and the app will show you matching communities. You can change it later in My account.',
+    role: 'And you are…',
+    continue: 'Continue',
+    signOut: 'Use another account',
+  },
   account: { title: 'My account', myCommunities: 'My communities', preferences: 'Preferences' },
 };
 

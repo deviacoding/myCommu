@@ -22,7 +22,8 @@ import { todayISO } from '../utils/time';
 // Deux façons d'entrer dans l'application :
 // - la démo (données fictives en mémoire, aucun compte) ;
 // - un vrai compte Firebase (e-mail/mot de passe ou Google), avec ses communautés et ses rôles en base.
-export type AccessMode = 'none' | 'member' | 'rav' | 'treasurer' | 'organizer';
+// « setup » : première connexion, l'utilisateur choisit sa confession avant d'entrer.
+export type AccessMode = 'none' | 'setup' | 'member' | 'rav' | 'treasurer' | 'organizer';
 export type DemoRole = 'member' | 'rav' | 'treasurer';
 
 export interface SignUpInput {
@@ -54,6 +55,7 @@ interface AuthValue {
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   claimStaffCode: (code: string) => Promise<{ congregationId: string; role: StaffRole }>;
+  completeSetup: (choice: { community: CommunityId; intent: 'member' | 'leader' }) => void;
 }
 
 const AuthContext = createContext<AuthValue | undefined>(undefined);
@@ -146,14 +148,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...d,
           } as UserProfile);
         } else {
-          const extra = pendingSignup.current ?? {};
+          const extra = pendingSignup.current;
           pendingSignup.current = null;
           const fresh: UserProfile = {
             id: fbUser.uid,
-            name: fbUser.displayName ?? extra.name ?? 'Utilisateur',
-            email: fbUser.email ?? extra.email ?? '',
-            community: extra.community ?? community,
-            intent: extra.intent ?? 'member',
+            name: fbUser.displayName ?? extra?.name ?? 'Utilisateur',
+            email: fbUser.email ?? extra?.email ?? '',
+            community: extra?.community ?? community,
+            intent: extra?.intent ?? 'member',
+            // Sans inscription par formulaire (Google), la confession reste à choisir à l'écran suivant.
+            needsSetup: !extra,
             memberSince: todayISO(),
           };
           await setDoc(ref, { ...fresh, createdAt: new Date().toISOString() }).catch((e) => console.warn('[auth] profil', e.message));
@@ -189,8 +193,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Thème et espace d'entrée dès que le profil et les rôles sont connus.
   useEffect(() => {
     if (!fbUser || !profile || !membershipsReady) return;
+    if (profile.needsSetup && memberships.length === 0) {
+      if (realMode !== 'setup') setRealMode('setup');
+      return;
+    }
     setCommunity(profile.community);
-    if (realMode) return;
+    if (realMode && realMode !== 'setup') return;
     const staff = memberships.find((m) => m.role !== 'member');
     setRealMode(staff ? modeOfRole(staff.role) : profile.intent === 'leader' ? 'rav' : 'member');
   }, [fbUser, profile, memberships, membershipsReady, realMode, setCommunity]);
@@ -289,6 +297,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [fbUser, profile]
   );
 
+  // Première connexion : la confession et le rôle choisis ouvrent l'espace correspondant.
+  const completeSetup = useCallback(
+    ({ community: chosen, intent }: { community: CommunityId; intent: 'member' | 'leader' }) => {
+      updateUser({ community: chosen, intent, needsSetup: false });
+      setRealMode(intent === 'leader' ? 'rav' : 'member');
+    },
+    [updateUser]
+  );
+
   const staffRoleFor = useCallback(
     (congregationId: string): StaffRole | null => {
       if (!isReal) return demoMode === 'treasurer' ? 'treasurer' : demoMode === 'rav' ? 'leader' : null;
@@ -325,8 +342,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       resetPassword,
       claimStaffCode,
+      completeSetup,
     }),
-    [mode, isReal, demoMode, authReady, fbUser, user, memberships, staffRoleFor, onboarded, enterDemo, switchRole, finishOnboarding, signOut, updateUser, signIn, signUp, signInWithGoogle, resetPassword, claimStaffCode]
+    [mode, isReal, demoMode, authReady, fbUser, user, memberships, staffRoleFor, onboarded, enterDemo, switchRole, finishOnboarding, signOut, updateUser, signIn, signUp, signInWithGoogle, resetPassword, claimStaffCode, completeSetup]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

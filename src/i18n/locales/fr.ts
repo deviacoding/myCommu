@@ -287,6 +287,14 @@ const fr = {
       confirm: 'Donner {amount} avec {name}',
     },
   },
+  setup: {
+    hello: 'Bienvenue {name}',
+    title: 'Que recherchez-vous ?',
+    intro: 'Nous ne devinons rien : choisissez votre confession, l’application vous montrera les communautés qui lui correspondent. Vous pourrez changer plus tard dans Mon compte.',
+    role: 'Et vous êtes…',
+    continue: 'Continuer',
+    signOut: 'Utiliser un autre compte',
+  },
   account: {
     title: 'Mon compte',
     myCommunities: 'Mes communautés',
