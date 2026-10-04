@@ -200,6 +200,7 @@ interface AppStateValue {
   addDayEntry: (date: string, name: string, time: string) => void;
   addDayEntries: (entries: { date: string; name: string; time: string }[]) => number;
   removeDayEntry: (id: string) => void;
+  updateDayEntry: (id: string, patch: { name?: string; time?: string }) => void;
   courseThemes: string[];
   addTheme: (name: string) => void;
   publishQuestion: (id: string, anonymize: boolean) => void;
@@ -868,6 +869,14 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     [dayEntries, ofCongregation, congregationId, db, setDayEntries]
   );
 
+  const updateDayEntry = useCallback(
+    (id: string, patch: { name?: string; time?: string }) => {
+      setDayEntries((list) => list.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+      db.update('dayEntries', id, patch);
+    },
+    [db, setDayEntries]
+  );
+
   const removeDayEntry = useCallback(
     (id: string) => {
       setDayEntries((list) => list.filter((e) => e.id !== id));
@@ -1053,6 +1062,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       addDayEntry,
       addDayEntries,
       removeDayEntry,
+      updateDayEntry,
       courseThemes,
       addTheme,
       publishQuestion,
@@ -1128,6 +1138,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     addDayEntry,
     addDayEntries,
     removeDayEntry,
+    updateDayEntry,
     courseThemes,
     addTheme,
     publishQuestion,

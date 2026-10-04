@@ -27,7 +27,8 @@ function isoOf(y: number, m: number, d: number): string {
 export function RavScheduleScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { myDayEntries: dayEntries, addDayEntry, addDayEntries, removeDayEntry, seed } = useAppState();
+  const { myDayEntries: dayEntries, addDayEntry, addDayEntries, removeDayEntry, updateDayEntry, seed } = useAppState();
+  const [editing, setEditing] = useState<{ id: string; name: string; time: string } | null>(null);
   const { community } = useThemeCtx();
   const [calj, setCalj] = useState<'idle' | 'locating' | 'fetching' | 'done'>('idle');
   const [caljResult, setCaljResult] = useState<{ place: string; coords: string; count: number } | null>(null);
@@ -190,15 +191,38 @@ export function RavScheduleScreen({ navigation }: Props) {
         {dayItems.length === 0 ? (
           <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Aucun horaire ce jour. Ajoutez-en un ci-dessous.</Text>
         ) : null}
-        {dayItems.map((e) => (
-          <View key={e.id} style={[styles.entry, { borderBottomColor: c.border }]}>
-            <Text style={{ color: c.primary, fontSize: 22, fontWeight: '900', width: 110, fontVariant: ['tabular-nums'] }}>{e.time}</Text>
-            <Text style={{ color: c.text, fontSize: BIG.text, flex: 1 }}>{e.name}</Text>
-            <Pressable onPress={() => removeDayEntry(e.id)} hitSlop={8} style={[styles.trash, { backgroundColor: c.danger + '18' }]}>
-              <Ionicons name="trash" size={20} color={c.danger} />
-            </Pressable>
-          </View>
-        ))}
+        {dayItems.map((e) =>
+          editing?.id === e.id ? (
+            <View key={e.id} style={[styles.entry, { borderBottomColor: c.border, flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
+              <BigInput value={editing.name} onChangeText={(v) => setEditing({ ...editing, name: v })} placeholder="Nom de l’horaire" />
+              <BigInput value={editing.time} onChangeText={(v) => setEditing({ ...editing, time: v })} placeholder="Heure, ex. : 19:13" />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <BigButton
+                  label="Enregistrer"
+                  icon="checkmark"
+                  disabled={editing.name.trim().length < 2 || !/^\d{1,2}:\d{2}$|^—$/.test(editing.time.trim())}
+                  onPress={() => {
+                    updateDayEntry(e.id, { name: editing.name.trim(), time: editing.time.trim() });
+                    setEditing(null);
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setEditing(null)} style={{ flex: 1, borderWidth: 1, borderColor: c.border }} />
+              </View>
+            </View>
+          ) : (
+            <View key={e.id} style={[styles.entry, { borderBottomColor: c.border }]}>
+              <Text style={{ color: c.primary, fontSize: 22, fontWeight: '900', width: 110, fontVariant: ['tabular-nums'] }}>{e.time}</Text>
+              <Text style={{ color: c.text, fontSize: BIG.text, flex: 1 }}>{e.name}</Text>
+              <Pressable onPress={() => setEditing({ id: e.id, name: e.name, time: e.time })} hitSlop={8} style={[styles.trash, { backgroundColor: c.primaryLight }]} accessibilityLabel="Modifier">
+                <Ionicons name="pencil" size={20} color={c.primary} />
+              </Pressable>
+              <Pressable onPress={() => removeDayEntry(e.id)} hitSlop={8} style={[styles.trash, { backgroundColor: c.danger + '18' }]} accessibilityLabel="Supprimer">
+                <Ionicons name="trash" size={20} color={c.danger} />
+              </Pressable>
+            </View>
+          )
+        )}
       </RavCard>
 
       {/* Ajouter */}
