@@ -24,6 +24,11 @@ const ORG_BASE = {
 };
 
 const formatMeta: Record<ReceiptFormat, { title: string; hebrew?: string; subtitle: string; legal: string }> = {
+  other: {
+    title: 'Reçu de don',
+    subtitle: 'Attestation de don délivrée par l’association',
+    legal: 'L’association atteste avoir reçu la somme indiquée ci-dessus à titre de don, sans contrepartie. Les conditions de déduction fiscale dépendent de la législation du pays de l’association.',
+  },
   seif46: {
     title: 'Reçu fiscal – Seif 46',
     hebrew: 'קבלה לצורכי מס – סעיף 46 לפקודת מס הכנסה',
@@ -42,16 +47,23 @@ const formatMeta: Record<ReceiptFormat, { title: string; hebrew?: string; subtit
 export function ReceiptScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { donations, seed, congregation } = useAppState();
+  const { donations, seed, congregation, associationOf, myAssociations } = useAppState();
+  const association = associationOf(route.params.associationId) ?? myAssociations.find((a) => a.receiptFormat === route.params.format);
   const { user } = useAuth();
   const [format, setFormat] = useState<ReceiptFormat>(route.params.format);
   const [year] = useState(route.params.year);
   const [status, setStatus] = useState<string | null>(null);
 
-  const list = useMemo(() => donations.filter((d) => d.date.startsWith(String(year))), [donations, year]);
+  // Avec une association : seulement ses dons (ou, pour les anciens dons sans association, ceux de la communauté si c'est l'association par défaut).
+  const list = useMemo(
+    () => donations.filter((d) => d.date.startsWith(String(year)) && (!association || d.associationId === association.id || (!d.associationId && association.isDefault))),
+    [donations, year, association]
+  );
   const total = list.reduce((s, d) => s + d.amount, 0);
-  const ORG = { ...ORG_BASE, name: congregation.name, legal: `Association cultuelle ${congregation.name}`, address: `${congregation.address}, ${congregation.city}` };
-  const meta = formatMeta[format];
+  const ORG = association
+    ? { ...ORG_BASE, name: association.name, legal: association.purpose ?? 'Association cultuelle', address: [association.address, association.city].filter(Boolean).join(', ') || `${congregation.address}, ${congregation.city}`, israelNumber: association.legalId ?? ORG_BASE.israelNumber, franceNumber: association.legalId ?? ORG_BASE.franceNumber, president: association.president ?? ORG_BASE.president }
+    : { ...ORG_BASE, name: congregation.name, legal: `Association cultuelle ${congregation.name}`, address: `${congregation.address}, ${congregation.city}` };
+  const meta = formatMeta[format] ?? formatMeta.cerfa;
   const receiptNumber = `${year}-${format === 'seif46' ? 'IL' : 'FR'}-${String(user.id).toUpperCase()}${String(list.length).padStart(3, '0')}`;
 
   const feedback = (msg: string) => {
@@ -71,7 +83,7 @@ export function ReceiptScreen({ route, navigation }: Props) {
     <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
       <ScreenHeader title="Reçu fiscal" subtitle={`Année ${year} · généré automatiquement`} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
-        {seed.receiptFormats.length > 1 ? (
+        {!association && seed.receiptFormats.length > 1 ? (
           <Segmented<ReceiptFormat>
             options={[
               { value: 'seif46', label: 'Seif 46 · Israël' },
@@ -152,7 +164,7 @@ export function ReceiptScreen({ route, navigation }: Props) {
 
           <View style={styles.sign}>
             <View style={{ flex: 1 }}>
-              <Muted>Fait à {congregation.city}, le {formatNumeric(todayISO())}</Muted>
+              <Muted>Fait à {association?.city ?? congregation.city}, le {formatNumeric(todayISO())}</Muted>
               <Text style={{ color: c.text, fontWeight: '600', marginTop: 4 }}>{ORG.president}</Text>
             </View>
             <View style={[styles.stamp, { borderColor: c.primary }]}>

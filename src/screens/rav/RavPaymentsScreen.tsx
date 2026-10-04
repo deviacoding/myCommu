@@ -20,7 +20,9 @@ export function RavPaymentsScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { t } = useI18n();
-  const { myPaymentLinks, congregation, congregationId, seed, backendMode } = useAppState();
+  const { myPaymentLinks, congregation, congregationId, seed, backendMode, myAssociations, associationOf } = useAppState();
+  const [targetAssociation, setTargetAssociation] = useState<string | undefined>(undefined);
+  const chosenAssociation = myAssociations.find((a) => a.id === targetAssociation) ?? myAssociations.find((a) => a.isDefault) ?? myAssociations[0];
   const real = backendMode === 'firebase';
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
@@ -35,11 +37,11 @@ export function RavPaymentsScreen({ navigation }: Props) {
 
   // Stripe réel : la fonction crée le compte Express de la communauté et renvoie la page d'inscription
   // (ou le tableau de bord Stripe si le compte est déjà actif).
-  const connectStripe = async () => {
+  const connectStripe = async (associationId?: string) => {
     setBusy(true);
     setNotice(null);
     try {
-      const r = await startStripeConnect(congregationId);
+      const r = await startStripeConnect(congregationId, associationId ?? chosenAssociation?.id);
       await openStripeUrl(r.url);
     } catch (e) {
       setNotice({ kind: 'error', text: stripeErrorMessage(e) });
@@ -48,8 +50,9 @@ export function RavPaymentsScreen({ navigation }: Props) {
     }
   };
   const country = congregation.country ?? (seed.currency === '₪' ? 'IL' : 'FR');
-  const connectedIds = myPaymentLinks.map((p) => p.provider);
-  const stripeUnavailable = real && STRIPE_UNSUPPORTED_COUNTRIES.includes(country);
+  // Un service est « déjà connecté » pour l'association choisie seulement : une autre association peut avoir son propre compte.
+  const connectedIds = myPaymentLinks.filter((p) => !chosenAssociation || !p.associationId || p.associationId === chosenAssociation.id).map((p) => p.provider);
+  const stripeUnavailable = real && STRIPE_UNSUPPORTED_COUNTRIES.includes(chosenAssociation?.country ?? country);
   // Les services recommandés dans le pays de la communauté passent en premier.
   const available = [...PAYMENT_PROVIDERS].sort((a, b) => Number(b.countries.includes(country)) - Number(a.countries.includes(country)));
 
@@ -64,7 +67,7 @@ export function RavPaymentsScreen({ navigation }: Props) {
 
       <Text style={[styles.section, { color: c.text }]}>{t('payments.connected')}</Text>
       {myPaymentLinks.length ? (
-        myPaymentLinks.map((link) => <ConnectedCard key={link.id} link={link} real={real} busy={busy} onStripe={connectStripe} />)
+        myPaymentLinks.map((link) => <ConnectedCard key={link.id} link={link} real={real} busy={busy} onStripe={() => connectStripe(link.associationId)} associationName={associationOf(link.associationId)?.name} />)
       ) : (
         <RavCard>
           <Text style={{ color: c.textMuted, fontSize: BIG.small }}>{t('payments.none')}</Text>
@@ -72,6 +75,23 @@ export function RavPaymentsScreen({ navigation }: Props) {
       )}
 
       <Text style={[styles.section, { color: c.text, marginTop: 22 }]}>{t('payments.add')}</Text>
+      {myAssociations.length > 1 ? (
+        <RavCard>
+          <Text style={{ color: c.text, fontSize: BIG.small, fontWeight: '800', marginBottom: 8 }}>Pour quelle association ?</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {myAssociations.map((a) => {
+              const active = chosenAssociation?.id === a.id;
+              return (
+                <Pressable key={a.id} onPress={() => setTargetAssociation(a.id)} accessibilityRole="radio" aria-checked={active} style={[styles.small, { borderColor: active ? c.primary : c.border, backgroundColor: active ? c.primaryLight : c.surface }]}>
+                  <Ionicons name="business" size={16} color={active ? c.primary : c.textMuted} />
+                  <Text style={{ color: active ? c.primary : c.text, fontWeight: '800', fontSize: 15 }}>{a.purpose ? `${a.name} · ${a.purpose}` : a.name}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ color: c.textMuted, fontSize: 13, marginTop: 8 }}>Chaque association a ses propres comptes de paiement (pays différent, reçu différent). Gérez-les dans « Mes associations ».</Text>
+        </RavCard>
+      ) : null}
       {available.map((p) => (
         <ProviderCard
           key={p.id}
@@ -80,7 +100,7 @@ export function RavPaymentsScreen({ navigation }: Props) {
           recommended={p.countries.includes(country)}
           busy={busy && p.id === 'stripe'}
           unavailable={p.id === 'stripe' && stripeUnavailable ? 'Stripe n’ouvre pas de compte dans ce pays. En Israël, utilisez Bit.' : undefined}
-          onConnect={() => (real && p.id === 'stripe' ? connectStripe() : navigation.navigate('RavPaymentConnect', { provider: p.id }))}
+          onConnect={() => (real && p.id === 'stripe' ? connectStripe(chosenAssociation?.id) : navigation.navigate('RavPaymentConnect', { provider: p.id, associationId: chosenAssociation?.id }))}
         />
       ))}
 
@@ -89,7 +109,7 @@ export function RavPaymentsScreen({ navigation }: Props) {
   );
 }
 
-function ConnectedCard({ link, real, busy, onStripe }: { link: PaymentLink; real: boolean; busy: boolean; onStripe: () => void }) {
+function ConnectedCard({ link, real, busy, onStripe, associationName }: { link: PaymentLink; real: boolean; busy: boolean; onStripe: () => void; associationName?: string }) {
   const realStripe = real && link.provider === 'stripe';
   const pending = realStripe && link.status !== 'active';
   const { theme } = useTheme();
@@ -118,6 +138,7 @@ function ConnectedCard({ link, real, busy, onStripe }: { link: PaymentLink; real
             ) : null}
           </View>
           <Text style={{ color: c.text, fontSize: BIG.small, marginTop: 2 }}>{link.account}</Text>
+          {associationName ? <Text style={{ color: c.primary, fontSize: 13, fontWeight: '700', marginTop: 2 }}>Association : {associationName}</Text> : null}
           <Text style={{ color: c.textMuted, fontSize: 13, marginTop: 2 }}>
             {link.accountId} · {t('payments.connectedSince', { date: formatLong(link.connectedAt.slice(0, 10)) })}
           </Text>

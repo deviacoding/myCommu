@@ -15,6 +15,7 @@ import { daysUntil } from '../../components/MyDates';
 import { can, Permission, roleLabel, StaffRole } from '../../config/roles';
 import { useReligion } from '../../state/useReligion';
 import { paymentProvider } from '../../config/paymentProviders';
+import { countryName } from '../../utils/countries';
 import { capitalize, formatLong, todayISO } from '../../utils/time';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavHome'>;
@@ -33,6 +34,7 @@ export function RavHomeScreen({ navigation }: Props) {
   const {
     myStaff,
     myPaymentLinks,
+    myAssociations,
     myQuestions: questions,
     myCourses: courses,
     myPledges: pledges,
@@ -62,6 +64,14 @@ export function RavHomeScreen({ navigation }: Props) {
     { key: 'RavAgenda', perm: 'agenda', icon: 'calendar', title: t('rav.agenda'), sub: t('rav.agendaSub', { count: upcoming }), color: '#7C3AED' },
     { key: 'RavDates', perm: 'dates', icon: 'calendar-number', title: r('memberDates'), sub: soonDates ? t('rav.datesSoon', { count: soonDates }) : t('rav.datesNone', { members: r('members') }), badge: soonDates, color: '#DB2777' },
     { key: 'RavDons', perm: 'donations', icon: 'cash', title: t('rav.donations'), sub: due ? t('rav.donationsDue', { count: due }) : t('rav.donationsNone'), badge: due, color: '#BE123C' },
+    {
+      key: 'RavAssociations',
+      perm: 'donations',
+      icon: 'business',
+      title: 'Mes associations',
+      sub: myAssociations.length ? `${myAssociations.length} association${myAssociations.length > 1 ? 's' : ''} · ${[...new Set(myAssociations.map((a) => countryName(a.country)))].join(', ')}` : 'Qui reçoit vos dons : une par pays ou par œuvre',
+      color: '#1D4ED8',
+    },
     {
       key: 'RavPayments',
       perm: 'donations',

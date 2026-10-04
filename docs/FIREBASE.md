@@ -64,10 +64,11 @@ Collections à la racine ; chaque document de contenu porte `congregationId`.
 | `memberships/{congregationId}_{uid}` | `uid`, `congregationId`, `role` (member/leader/deputy/treasurer/organizer), `name`, `joinedAt`, `joinedVia`, `inviteCode` | soi-même, équipe | soi-même (member, leader de sa création, ou via code d'équipe valide) |
 | `staffInvites/{code}` | `name`, `contact`, `role`, `congregationId`, `status` (invited/active), `claimedBy` | équipe ; `get` par code pour tout connecté | responsable ; activation par le porteur du code |
 | `currents/{id}`, `groups/{id}` | référentiel par `religion` (les valeurs par défaut restent dans `src/seeds/affiliations.ts`) | connectés | responsables |
+| `associations/{id}` | `congregationId`, `name`, `purpose`, `country`, `receiptFormat` (cerfa/seif46/other), `legalId`, `address`, `city`, `president`, `isDefault` : structures juridiques qui reçoivent les dons (une par pays ou par œuvre) | membres | leader, deputy, trésorier |
 | `paymentLinks/{id}` | comptes Stripe / Bit / Lemon Squeezy connectés (simulés) | membres (pour choisir comment payer) | leader, deputy, trésorier |
 | `courses`, `agenda`, `dayEntries`, `holidays`, `donationCategories` | contenus de la communauté | membres | équipe selon le rôle |
 | `questions/{id}` | `askerUid`, `isPublic`, `messages[]` | auteur, équipe, tous si publique | auteur (création), responsable (réponse, publication) |
-| `donations/{id}` | `uid`, `congregationId`, `type`, `amount`, `pledgeId`, `paymentLinkId` | donateur, équipe finance | donateur, équipe finance |
+| `donations/{id}` | `uid`, `congregationId`, `associationId`, `type`, `amount`, `pledgeId`, `paymentLinkId` | donateur, équipe finance | donateur, équipe finance |
 | `pledges/{id}` | `memberUid`, `status`, `note`, `lastReminder` | fidèle concerné, équipe finance | équipe finance ; le fidèle peut marquer « payé » |
 | `memberDates/{id}` | `uid`, `type`, `date` | fidèle concerné, équipe | idem |
 | `lives/{congregationId}` | `title`, `startedAt`, `active`, `hostUid` | membres | responsable |

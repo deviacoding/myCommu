@@ -51,6 +51,7 @@ export function RavPaymentConnectScreen({ navigation, route }: Props) {
       const chosen = accounts.find((a) => a.id === accountId);
       const newId = p.id === 'lemonsqueezy' ? `store_${Math.floor(10000 + Math.random() * 89999)}` : `acct_1Q${rand(12)}`;
       connectPayment({
+        associationId: route.params.associationId,
         provider: p.id,
         account: p.id === 'bit' ? `${phone} · ${chosen?.sub ?? ''}` : p.id === 'lemonsqueezy' ? chosen?.sub ?? `${slug}.lemonsqueezy.com` : email,
         accountId: chosen?.id ?? newId,

@@ -14,6 +14,7 @@ import { useI18n } from '../../i18n';
 import { PaymentLogo } from '../../components/PaymentLogo';
 import { paymentProvider } from '../../config/paymentProviders';
 import { openStripeUrl, startStripeCheckout, stripeErrorMessage } from '../../utils/stripe';
+import { countryName } from '../../utils/countries';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 
@@ -22,13 +23,17 @@ export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { type, pledgeId } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks, backendMode, congregationId } = useAppState();
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations } = useAppState();
+  // Association bénéficiaire : celle par défaut, modifiable s'il y en a plusieurs. Les moyens de paiement suivent l'association.
+  const [associationId, setAssociationId] = useState<string | undefined>(() => (myAssociations.find((a) => a.isDefault) ?? myAssociations[0])?.id);
+  const association = myAssociations.find((a) => a.id === associationId);
+  const myPaymentLinks = allLinks.filter((p) => !p.associationId || !associationId || p.associationId === associationId);
   const real = backendMode === 'firebase';
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const { t: tr } = useI18n();
   const [payWith, setPayWith] = useState<string | undefined>(() => (myPaymentLinks.find((p) => p.isDefault) ?? myPaymentLinks[0])?.id);
-  const payLink = myPaymentLinks.find((p) => p.id === payWith);
+  const payLink = myPaymentLinks.find((p) => p.id === payWith) ?? myPaymentLinks[0];
   const causes = seed.causes.map((x) => x.name);
   const quickAmounts = seed.alms.amounts;
   const titles = {
@@ -57,7 +62,7 @@ export function DonateScreen({ route, navigation }: Props) {
       setPaying(true);
       setPayError(null);
       try {
-        const r = await startStripeCheckout({ congregationId, amount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type });
+        const r = await startStripeCheckout({ congregationId, associationId, amount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type });
         await openStripeUrl(r.url);
       } catch (e) {
         setPayError(stripeErrorMessage(e));
@@ -66,7 +71,7 @@ export function DonateScreen({ route, navigation }: Props) {
       }
       return;
     }
-    const gained = donate({ type, amount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id });
+    const gained = donate({ type, amount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id, associationId });
     setDone(gained);
   };
 
@@ -95,12 +100,12 @@ export function DonateScreen({ route, navigation }: Props) {
             <Ionicons name="document-text" size={26} color={c.primary} />
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.text, fontWeight: '700' }}>Reçu fiscal généré automatiquement</Text>
-              <Muted>{seed.receiptFormats.includes('seif46') ? 'Seif 46 (Israël) ou Cerfa (France)' : 'Cerfa (France)'}, à imprimer ou télécharger.</Muted>
+              <Muted>{association ? `${association.receiptFormat === 'seif46' ? 'Seif 46 (Israël)' : association.receiptFormat === 'cerfa' ? 'Cerfa (France)' : 'Reçu'} au nom de ${association.name}` : seed.receiptFormats.includes('seif46') ? 'Seif 46 (Israël) ou Cerfa (France)' : 'Cerfa (France)'}, à imprimer ou télécharger.</Muted>
             </View>
             <Button
               label="Voir"
               variant="secondary"
-              onPress={() => navigation.navigate('Receipt', { format: seed.receiptFormats[0], year: new Date().getFullYear() })}
+              onPress={() => navigation.navigate('Receipt', { format: association?.receiptFormat ?? seed.receiptFormats[0], year: new Date().getFullYear(), associationId })}
               style={{ paddingVertical: 10, paddingHorizontal: 14 }}
             />
           </Card>
@@ -173,6 +178,24 @@ export function DonateScreen({ route, navigation }: Props) {
           style={inputStyle}
         />
 
+        {myAssociations.length > 1 ? (
+          <>
+            <Text style={[styles.label, { color: c.text, marginTop: 20 }]}>À quelle association ?</Text>
+            {myAssociations.map((a) => {
+              const active = a.id === associationId;
+              return (
+                <Pressable key={a.id} onPress={() => setAssociationId(a.id)} accessibilityRole="radio" aria-checked={active} style={[styles.pay, { borderColor: active ? c.primary : c.border, backgroundColor: active ? c.primaryLight : c.surface }]}>
+                  <Ionicons name="business" size={22} color={active ? c.primary : c.textMuted} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>{a.name}</Text>
+                    <Muted>{[a.purpose, countryName(a.country), a.receiptFormat === 'cerfa' ? 'reçu Cerfa' : a.receiptFormat === 'seif46' ? 'reçu Seif 46' : 'reçu simple'].filter(Boolean).join(' · ')}</Muted>
+                  </View>
+                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? c.primary : c.textMuted} />
+                </Pressable>
+              );
+            })}
+          </>
+        ) : null}
         <Text style={[styles.label, { color: c.text, marginTop: 20 }]}>{tr('payments.member.payWith')}</Text>
         {myPaymentLinks.length ? (
           myPaymentLinks.map((link) => {
@@ -197,7 +220,7 @@ export function DonateScreen({ route, navigation }: Props) {
           })
         ) : (
           <Card>
-            <Muted>{tr('payments.member.noneOnline')}</Muted>
+            <Muted>{myAssociations.length > 1 && association ? `${association.name} n’a pas encore de paiement en ligne : choisissez une autre association, ou donnez sur place.` : tr('payments.member.noneOnline')}</Muted>
           </Card>
         )}
         <Muted style={{ marginBottom: 12 }}>Reçu fiscal envoyé par email après chaque don.</Muted>

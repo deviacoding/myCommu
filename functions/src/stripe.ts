@@ -17,9 +17,18 @@ function stripeClient(): Stripe {
   return new Stripe(STRIPE_SECRET_KEY.value(), { typescript: true });
 }
 
-// Document paymentLinks d'une communauté pour Stripe : un seul par communauté.
-function stripeLinkId(congregationId: string): string {
-  return `${congregationId}_stripe`;
+// Document paymentLinks pour Stripe : un par association bénéficiaire (ou par communauté à défaut).
+function stripeLinkId(congregationId: string, associationId?: string): string {
+  return `${associationId ?? congregationId}_stripe`;
+}
+
+// Association bénéficiaire : son pays décide du compte Stripe (pays du compte Express) et du reçu.
+async function getAssociation(congregationId: string, associationId?: string): Promise<{ id?: string; name?: string; country?: string } | undefined> {
+  if (!associationId) return undefined;
+  const snap = await db.doc(`associations/${associationId}`).get();
+  const a = snap.data();
+  if (!a || a.congregationId !== congregationId) throw new HttpsError('invalid-argument', 'Association inconnue pour cette communauté.');
+  return { id: snap.id, name: a.name, country: a.country };
 }
 
 const MAX_AMOUNT = 100_000; // garde-fou : montant maximal d'un don en ligne
@@ -33,18 +42,21 @@ export const createStripeConnectLink = onCall({ secrets: [STRIPE_SECRET_KEY] }, 
   if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise.');
   const uid = request.auth.uid;
   const congregationId = requireString(request.data?.congregationId, 'congregationId');
+  const associationId: string | undefined = typeof request.data?.associationId === 'string' && request.data.associationId ? request.data.associationId : undefined;
 
   await requireRole(uid, congregationId, FINANCE_ROLES);
   const congregation = await getCongregation(congregationId);
+  const association = await getAssociation(congregationId, associationId);
   const stripe = stripeClient();
 
-  const linkRef = db.doc(`paymentLinks/${stripeLinkId(congregationId)}`);
+  const linkRef = db.doc(`paymentLinks/${stripeLinkId(congregationId, associationId)}`);
   const linkSnap = await linkRef.get();
   let accountId: string | undefined = linkSnap.data()?.accountId;
   const email = request.auth.token.email ?? undefined;
 
   if (!accountId) {
-    const country = /^[A-Z]{2}$/.test(congregation.country ?? '') ? congregation.country : 'FR';
+    const wanted = association?.country ?? congregation.country ?? '';
+    const country = /^[A-Z]{2}$/.test(wanted) ? wanted : 'FR';
     let account: Stripe.Account;
     try {
       account = await stripe.accounts.create({
@@ -53,8 +65,8 @@ export const createStripeConnectLink = onCall({ secrets: [STRIPE_SECRET_KEY] }, 
       email,
       business_type: 'non_profit',
       capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-      business_profile: { name: congregation.name },
-      metadata: { congregationId, createdBy: uid },
+      business_profile: { name: association?.name ?? congregation.name },
+      metadata: { congregationId, createdBy: uid, ...(associationId ? { associationId } : {}) },
       });
     } catch (err) {
       // Pays non couvert par Stripe (Israël, par exemple) : message clair plutôt qu'une erreur interne.
@@ -69,10 +81,11 @@ export const createStripeConnectLink = onCall({ secrets: [STRIPE_SECRET_KEY] }, 
     // Premier moyen de paiement de la communauté → par défaut.
     const others = await db.collection('paymentLinks').where('congregationId', '==', congregationId).limit(1).get();
     await linkRef.set({
-      id: stripeLinkId(congregationId),
+      id: stripeLinkId(congregationId, associationId),
       congregationId,
+      ...(associationId ? { associationId } : {}),
       provider: 'stripe',
-      account: email ?? congregation.name,
+      account: email ?? association?.name ?? congregation.name,
       accountId,
       connectedAt: new Date().toISOString(),
       isDefault: others.empty,
@@ -110,6 +123,7 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   const uid = request.auth.uid;
   const data = request.data ?? {};
   const congregationId = requireString(data.congregationId, 'congregationId');
+  const associationId: string | undefined = typeof data.associationId === 'string' && data.associationId ? data.associationId : undefined;
   const cause = requireString(data.cause, 'cause');
   const dedication: string | undefined = typeof data.dedication === 'string' && data.dedication.trim() ? data.dedication.trim() : undefined;
   const pledgeId: string | undefined = typeof data.pledgeId === 'string' && data.pledgeId ? data.pledgeId : undefined;
@@ -127,8 +141,8 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   const requested = typeof data.currency === 'string' ? data.currency.trim().toLowerCase() : '';
   const currency = requested === '₪' || requested === 'ils' ? 'ils' : requested === '€' || requested === 'eur' ? 'eur' : currencyOf(congregation.religion).code;
 
-  // Compte Stripe connecté de la communauté.
-  const linkId = stripeLinkId(congregationId);
+  // Compte Stripe connecté de l'association choisie (ou de la communauté).
+  const linkId = stripeLinkId(congregationId, associationId);
   const linkSnap = await db.doc(`paymentLinks/${linkId}`).get();
   const link = linkSnap.data();
   if (!link?.accountId) throw new HttpsError('failed-precondition', "Cette communauté n'a pas encore relié de compte Stripe.");
@@ -146,6 +160,7 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   const base = APP_URL.value().replace(/\/$/, '');
   // Les métadonnées Stripe n'acceptent que des chaînes : on retire les champs vides.
   const metadata: Record<string, string> = { congregationId, uid, cause, type, paymentLinkId: linkId };
+  if (associationId) metadata.associationId = associationId;
   if (dedication) metadata.dedication = dedication;
   if (pledgeId) metadata.pledgeId = pledgeId;
 
@@ -275,6 +290,7 @@ async function recordDonation(session: Stripe.Checkout.Session): Promise<void> {
     createdAt: FieldValue.serverTimestamp(),
   };
   if (m.dedication) donation.dedication = m.dedication;
+  if (m.associationId) donation.associationId = m.associationId;
   if (pledgeId) donation.pledgeId = pledgeId;
   if (paymentIntent) donation.paymentIntent = paymentIntent;
 
@@ -290,7 +306,8 @@ async function recordDonation(session: Stripe.Checkout.Session): Promise<void> {
 // Le compte connecté peut encaisser → le paymentLink devient « active ».
 async function syncAccountStatus(account: Stripe.Account): Promise<void> {
   const congregationId = account.metadata?.congregationId;
-  let ref = congregationId ? db.doc(`paymentLinks/${stripeLinkId(congregationId)}`) : undefined;
+  const associationId = account.metadata?.associationId || undefined;
+  let ref = congregationId ? db.doc(`paymentLinks/${stripeLinkId(congregationId, associationId)}`) : undefined;
   if (!ref) {
     const q = await db.collection('paymentLinks').where('accountId', '==', account.id).limit(1).get();
     if (q.empty) {

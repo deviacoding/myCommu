@@ -25,7 +25,8 @@ export type RavStackParamList = {
   RavTeam: undefined;
   RavAffiliation: undefined;
   RavPayments: undefined;
-  RavPaymentConnect: { provider: 'stripe' | 'bit' | 'lemonsqueezy' };
+  RavAssociations: undefined;
+  RavPaymentConnect: { provider: 'stripe' | 'bit' | 'lemonsqueezy'; associationId?: string };
   RavDates: undefined;
 };
 
@@ -43,6 +44,6 @@ export type AppStackParamList = {
   QuestionDetail: { questionId: string };
   AskQuestion: undefined;
   Donate: { type: DonationType; amount?: number; pledgeId?: string; cause?: string };
-  Receipt: { format: ReceiptFormat; year: number };
+  Receipt: { format: ReceiptFormat; year: number; associationId?: string };
   JoinCommunity: { onboarding: boolean };
 };

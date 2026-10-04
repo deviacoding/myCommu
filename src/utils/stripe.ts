@@ -8,14 +8,15 @@ import { getFunctionsClient } from '../firebase/app';
 
 export type StripeLinkResult = { url: string; accountId: string; status: 'pending' | 'active' };
 
-export async function startStripeConnect(congregationId: string): Promise<StripeLinkResult> {
-  const fn = httpsCallable<{ congregationId: string }, StripeLinkResult>(getFunctionsClient(), 'createStripeConnectLink');
-  const { data } = await fn({ congregationId });
+export async function startStripeConnect(congregationId: string, associationId?: string): Promise<StripeLinkResult> {
+  const fn = httpsCallable<{ congregationId: string; associationId?: string }, StripeLinkResult>(getFunctionsClient(), 'createStripeConnectLink');
+  const { data } = await fn({ congregationId, associationId });
   return data;
 }
 
 export interface CheckoutInput {
   congregationId: string;
+  associationId?: string;
   amount: number;
   currency: string; // '₪' ou '€'
   cause: string;

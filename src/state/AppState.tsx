@@ -3,6 +3,7 @@ import { collection, documentId, getDocs, limit, query, Query, where } from 'fir
 import * as Location from 'expo-location';
 import {
   AgendaEvent,
+  Association,
   CommunityGroup,
   Congregation,
   Course,
@@ -25,7 +26,9 @@ import {
   QuestionCategory,
   ReligiousCurrent,
   SoulLevel,
+  receiptFormatFor,
 } from '../types';
+import { demoAssociations } from '../seeds/associations';
 import { Member } from '../mocks/members';
 import { ReligionSeed } from '../seeds/types';
 import { setCurrency, todayISO } from '../utils/time';
@@ -36,6 +39,7 @@ import { chunks, Db, demoDb, FIELD_DELETE, FIELD_INCREMENT, firebaseDb, listenMe
 import { firebaseConfigured, getDb } from '../firebase/app';
 
 interface DonateInput {
+  associationId?: string;
   type: DonationType;
   amount: number;
   cause: string;
@@ -146,8 +150,15 @@ interface AppStateValue {
   leaveGroup: (congregationId: string) => void;
   createGroup: (congregationId: string, name: string, description?: string) => CommunityGroup;
   myStaff: StaffMember[];
+  // Associations qui reçoivent les dons de la communauté affichée
+  myAssociations: Association[];
+  associationOf: (id?: string) => Association | undefined;
+  addAssociation: (input: Omit<Association, 'id' | 'congregationId' | 'isDefault' | 'createdAt'>) => Association;
+  updateAssociation: (id: string, patch: Partial<Omit<Association, 'id' | 'congregationId'>>) => void;
+  removeAssociation: (id: string) => void;
+  setDefaultAssociation: (id: string) => void;
   myPaymentLinks: PaymentLink[];
-  connectPayment: (input: { provider: PaymentLink['provider']; account: string; accountId: string }) => PaymentLink;
+  connectPayment: (input: { provider: PaymentLink['provider']; account: string; accountId: string; associationId?: string }) => PaymentLink;
   disconnectPayment: (id: string) => void;
   setDefaultPayment: (id: string) => void;
   testPayment: (id: string) => void;
@@ -360,6 +371,8 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   // ---- Listes de contenu
   const [staff, setStaff] = useLiveList<StaffMember>(real, [], seed, () => staffQueries('staffInvites', leaderIds), leaderIds.join(','));
   const [paymentLinks, setPaymentLinks] = useLiveList<PaymentLink>(real, [], seed, () => mineQueries('paymentLinks'), myKey);
+  const [associations, setAssociations] = useLiveList<Association>(real, [], seed, () => mineQueries('associations'), myKey);
+  const [demoAssos, setDemoAssos] = useState<Association[]>(() => demoAssociations(religion, seed.congregations, seed.defaultCongregation));
   const [donations, setDonations] = useLiveList<Donation>(real, seed.donations, seed, () => [...staffQueries('donations', financeIds), query(col('donations'), where('uid', '==', uid ?? '-'))], `${financeIds.join(',')}|${uid}`);
   const [pledges, setPledges] = useLiveList<Pledge>(real, seed.pledges, seed, () => [...staffQueries('pledges', financeIds), query(col('pledges'), where('memberUid', '==', uid ?? '-'))], `${financeIds.join(',')}|${uid}`);
   const [questions, setQuestions] = useLiveList<Question>(
@@ -409,7 +422,8 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     setDemoMaasser(defaultMaasser(seed));
     setDemoStaff(demoStaffFor(seed));
     setDemoPayments(demoPaymentsFor(seed));
-  }, [seed, loadedSeed, real]);
+    setDemoAssos(demoAssociations(religion, seed.congregations, seed.defaultCongregation));
+  }, [seed, loadedSeed, real]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Équipe et paiement de démo de la communauté principale.
   const demoStaffFor = (s: ReligionSeed): StaffMember[] => [
@@ -418,7 +432,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   ];
   const demoPaymentsFor = (s: ReligionSeed): PaymentLink[] => {
     const slug = (s.congregations.find((k) => k.id === s.defaultCongregation)?.name ?? 'communaute').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
-    return [{ id: 'pay1', congregationId: s.defaultCongregation, provider: 'stripe', account: `tresorerie@${slug}.org`, accountId: 'acct_1QmC' + s.defaultCongregation.slice(0, 4).toUpperCase() + '7Kz', connectedAt: '2026-03-02T10:00:00', isDefault: true, testPayments: 0 }];
+    return [{ id: 'pay1', congregationId: s.defaultCongregation, associationId: `${s.defaultCongregation}-fr`, provider: 'stripe', account: `tresorerie@${slug}.org`, accountId: 'acct_1QmC' + s.defaultCongregation.slice(0, 4).toUpperCase() + '7Kz', connectedAt: '2026-03-02T10:00:00', isDefault: true, testPayments: 0 }];
   };
   useEffect(() => {
     if (real) return;
@@ -435,6 +449,8 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   const live = real ? (lives.find((l) => l.id === congregationId && l.active) ?? null) : demoLive;
   const myStaff = real ? staff.filter((s) => s.congregationId === congregationId) : demoStaff;
   const myPaymentLinks = real ? paymentLinks.filter((p) => p.congregationId === congregationId) : demoPayments.filter((p) => p.congregationId === congregationId);
+  const allAssociations = real ? associations : demoAssos;
+  const myAssociations = allAssociations.filter((a) => a.congregationId === congregationId).sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
   const members: Member[] = real ? congMembers.filter((m) => m.role === 'member' || true).map((m) => ({ id: m.uid, name: m.name })) : seed.members;
 
   // ---- Communautés : rejoindre, créer, chercher
@@ -513,6 +529,8 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
         db.batch([
           { type: 'set', coll: 'congregations', id, data: { ...k, rav: { name: k.rav.name, title: k.rav.title }, logo: undefined, themes: seed.themes, services: emptyServices } },
           { type: 'set', coll: 'memberships', id: `${id}_${uid}`, data: { uid, congregationId: id, role: 'leader', name: user.name, joinedAt: todayISO(), joinedVia: 'created' } },
+          // L'association qui reçoit les dons, dans le pays de la communauté ; modifiable ensuite dans « Mes associations ».
+          { type: 'set', coll: 'associations', id: db.newId('as'), data: { congregationId: id, name: input.name, country: input.country, receiptFormat: receiptFormatFor(input.country), address: input.address, city: input.city, isDefault: true, createdAt: new Date().toISOString() } },
           ...(group ? [{ type: 'set' as const, coll: 'groups' as const, id: group.id, data: group }] : []),
         ]).then(() => {
           setLocalJoined((l) => [...l, id]);
@@ -587,6 +605,43 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     [allCongregations, patchCongregation, db, religion]
   );
 
+  // ---- Associations bénéficiaires
+  const setAssos = real ? setAssociations : setDemoAssos;
+  const addAssociation = useCallback(
+    (input: Omit<Association, 'id' | 'congregationId' | 'isDefault' | 'createdAt'>) => {
+      const a: Association = { id: db.newId('as'), congregationId, ...input, isDefault: !allAssociations.some((x) => x.congregationId === congregationId), createdAt: new Date().toISOString() };
+      setAssos((list) => [...list, a]);
+      db.set('associations', a.id, a);
+      return a;
+    },
+    [db, congregationId, allAssociations, setAssos]
+  );
+  const updateAssociation = useCallback(
+    (id: string, patch: Partial<Omit<Association, 'id' | 'congregationId'>>) => {
+      setAssos((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+      db.update('associations', id, Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, v === undefined ? FIELD_DELETE() : v])));
+    },
+    [db, setAssos]
+  );
+  const removeAssociation = useCallback(
+    (id: string) => {
+      const gone = allAssociations.find((a) => a.id === id);
+      const rest = allAssociations.filter((a) => a.id !== id);
+      const next = gone?.isDefault ? rest.find((a) => a.congregationId === gone.congregationId) : undefined;
+      setAssos(rest.map((a) => (next && a.id === next.id ? { ...a, isDefault: true } : a)));
+      db.batch([{ type: 'delete', coll: 'associations', id }, ...(next ? [{ type: 'update' as const, coll: 'associations' as const, id: next.id, data: { isDefault: true } }] : [])]);
+    },
+    [allAssociations, db, setAssos]
+  );
+  const setDefaultAssociation = useCallback(
+    (id: string) => {
+      const mine = allAssociations.filter((a) => a.congregationId === congregationId);
+      setAssos((list) => list.map((a) => (a.congregationId === congregationId ? { ...a, isDefault: a.id === id } : a)));
+      db.batch(mine.map((a) => ({ type: 'update' as const, coll: 'associations' as const, id: a.id, data: { isDefault: a.id === id } })));
+    },
+    [allAssociations, congregationId, db, setAssos]
+  );
+
   // ---- Équipe : un code d'accès par personne, utilisé ensuite à la connexion.
   const addStaff = useCallback(
     (input: NewStaffInput) => {
@@ -614,13 +669,13 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   // ---- Moyens de paiement
   const setPayments = real ? setPaymentLinks : setDemoPayments;
   const connectPayment = useCallback(
-    (input: { provider: PaymentLink['provider']; account: string; accountId: string }) => {
+    (input: { provider: PaymentLink['provider']; account: string; accountId: string; associationId?: string }) => {
       const all = real ? paymentLinks : demoPayments;
-      const others = all.filter((p) => !(p.congregationId === congregationId && p.provider === input.provider));
+      const others = all.filter((p) => !(p.congregationId === congregationId && p.provider === input.provider && (p.associationId ?? '') === (input.associationId ?? '')));
       const hasDefault = others.some((p) => p.congregationId === congregationId && p.isDefault);
       const created: PaymentLink = { id: db.newId('pay'), congregationId, ...input, connectedAt: new Date().toISOString(), isDefault: !hasDefault, testPayments: 0 };
       setPayments([...others, created]);
-      const replaced = all.filter((p) => p.congregationId === congregationId && p.provider === input.provider);
+      const replaced = all.filter((p) => p.congregationId === congregationId && p.provider === input.provider && (p.associationId ?? '') === (input.associationId ?? ''));
       db.batch([...replaced.map((p) => ({ type: 'delete' as const, coll: 'paymentLinks' as const, id: p.id })), { type: 'set', coll: 'paymentLinks', id: created.id, data: created }]);
       return created;
     },
@@ -656,9 +711,9 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
 
   // ---- Dons
   const donate = useCallback(
-    ({ type, amount, cause, dedication, pledgeId, paymentLinkId }: DonateInput) => {
+    ({ type, amount, cause, dedication, pledgeId, paymentLinkId, associationId }: DonateInput) => {
       const id = db.newId('d');
-      const d: Donation = { id, congregationId, uid: uid ?? undefined, type, amount, cause, dedication, date: todayISO(), pledgeId: pledgeId, paymentLinkId } as Donation;
+      const d: Donation = { id, congregationId, associationId, uid: uid ?? undefined, type, amount, cause, dedication, date: todayISO(), pledgeId: pledgeId, paymentLinkId } as Donation;
       setDonations((list) => [d, ...list]);
       db.set('donations', id, d);
       if (pledgeId) {
@@ -1001,6 +1056,12 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       userCoords,
       locateMe,
       myStaff,
+      myAssociations,
+      associationOf: (id?: string) => (id ? allAssociations.find((a) => a.id === id) : undefined),
+      addAssociation,
+      updateAssociation,
+      removeAssociation,
+      setDefaultAssociation,
       myPaymentLinks,
       connectPayment,
       disconnectPayment,
@@ -1093,6 +1154,12 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     locateMe,
     allCongregations,
     myStaff,
+    myAssociations,
+    allAssociations,
+    addAssociation,
+    updateAssociation,
+    removeAssociation,
+    setDefaultAssociation,
     myPaymentLinks,
     connectPayment,
     disconnectPayment,

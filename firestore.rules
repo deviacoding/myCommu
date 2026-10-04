@@ -83,6 +83,13 @@ service cloud.firestore {
       allow update, delete: if signedIn() && isLeader(resource.data.headCongregationId);
     }
 
+    // ---- Associations bénéficiaires des dons : lues par les membres, gérées par l'équipe finance.
+    match /associations/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']) && (request.resource == null || sameCong());
+    }
+
     // ---- Moyens de paiement : gérés par le responsable et le trésorier ; les fidèles les lisent pour choisir comment payer.
     match /paymentLinks/{id} {
       allow read: if signedIn() && isMember(congOf());

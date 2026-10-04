@@ -28,7 +28,7 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput } = useAppState();
+  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations } = useAppState();
   const tithe = seed.tithe;
   const alms = seed.alms;
   const cur = seed.currency;
@@ -279,11 +279,21 @@ export function DonationsScreen() {
               <Muted>{money(givenThisYear)} de dons enregistrés · à imprimer, télécharger ou envoyer par email</Muted>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-            {seed.receiptFormats.includes('seif46') ? (
-              <Button label="Seif 46 · Israël" icon="print-outline" variant="secondary" onPress={() => navigation.navigate('Receipt', { format: 'seif46', year: currentYear })} style={{ flex: 1 }} />
-            ) : null}
-            <Button label="Cerfa · France" icon="print-outline" variant="secondary" onPress={() => navigation.navigate('Receipt', { format: 'cerfa', year: currentYear })} style={{ flex: 1 }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
+            {myAssociations.length ? (
+              myAssociations.map((a) => (
+                <Button
+                  key={a.id}
+                  label={`${a.receiptFormat === 'seif46' ? 'Seif 46' : a.receiptFormat === 'cerfa' ? 'Cerfa' : 'Reçu'} · ${a.purpose ?? a.name}`}
+                  icon="print-outline"
+                  variant="secondary"
+                  onPress={() => navigation.navigate('Receipt', { format: a.receiptFormat, year: currentYear, associationId: a.id })}
+                  style={{ flexGrow: 1 }}
+                />
+              ))
+            ) : (
+              <Button label="Cerfa · France" icon="print-outline" variant="secondary" onPress={() => navigation.navigate('Receipt', { format: 'cerfa', year: currentYear })} style={{ flex: 1 }} />
+            )}
           </View>
         </Card>
 

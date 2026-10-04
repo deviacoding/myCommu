@@ -27,6 +27,7 @@ export type Coll =
   | 'currents'
   | 'groups'
   | 'paymentLinks'
+  | 'associations'
   | 'courses'
   | 'questions'
   | 'dayEntries'

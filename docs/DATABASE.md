@@ -15,6 +15,7 @@ Base `(default)`, région `eur3` (Europe), mode natif.
 
 - **Collections à plat** (pas de sous-collections) : chaque document de contenu porte un champ `congregationId`. Un fidèle membre de trois communautés charge ses contenus avec une seule requête `where congregationId in [...]`.
 - **Les rôles vivent dans `memberships`**, une adhésion par couple (communauté, utilisateur), identifiée par `congregationId_uid` : la règle de sécurité la retrouve en un seul `get()`.
+- **Les associations** : une communauté peut avoir plusieurs structures juridiques qui reçoivent ses dons (une par pays — association française et amuta israélienne — ou par œuvre : synagogue, Hevra Kadisha). Chaque association a son pays, son format de reçu (Cerfa, Seif 46) et ses propres comptes de paiement ; le fidèle choisit l'association au moment du don et le reçu suit.
 - **Les référentiels par confession** (courants, groupes) sont partagés ; les valeurs par défaut restent dans le code (`src/seeds/affiliations.ts`), la base ne contient que les ajouts.
 - **Pas de serveur** : l'application écrit directement, les règles garantissent la cohérence.
 
@@ -29,6 +30,9 @@ erDiagram
     congregations }o--o| currents : "courant"
     congregations }o--o| groups : "groupe"
     groups ||--|| congregations : "chef de groupe"
+    congregations ||--o{ associations : "reçoivent les dons"
+    associations ||--o{ paymentLinks : "comptes de paiement"
+    associations ||--o{ donations : "reçu fiscal"
     congregations ||--o{ paymentLinks : "Stripe / Bit / LS"
     congregations ||--o{ courses : "enseignements"
     congregations ||--o{ questions : ""
@@ -109,8 +113,22 @@ erDiagram
         string currentId FK
         string headCongregationId FK
     }
+    associations {
+        string id PK
+        string congregationId FK
+        string name "raison sociale"
+        string purpose "synagogue, Hevra Kadisha…"
+        string country "ISO"
+        string receiptFormat "cerfa | seif46 | other"
+        string legalId "RNA, SIRET, n° amuta"
+        string address
+        string city
+        string president
+        bool isDefault
+    }
     paymentLinks {
         string id PK
+        string associationId FK
         string congregationId FK
         string provider "stripe | bit | lemonsqueezy"
         string account
@@ -186,6 +204,7 @@ erDiagram
     donations {
         string id PK
         string congregationId FK
+        string associationId FK
         string uid FK
         string type "tsedaka | maasser | engagement"
         number amount
@@ -221,6 +240,7 @@ erDiagram
 | `memberships` | soi-même, équipe de la communauté | soi-même : rôle `member`, `leader` de sa propre création, ou rôle d'équipe avec un `inviteCode` valide |
 | `staffInvites` | `get` par code pour tout connecté ; liste : leader | leader ; activation (`status`, `claimedBy`) par le porteur du code |
 | `currents`, `groups` | tout connecté | création : connecté / leader du groupe |
+| `associations` | membres | leader, deputy, trésorier |
 | `paymentLinks` | membres | leader, deputy, trésorier |
 | `courses` | membres | leader, deputy |
 | `agenda`, `dayEntries`, `holidays` | membres | leader, deputy, organisateur |

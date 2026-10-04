@@ -123,6 +123,7 @@ export type DonationType = 'tsedaka' | 'maasser' | 'engagement';
 export interface Donation {
   id: string;
   congregationId?: string;
+  associationId?: string; // association bénéficiaire (reçu fiscal correspondant)
   uid?: string; // donateur
   paymentLinkId?: string;
   type: DonationType;
@@ -156,7 +157,32 @@ export interface SoulLevel {
   description: string;
 }
 
-export type ReceiptFormat = 'seif46' | 'cerfa';
+export type ReceiptFormat = 'seif46' | 'cerfa' | 'other';
+
+// Association (structure juridique) qui reçoit les dons d'une communauté. Une communauté peut en avoir
+// plusieurs : une par pays (association française + amuta israélienne), ou par objet (synagogue, Hevra Kadisha…).
+// Le reçu fiscal dépend de l'association : Cerfa en France, Seif 46 en Israël.
+export interface Association {
+  id: string;
+  congregationId: string;
+  name: string; // raison sociale
+  purpose?: string; // « Synagogue », « Hevra Kadisha », « Talmud Torah »…
+  country: string; // code ISO
+  receiptFormat: ReceiptFormat;
+  legalId?: string; // n° RNA / SIRET en France, n° d'amuta en Israël
+  address?: string;
+  city?: string;
+  president?: string; // signataire du reçu
+  isDefault: boolean;
+  createdAt?: string;
+}
+
+// Format de reçu habituel selon le pays de l'association.
+export function receiptFormatFor(country?: string): ReceiptFormat {
+  if (country === 'FR') return 'cerfa';
+  if (country === 'IL') return 'seif46';
+  return 'other';
+}
 
 export interface DonationItem {
   id: string;
@@ -268,6 +294,7 @@ export interface PaymentLink {
   id: string;
   congregationId: string;
   provider: 'stripe' | 'bit' | 'lemonsqueezy';
+  associationId?: string; // le compte de paiement appartient à une association de la communauté
   account: string; // e-mail, téléphone ou nom de boutique affiché
   accountId: string; // identifiant chez le prestataire (acct_…, store_…)
   connectedAt: string; // ISO
