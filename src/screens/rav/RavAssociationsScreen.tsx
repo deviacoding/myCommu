@@ -40,7 +40,7 @@ export function RavAssociationsScreen({ navigation }: Props) {
     else addAssociation(data);
     setSaved(d.name.trim());
     setEditing(null);
-    setTimeout(() => setSaved(null), 3000);
+    setTimeout(() => setSaved(null), 6000);
   };
 
   const linksOf = (a: Association) => myPaymentLinks.filter((p) => p.associationId === a.id);

@@ -1,6 +1,9 @@
 import 'react-native-gesture-handler';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, View } from 'react-native';
+import { useFonts } from 'expo-font';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from './theme/ThemeProvider';
@@ -25,6 +28,16 @@ function SeededApp() {
 }
 
 export default function App() {
+  // Les polices d'icônes sont chargées avant le premier rendu : sinon, sur le web, les icônes
+  // apparaissent en carrés le temps du téléchargement (1,3 Mo pour MaterialCommunityIcons).
+  const [fontsLoaded] = useFonts({ ...Ionicons.font, ...MaterialCommunityIcons.font });
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F7FA' }}>
+        <ActivityIndicator size="large" color="#2F3E5C" />
+      </View>
+    );
+  }
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

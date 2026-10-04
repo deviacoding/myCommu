@@ -49,10 +49,11 @@ export function RavPaymentsScreen({ navigation }: Props) {
       setBusy(false);
     }
   };
-  const country = congregation.country ?? (seed.currency === '₪' ? 'IL' : 'FR');
+  // Le pays qui compte pour les recommandations est celui de l'association choisie (sinon celui de la communauté).
+  const country = chosenAssociation?.country ?? congregation.country ?? (seed.currency === '₪' ? 'IL' : 'FR');
   // Un service est « déjà connecté » pour l'association choisie seulement : une autre association peut avoir son propre compte.
   const connectedIds = myPaymentLinks.filter((p) => !chosenAssociation || !p.associationId || p.associationId === chosenAssociation.id).map((p) => p.provider);
-  const stripeUnavailable = real && STRIPE_UNSUPPORTED_COUNTRIES.includes(chosenAssociation?.country ?? country);
+  const stripeUnavailable = real && STRIPE_UNSUPPORTED_COUNTRIES.includes(country);
   // Les services recommandés dans le pays de la communauté passent en premier.
   const available = [...PAYMENT_PROVIDERS].sort((a, b) => Number(b.countries.includes(country)) - Number(a.countries.includes(country)));
 
