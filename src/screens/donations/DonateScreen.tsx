@@ -16,6 +16,13 @@ import { PaymentLogo } from '../../components/PaymentLogo';
 import { paymentProvider } from '../../config/paymentProviders';
 import { openStripeUrl, startStripeCheckout, stripeErrorMessage } from '../../utils/stripe';
 import { countryName } from '../../utils/countries';
+import { ProgressBar } from '../../components/ProgressBar';
+import { streakRepairUnit } from '../../config/gamification';
+
+type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+// Minimum accepté par Stripe pour un paiement réel (0,50 € ou 2 ₪).
+const stripeMinimum = (currency: string) => (currency === '₪' ? 2 : 0.5);
 
 type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 
@@ -23,8 +30,11 @@ type Props = NativeStackScreenProps<AppStackParamList, 'Donate'>;
 export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { type, pledgeId } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations, ora } = useAppState();
+  const { type, pledgeId, campaignId, repair } = route.params;
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations, ora, funds, campaigns, campaignProgress, congregation, newBadges, markBadgesSeen } = useAppState();
+  // Chaîne de tsedaka (maillon) et caisse : si la communauté n'a créé aucune caisse, on ne pose pas la question.
+  const campaign = campaigns.find((x) => x.id === campaignId);
+  const campaignState = campaign ? campaignProgress(campaign.id) : null;
   // Association bénéficiaire : celle par défaut, modifiable s'il y en a plusieurs. Les moyens de paiement suivent l'association.
   const [associationId, setAssociationId] = useState<string | undefined>(() => (myAssociations.find((a) => a.isDefault) ?? myAssociations[0])?.id);
   const association = myAssociations.find((a) => a.id === associationId);
@@ -35,8 +45,8 @@ export function DonateScreen({ route, navigation }: Props) {
   const { t: tr } = useI18n();
   const [payWith, setPayWith] = useState<string | undefined>(() => (myPaymentLinks.find((p) => p.isDefault) ?? myPaymentLinks[0])?.id);
   const payLink = myPaymentLinks.find((p) => p.id === payWith) ?? myPaymentLinks[0];
-  const causes = seed.causes.map((x) => x.name);
   const quickAmounts = seed.alms.amounts;
+  const defaultFund = campaign?.fundId ? funds.find((f) => f.id === campaign.fundId) : funds.find((f) => f.name === route.params.cause) ?? funds[0];
   const titles = {
     tsedaka: { title: seed.alms.title, sub: 'Don ponctuel' },
     maasser: { title: `Verser ma ${(seed.tithe?.name ?? seed.alms.name).toLowerCase()}`, sub: seed.tithe ? seed.tithe.hint : 'Don libre' },
@@ -44,9 +54,10 @@ export function DonateScreen({ route, navigation }: Props) {
   };
   const pledge = pledges.find((p) => p.id === pledgeId);
 
-  const [amount, setAmount] = useState<number>(route.params.amount ?? seed.alms.amounts[2] ?? 18);
+  const [amount, setAmount] = useState<number>(repair ? repair.cost : route.params.amount ?? seed.alms.amounts[2] ?? 18);
   const [custom, setCustom] = useState('');
-  const [cause, setCause] = useState(pledge ? pledge.label : route.params.cause ?? causes[0]);
+  const [fundId, setFundId] = useState<string | undefined>(repair ? undefined : defaultFund?.id);
+  const [cause, setCause] = useState(pledge ? pledge.label : repair ? 'Rachat de série' : route.params.cause ?? defaultFund?.name ?? congregation.name);
   const [dedication, setDedication] = useState('');
   const [done, setDone] = useState<number | null>(null);
   const [pointsBefore] = useState(points);
@@ -56,6 +67,11 @@ export function DonateScreen({ route, navigation }: Props) {
 
   const stripeReal = real && payLink?.provider === 'stripe';
   const stripeReady = !stripeReal || payLink?.status === 'active';
+  // Rachat payé par Stripe : le montant envoyé respecte le minimum Stripe.
+  const minimum = stripeMinimum(seed.currency);
+  const roundedUp = stripeReal && repair && amount < minimum;
+  const sendAmount = roundedUp ? minimum : amount;
+  const streakRepair = repair ? { from: repair.from, to: repair.to, days: repair.days } : undefined;
 
   const confirm = async () => {
     if (stripeReal) {
@@ -63,7 +79,7 @@ export function DonateScreen({ route, navigation }: Props) {
       setPaying(true);
       setPayError(null);
       try {
-        const r = await startStripeCheckout({ congregationId, associationId, amount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type });
+        const r = await startStripeCheckout({ congregationId, associationId, amount: sendAmount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type, fundId, campaignId: campaign?.id, streakRepair });
         await openStripeUrl(r.url);
       } catch (e) {
         setPayError(stripeErrorMessage(e));
@@ -72,7 +88,7 @@ export function DonateScreen({ route, navigation }: Props) {
       }
       return;
     }
-    const gained = donate({ type, amount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id, associationId });
+    const gained = donate({ type, amount: sendAmount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id, associationId, fundId, campaignId: campaign?.id, streakRepair });
     setDone(gained);
   };
 
@@ -89,7 +105,41 @@ export function DonateScreen({ route, navigation }: Props) {
             {cause}
             {dedication.trim() ? ` · ${dedication.trim()}` : ''}
           </Muted>
-          {type !== 'maasser' ? (
+          {repair ? (
+            <Card style={{ marginTop: 18, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: c.success, borderWidth: 2 }}>
+              <MaterialCommunityIcons name="fire" size={30} color={c.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '800' }}>Série rachetée : {ora.streak.days} jour{ora.streak.days > 1 ? 's' : ''} retrouvés</Text>
+                <Muted>{repair.days > 1 ? `Les ${repair.days} jours manqués sont couverts` : 'Le jour manqué est couvert'} : la série reprend là où elle s’était arrêtée.</Muted>
+              </View>
+            </Card>
+          ) : null}
+          {campaign ? (
+            <Card style={{ marginTop: 12, alignSelf: 'stretch', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <MaterialCommunityIcons name="link-variant" size={24} color={c.primary} />
+                <Text style={{ color: c.text, fontWeight: '800', flex: 1 }}>Maillon ajouté à « {campaign.title} »</Text>
+              </View>
+              <Muted>Passez le maillon : parlez-en à un proche de la communauté.</Muted>
+            </Card>
+          ) : null}
+          {newBadges.length ? (
+            <Card style={{ marginTop: 12, alignSelf: 'stretch', gap: 8 }}>
+              <Text style={{ color: c.text, fontWeight: '800' }}>Nouveau{newBadges.length > 1 ? 'x' : ''} badge{newBadges.length > 1 ? 's' : ''}</Text>
+              {newBadges.map((b) => (
+                <View key={b.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: b.color + '22', alignItems: 'center', justifyContent: 'center' }}>
+                    <MaterialCommunityIcons name={b.icon as MciName} size={22} color={b.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: c.text, fontWeight: '700' }}>{b.name}</Text>
+                    <Muted>{b.description}</Muted>
+                  </View>
+                </View>
+              ))}
+            </Card>
+          ) : null}
+          {type !== 'maasser' && !repair ? (
             <Card style={{ marginTop: 18, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: '#F59E0B', borderWidth: 2 }}>
               <MaterialCommunityIcons name="fire" size={30} color="#F59E0B" />
               <View style={{ flex: 1 }}>
@@ -121,8 +171,8 @@ export function DonateScreen({ route, navigation }: Props) {
               style={{ paddingVertical: 10, paddingHorizontal: 14 }}
             />
           </Card>
-          <Button label={seed.gamification.ctaLabel} icon="person-outline" onPress={() => navigation.navigate('MainTabs', { screen: 'AccountTab' })} style={{ alignSelf: 'stretch' }} />
-          <Button label="Fermer" variant="ghost" onPress={() => navigation.goBack()} style={{ alignSelf: 'stretch', marginTop: 10 }} />
+          <Button label={seed.gamification.ctaLabel} icon="person-outline" onPress={() => { if (newBadges.length) markBadgesSeen(); navigation.navigate('MainTabs', { screen: 'AccountTab' }); }} style={{ alignSelf: 'stretch' }} />
+          <Button label="Fermer" variant="ghost" onPress={() => { if (newBadges.length) markBadgesSeen(); navigation.goBack(); }} style={{ alignSelf: 'stretch', marginTop: 10 }} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -142,8 +192,36 @@ export function DonateScreen({ route, navigation }: Props) {
           </Card>
         ) : null}
 
-        <Text style={[styles.label, { color: c.text }]}>Montant</Text>
-        <View style={styles.amounts}>
+        {repair ? (
+          <Card style={{ borderColor: '#F59E0B', borderWidth: 2, gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <MaterialCommunityIcons name="fire" size={28} color="#F59E0B" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>Racheter ma série</Text>
+                <Muted>{repair.days} jour{repair.days > 1 ? 's' : ''} manqué{repair.days > 1 ? 's' : ''} × {streakRepairUnit(seed.currency)} {seed.currency} = {repair.cost} {seed.currency}</Muted>
+              </View>
+              <Text style={{ color: c.primary, fontWeight: '900', fontSize: 22 }}>{repair.cost} {seed.currency}</Text>
+            </View>
+            <Muted>Une petite {seed.alms.name.toLowerCase()}, et la série reprend là où elle s’était arrêtée : les jours manqués sont couverts.</Muted>
+            {roundedUp ? <Muted style={{ color: c.warning }}>Stripe demande au moins {minimum} {seed.currency} : le don sera de {minimum} {seed.currency}.</Muted> : null}
+          </Card>
+        ) : null}
+        {campaign ? (
+          <Card style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <MaterialCommunityIcons name="link-variant" size={24} color={c.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '800' }}>Chaîne : {campaign.title}</Text>
+                {campaign.description ? <Muted>{campaign.description}</Muted> : null}
+              </View>
+            </View>
+            <ProgressBar progress={campaign.target ? (campaignState?.raised ?? 0) / campaign.target : 0} />
+            <Muted>{money(campaignState?.raised ?? 0)} / {money(campaign.target)} · {campaignState?.donors ?? 0} maillon{(campaignState?.donors ?? 0) > 1 ? 's' : ''}</Muted>
+          </Card>
+        ) : null}
+
+        {repair ? null : <Text style={[styles.label, { color: c.text }]}>Montant</Text>}
+        {repair ? null : <View style={styles.amounts}>
           {(pledge ? [pledge.amount] : quickAmounts).map((a) => (
             <Pressable
               key={a}
@@ -156,8 +234,8 @@ export function DonateScreen({ route, navigation }: Props) {
               <Text style={{ color: amount === a && !custom ? c.textOnPrimary : c.text, fontWeight: '800', fontSize: 16 }}>{a} {seed.currency}</Text>
             </Pressable>
           ))}
-        </View>
-        <TextInput
+        </View>}
+        {repair ? null : <TextInput
           value={custom}
           onChangeText={(v) => {
             setCustom(v);
@@ -168,16 +246,17 @@ export function DonateScreen({ route, navigation }: Props) {
           placeholder={`Autre montant en ${seed.currency}`}
           placeholderTextColor={c.textMuted}
           style={[...inputStyle, { marginTop: 10 }]}
-        />
+        />}
 
-        {!pledge ? (
+        {!pledge && !repair && funds.length > 0 ? (
           <>
             <Text style={[styles.label, { color: c.text, marginTop: 18 }]}>Destination</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {causes.map((x) => (
-                <Chip key={x} label={x} active={cause === x} onPress={() => setCause(x)} />
+              {funds.map((f) => (
+                <Chip key={f.id} label={f.name} active={fundId === f.id} onPress={() => { setFundId(f.id); setCause(f.name); }} />
               ))}
             </View>
+            {funds.find((f) => f.id === fundId)?.description ? <Muted style={{ marginTop: 6 }}>{funds.find((f) => f.id === fundId)?.description}</Muted> : null}
           </>
         ) : null}
 
@@ -239,7 +318,7 @@ export function DonateScreen({ route, navigation }: Props) {
 
         {stripeReal && !stripeReady ? <Muted style={{ marginBottom: 10 }}>Le paiement en ligne de cette communauté n’est pas encore actif : son responsable doit finaliser l’inscription Stripe.</Muted> : null}
         <Button
-          label={paying ? 'Ouverture du paiement…' : payLink ? tr('payments.member.confirm', { amount: money(amount), name: paymentProvider(payLink.provider).name }) : `Confirmer le don de ${money(amount)}`}
+          label={paying ? 'Ouverture du paiement…' : payLink ? tr('payments.member.confirm', { amount: money(sendAmount), name: paymentProvider(payLink.provider).name }) : `Confirmer le don de ${money(sendAmount)}`}
           icon="heart"
           disabled={paying || !stripeReady}
           onPress={confirm}

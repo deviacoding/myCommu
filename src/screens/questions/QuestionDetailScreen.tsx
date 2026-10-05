@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { Avatar } from '../../components/Avatar';
 import { Card, Pill, Muted, Button } from '../../components/ui';
 import { EmptyState } from '../../components/EmptyState';
+import { MessageMedia } from '../../components/MessageMedia';
 import { formatLong, capitalize } from '../../utils/time';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
@@ -17,10 +18,16 @@ type Props = NativeStackScreenProps<AppStackParamList, 'QuestionDetail'>;
 export function QuestionDetailScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { questions, congregation, seed, replyToQuestion } = useAppState();
+  const { questions, congregation, seed, replyToQuestion, recordActivity } = useAppState();
   const [reply, setReply] = useState('');
   const rav = congregation.rav;
   const q = questions.find((x) => x.id === route.params.questionId);
+  // Lire une réponse (ou un message du responsable) compte pour la série du jour.
+  const answered = !!q && (q.status === 'answered' || q.kind === 'message');
+  useEffect(() => {
+    if (answered) recordActivity('answer');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answered, q?.id]);
   if (!q) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: c.background }} edges={['top']}>
@@ -54,7 +61,8 @@ export function QuestionDetailScreen({ route, navigation }: Props) {
                 </View>
                 {isRav ? <Ionicons name="shield-checkmark" size={18} color={c.success} /> : null}
               </View>
-              <Text style={[styles.body, { color: c.text }]}>{m.text}</Text>
+              {m.kind === 'like' ? null : <Text style={[styles.body, { color: c.text }]}>{m.text}</Text>}
+              <MessageMedia message={m} />
               {m.sources?.length ? (
                 <View style={[styles.sources, { borderTopColor: c.border }]}>
                   <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '700', marginBottom: 4 }}>SOURCES</Text>

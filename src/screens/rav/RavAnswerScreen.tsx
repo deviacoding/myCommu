@@ -8,6 +8,8 @@ import { useAppState } from '../../state/AppState';
 import { Avatar } from '../../components/Avatar';
 import { AiAssist } from '../../components/AiAssist';
 import { EmptyState } from '../../components/EmptyState';
+import { MessageMedia } from '../../components/MessageMedia';
+import { ReactionComposer } from '../../components/ReactionComposer';
 import { RavScreen, BigLabel, BigInput, BigButton, Done, RavCard, BIG } from './RavUi';
 import { capitalize, formatLong } from '../../utils/time';
 
@@ -27,6 +29,7 @@ export function RavAnswerScreen({ navigation, route }: Props) {
   const [done, setDone] = useState(false);
   const [makePublic, setMakePublic] = useState(true);
   const [anonymize, setAnonymize] = useState(true);
+  const [showReact, setShowReact] = useState(false);
 
   if (!q) {
     return (
@@ -81,8 +84,20 @@ export function RavAnswerScreen({ navigation, route }: Props) {
             <Text style={{ color: m.author === 'rav' ? c.primary : c.text, fontWeight: '800', fontSize: 17 }}>{m.author === 'rav' ? `Votre réponse du ${formatLong(m.date)}` : `${m.name} · ${formatLong(m.date)}`}</Text>
           </View>
           <Text style={{ color: c.text, fontSize: 18, lineHeight: 27, marginTop: 8 }}>{m.text}</Text>
+          <MessageMedia message={m} />
         </RavCard>
       ))}
+
+      {/* Réagir autrement : like, audio, vidéo de 5 s — sans écrire de réponse. */}
+      {q.askerUid ? (
+        <View style={{ marginTop: 4 }}>
+          <Pressable onPress={() => setShowReact((v) => !v)} style={[styles.src, { backgroundColor: showReact ? c.primary : c.primaryLight, borderColor: showReact ? c.primary : c.primaryLight, alignSelf: 'flex-start' }]}>
+            <Ionicons name="heart" size={18} color={showReact ? c.textOnPrimary : c.primary} />
+            <Text style={{ color: showReact ? c.textOnPrimary : c.primary, fontSize: 16, fontWeight: '700' }}>Réagir autrement (like, audio, vidéo)</Text>
+          </Pressable>
+          {showReact ? <ReactionComposer memberUid={q.askerUid} memberName={q.askedBy} about={q.kind === 'message' ? 'votre message' : 'votre question'} onDone={() => setShowReact(false)} /> : null}
+        </View>
+      ) : null}
 
       <BigLabel hint="Écrivez simplement, ChatGPT peut corriger ensuite.">{existing.length ? 'Ajouter un complément' : 'Votre réponse'}</BigLabel>
       <BigInput value={text} onChangeText={setText} multiline placeholder={`Bonjour ${q.askedBy.split(' ')[0]}, …`} />

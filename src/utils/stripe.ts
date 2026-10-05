@@ -23,6 +23,9 @@ export interface CheckoutInput {
   dedication?: string;
   pledgeId?: string;
   type: string;
+  fundId?: string;
+  campaignId?: string;
+  streakRepair?: { from: string; to: string; days: number };
 }
 
 export async function startStripeCheckout(input: CheckoutInput): Promise<{ url: string; sessionId: string }> {

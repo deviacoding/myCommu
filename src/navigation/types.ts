@@ -29,6 +29,7 @@ export type RavStackParamList = {
   RavEngagement: undefined;
   RavPaymentConnect: { provider: 'stripe' | 'bit' | 'lemonsqueezy'; associationId?: string };
   RavDates: undefined;
+  RavFunds: undefined;
 };
 
 export type MainTabsParamList = {

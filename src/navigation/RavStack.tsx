@@ -22,6 +22,7 @@ import { RavEngagementScreen } from '../screens/rav/RavEngagementScreen';
 import { RavPaymentConnectScreen } from '../screens/rav/RavPaymentConnectScreen';
 import { useAuth } from '../state/AuthContext';
 import { RavDatesScreen } from '../screens/rav/RavDatesScreen';
+import { RavFundsScreen } from '../screens/rav/RavFundsScreen';
 
 const Stack = createNativeStackNavigator<RavStackParamList>();
 
@@ -49,6 +50,7 @@ export function RavStack() {
       <Stack.Screen name="RavEngagement" component={RavEngagementScreen} />
       <Stack.Screen name="RavPaymentConnect" component={RavPaymentConnectScreen} />
       <Stack.Screen name="RavDates" component={RavDatesScreen} />
+      <Stack.Screen name="RavFunds" component={RavFundsScreen} />
     </Stack.Navigator>
   );
 }

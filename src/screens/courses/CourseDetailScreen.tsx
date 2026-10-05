@@ -16,18 +16,24 @@ type Props = NativeStackScreenProps<AppStackParamList, 'CourseDetail'>;
 export function CourseDetailScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { markCourseRead, readCourses, courses, seed } = useAppState();
+  const { markCourseRead, readCourses, courses, seed, recordActivity } = useAppState();
   const course = courses.find((x) => x.id === route.params.courseId);
 
   // Lu jusqu'en bas, ou 30 secondes passées sur le cours : alors seulement il compte (2 points).
   useEffect(() => {
     if (!course) return;
-    const t = setTimeout(() => markCourseRead(course.id), 30000);
+    const t = setTimeout(() => {
+      markCourseRead(course.id);
+      recordActivity('course');
+    }, 30000);
     return () => clearTimeout(t);
-  }, [course, markCourseRead]);
+  }, [course, markCourseRead, recordActivity]);
   const onScroll = (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number }; contentSize: { height: number } } }) => {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
-    if (course && contentOffset.y + layoutMeasurement.height >= contentSize.height - 40) markCourseRead(course.id);
+    if (course && contentOffset.y + layoutMeasurement.height >= contentSize.height - 40) {
+      markCourseRead(course.id);
+      recordActivity('course');
+    }
   };
 
   if (!course) {

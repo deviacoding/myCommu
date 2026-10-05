@@ -190,9 +190,11 @@ export default function Home() {
                 ["Ouvrir l'application", "1 point, une fois par jour"],
                 ["Lire un cours en entier", "2 points par cours (texte lu jusqu'en bas, vidéo regardée à 80 %)"],
                 ["Poser une question", "2 points, +1 quand le responsable répond"],
-                ["Série de 7 jours d'ouverture", "+5 points · série de 30 jours : +20"],
+                ["Série de 7 jours d'utilisation", "+5 points · 30 jours : +20 · un gel de série gagné tous les 7 jours"],
                 ["Tsedaka · sadaqa · offrande · dana", "4 points par tranche de 10 €"],
                 ["Maasser · zakat · dîme", "10 points par tranche de 100 € (40 ₪ et 400 ₪ en Israël)"],
+                ["Grand don", "+20 à 180 €, +60 à 500 €, +150 à 1 000 €, +800 à 5 000 €"],
+                ["Journée à points doublés", "tout compte double, 30 journées par an au choix du responsable"],
               ].map(([t, d]) => (
                 <li key={t} className="flex items-start justify-between gap-4 px-5 py-3.5">
                   <span className="font-sans text-[15px] font-semibold">{t}</span>
@@ -218,6 +220,12 @@ export default function Home() {
               Les dons confirmés dans l&apos;année donnent un second titre : <strong className="font-semibold text-ink">Généreux</strong> à 180 €,{" "}
               <strong className="font-semibold text-ink">Bienfaiteur</strong> à 1 000 €, <strong className="font-semibold text-ink">Mécène</strong> à 5 000 €.
             </Card>
+            <Card title="Une série qui pardonne" icon={<Icon.Clock />}>
+              Un seul geste par jour (horaires, cours, réponse, don) garde la série. Les gels couvrent les jours manqués, le Chabbat et les fêtes sont en pause, et une série cassée se rachète par une tsedaka de 10 agorot par jour manqué.
+            </Card>
+            <Card title="Badges, ligues, caisses" icon={<Icon.Gift />}>
+              Un badge pour chaque pas (premier maasser, 12 mois de maasser, flamme de 100 jours…), une ligue par quinzaine félicitée par le rav, des caisses et des chaînes de tsedaka lancées par le responsable, qui répond d&apos;un like, d&apos;un audio ou d&apos;une vidéo de cinq secondes.
+            </Card>
             <Card title="Attestation annuelle" icon={<Icon.Receipt />}>
               Imprimable en un geste : jours actifs, cours lus, questions posées, dons par association, titres obtenus. La preuve qu&apos;on est très assidu ou bon donateur.
             </Card>
@@ -225,6 +233,10 @@ export default function Home() {
               Les points de don viennent des dons confirmés, impossibles à s&apos;attribuer soi-même. Une action compte une fois par jour. Mode discret possible ; le responsable voit les fidèles les plus engagés du mois, lui seul, jamais de classement public sans accord.{" "}
               <Link href="/blog/l-ora-qui-grandit-points-et-niveaux" className="font-medium text-gold underline underline-offset-4">
                 Le barème complet
+              </Link>{" "}
+              et{" "}
+              <Link href="/blog/serie-gels-badges-ligues-caisses" className="font-medium text-gold underline underline-offset-4">
+                la saison 2 : série, badges, ligues, caisses
               </Link>
               .
             </p>

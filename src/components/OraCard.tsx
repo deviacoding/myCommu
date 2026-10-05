@@ -9,13 +9,18 @@ import { Card, Muted, Button } from './ui';
 import { money } from '../utils/time';
 import { useAuth } from '../state/AuthContext';
 import { rankIn, shortName } from '../screens/account/LeaderboardScreen';
+import { StreakCard } from './StreakCard';
+import { StreakRepair } from '../config/gamification';
+
+type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 // Carte « Mon ora » : un niveau qui grandit sans fin, deux jauges (assiduité, générosité),
 // les titres obtenus et le prochain pas pour gagner des points aujourd'hui.
-export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard }: { onDonate: () => void; onAttestation: () => void; onLearn?: () => void; onLeaderboard?: () => void }) {
+export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard, onBadges, onRepair }: { onDonate: () => void; onAttestation: () => void; onLearn?: () => void; onLeaderboard?: (mode?: 'points' | 'assiduity' | 'league') => void; onBadges?: () => void; onRepair?: (repair: StreakRepair) => void }) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { ora, seed, scores } = useAppState();
+  const { ora, seed, scores, league, badges } = useAppState();
+  const earnedBadges = badges.filter((b) => b.earned);
   const { user, uid } = useAuth();
   const me = uid ?? user.id;
   const g = seed.gamification;
@@ -57,8 +62,9 @@ export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard }: { o
           value={`${ora.assiduityPoints} pts`}
           right={ora.assiduityTitle ? `Titre : ${ora.assiduityTitle}` : ora.nextAssiduityTitle ? `${ora.activeDays12m}/${assidTarget} jours pour « ${ora.nextAssiduityTitle.name} »` : `${ora.activeDays12m} jours actifs`}
           progress={Math.min(1, ora.activeDays12m / assidTarget)}
-          sub={`${ora.activeDays12m} jours actifs sur 12 mois · série en cours : ${ora.streakDays} jour${ora.streakDays > 1 ? 's' : ''} · ${ora.coursesRead} cours lu${ora.coursesRead > 1 ? 's' : ''} · ${ora.questionsAsked} question${ora.questionsAsked > 1 ? 's' : ''}`}
+          sub={`${ora.activeDays12m} jours actifs sur 12 mois · ${ora.coursesRead} cours lu${ora.coursesRead > 1 ? 's' : ''} · ${ora.questionsAsked} question${ora.questionsAsked > 1 ? 's' : ''}`}
         />
+        <StreakCard compact onRepair={(r) => onRepair?.(r)} />
         <Gauge
           icon="hand-heart"
           color={c.secondary}
@@ -79,9 +85,45 @@ export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard }: { o
         {!ora.assiduityTitle && !ora.generosityTitle && ora.streakDays < 7 ? <Muted style={{ fontSize: 12 }}>Vos titres apparaîtront ici : Régulier dès 30 jours actifs, Généreux dès {money(ora.nextGenerosityTitle?.amount ?? 180)} donnés.</Muted> : null}
       </View>
 
+      {/* Badges */}
+      <Pressable onPress={onBadges} disabled={!onBadges} style={[styles.rank, { borderColor: c.border }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ color: c.text, fontWeight: '800' }}>{earnedBadges.length} badge{earnedBadges.length > 1 ? 's' : ''} <Muted style={{ fontWeight: '600' }}>sur {badges.length}</Muted></Text>
+          <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>Voir ›</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'center' }}>
+          {earnedBadges.slice(-5).map((b) => (
+            <View key={b.id} style={[styles.badgeIcon, { backgroundColor: b.color + '22' }]}>
+              <MaterialCommunityIcons name={b.icon as MciName} size={20} color={b.color} />
+            </View>
+          ))}
+          {earnedBadges.length === 0 ? <Muted style={{ fontSize: 12 }}>Votre premier badge arrive avec votre première action.</Muted> : null}
+        </View>
+      </Pressable>
+
+      {/* Ligue de la quinzaine */}
+      <Pressable onPress={() => onLeaderboard?.('league')} disabled={!onLeaderboard} style={[styles.rank, { borderColor: '#D4A017' }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialCommunityIcons name="trophy" size={18} color="#D4A017" />
+            <Text style={{ color: c.text, fontWeight: '800' }}>Ligue de la quinzaine</Text>
+          </View>
+          <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>Voir la ligue ›</Text>
+        </View>
+        <Text style={{ color: c.text, fontSize: 20, fontWeight: '900', marginTop: 6 }}>
+          #{league.myRank || '—'}
+          <Text style={{ color: c.textMuted, fontSize: 13, fontWeight: '600' }}> / {league.ranking.length} · {league.myPoints} pts · {league.period.daysLeft} jour{league.period.daysLeft > 1 ? 's' : ''} restant{league.period.daysLeft > 1 ? 's' : ''}</Text>
+        </Text>
+        {league.ranking.length > 0 ? (
+          <Muted style={{ fontSize: 11 }}>Podium : {league.ranking.slice(0, 3).map((s, i) => `${i + 1}. ${s.uid === me ? 'vous' : shortName(s.name)} (${s.points})`).join(' · ')}</Muted>
+        ) : (
+          <Muted style={{ fontSize: 11 }}>La ligue se remplit dès que les fidèles utilisent l’application.</Muted>
+        )}
+      </Pressable>
+
       {/* Classement dans la communauté */}
       {scores.length > 0 ? (
-        <Pressable onPress={onLeaderboard} style={[styles.rank, { borderColor: c.border }]}>
+        <Pressable onPress={() => onLeaderboard?.('points')} style={[styles.rank, { borderColor: c.border }]}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ color: c.text, fontWeight: '800' }}>Dans la communauté</Text>
             <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>Voir le classement ›</Text>
@@ -153,4 +195,5 @@ const styles = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   next: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, marginTop: 14 },
   rank: { borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 14 },
+  badgeIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 });

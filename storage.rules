@@ -32,6 +32,16 @@ service firebase.storage {
       allow write: if connecte() && request.auth.uid == uid && imageValide();
     }
 
+    // Réactions du responsable (audio, vidéo de 5 s) envoyées aux fidèles : écrites par l'équipe, lues par les connectés.
+    function mediaValide() {
+      return (request.resource.contentType.matches('audio/.*') || request.resource.contentType.matches('video/.*'))
+        && request.resource.size < 15 * 1024 * 1024;
+    }
+    match /reactions/{congId}/{fileName} {
+      allow read: if connecte();
+      allow write: if connecte() && equipe(congId) && mediaValide();
+    }
+
     // Tout le reste est interdit.
     match /{allPaths=**} {
       allow read, write: if false;

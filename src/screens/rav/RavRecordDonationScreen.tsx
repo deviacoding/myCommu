@@ -22,7 +22,8 @@ function plusDays(n: number): string {
 export function RavRecordDonationScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { categories, addCategory, addSubcategory, addPledge, members, seed } = useAppState();
+  const { categories, addCategory, addSubcategory, addPledge, members, seed, funds } = useAppState();
+  const [fundId, setFundId] = useState<string | undefined>(undefined);
 
   const [search, setSearch] = useState('');
   const [member, setMember] = useState<string | null>(null);
@@ -77,7 +78,8 @@ export function RavRecordDonationScreen({ navigation }: Props) {
       label: item.name,
       amount: amountNum,
       dueDate: plusDays(30),
-      origin: note.trim() || currentCategory.name,
+      // La caisse choisie devient l'origine : le fidèle la retrouve sur sa promesse et son reçu.
+      origin: note.trim() || funds.find((f) => f.id === fundId)?.name || currentCategory.name,
     });
     setSaved(`${item.name} · ${money(amountNum)} attribué à ${member}`);
   };
@@ -88,6 +90,7 @@ export function RavRecordDonationScreen({ navigation }: Props) {
     setItem(null);
     setAmount('');
     setNote('');
+    setFundId(undefined);
     setSearch('');
     setSaved(null);
   };
@@ -232,6 +235,22 @@ export function RavRecordDonationScreen({ navigation }: Props) {
               </Pressable>
             ))}
           </View>
+          {funds.length ? (
+            <>
+              <BigLabel hint="La communauté a des caisses : à laquelle va ce don ?">Caisse</BigLabel>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {[{ id: '', name: 'Établissement' }, ...funds].map((f) => {
+                  const active = (fundId ?? '') === f.id;
+                  return (
+                    <Pressable key={f.id || 'none'} onPress={() => setFundId(f.id || undefined)} style={[styles.chip, { backgroundColor: active ? c.primary : c.surface, borderColor: active ? c.primary : c.border }]}>
+                      {active ? <Ionicons name="checkmark" size={18} color={c.textOnPrimary} /> : null}
+                      <Text style={{ color: active ? c.textOnPrimary : c.text, fontSize: 16, fontWeight: '700' }}>{f.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
           <BigLabel hint="Facultatif">Une précision</BigLabel>
           <BigInput value={note} onChangeText={setNote} placeholder="Ex. : en l’honneur de…" />
 

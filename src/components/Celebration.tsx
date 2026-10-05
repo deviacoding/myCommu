@@ -18,7 +18,10 @@ export function Celebration({ size = 240, children, sound = true }: { size?: num
   const played = useRef(false);
 
   useEffect(() => {
-    if (sound && !played.current) {
+    // Sur le web, un son sans interaction préalable est refusé par le navigateur : on s'abstient plutôt que d'échouer.
+    const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }) : undefined;
+    const allowed = Platform.OS !== 'web' || !nav?.userActivation || nav.userActivation.hasBeenActive;
+    if (sound && allowed && !played.current) {
       played.current = true;
       try {
         player.seekTo(0);

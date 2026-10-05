@@ -74,7 +74,13 @@ export function AccountScreen() {
           <Button label={t('auth.leaderSpace')} icon="ribbon-outline" variant="secondary" onPress={() => switchRole(staffMembership.role === 'treasurer' ? 'treasurer' : staffMembership.role === 'organizer' ? 'organizer' : 'rav')} style={{ marginBottom: 12 }} />
         ) : null}
 
-        <OraCard onDonate={() => navigation.navigate('Donate', { type: 'tsedaka' })} onAttestation={() => navigation.navigate('Attestation')} onLeaderboard={() => navigation.navigate('Leaderboard')} />
+        <OraCard
+          onDonate={() => navigation.navigate('Donate', { type: 'tsedaka' })}
+          onAttestation={() => navigation.navigate('Attestation')}
+          onLeaderboard={(mode) => navigation.navigate('Leaderboard', mode ? { mode } : undefined)}
+          onBadges={() => navigation.navigate('Badges')}
+          onRepair={(r) => navigation.navigate('Donate', { type: 'tsedaka', amount: r.cost, cause: 'Rachat de série', repair: { from: r.from, to: r.to, days: r.missedDays, cost: r.cost } })}
+        />
 
         <View style={styles.stats}>
           <Stat icon="hand-heart" label="Total donné" value={money(totalGiven)} />

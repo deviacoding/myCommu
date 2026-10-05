@@ -17,6 +17,9 @@ import { useReligion } from '../../state/useReligion';
 import { paymentProvider } from '../../config/paymentProviders';
 import { countryName } from '../../utils/countries';
 import { capitalize, formatLong, todayISO } from '../../utils/time';
+import { donorTier, isoDaysAgo, RULES } from '../../config/gamification';
+import { ReactionComposer } from '../../components/ReactionComposer';
+import { DonorChip } from '../../components/DonorChip';
 
 const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000);
 
@@ -39,8 +42,12 @@ export function RavHomeScreen({ navigation }: Props) {
     myAssociations,
     donations,
     thankDonation,
-    startConversation,
     members,
+    funds,
+    campaigns,
+    boostsThisYear,
+    league,
+    congratulateWinner,
     myQuestions: questions,
     myCourses: courses,
     myPledges: pledges,
@@ -60,11 +67,23 @@ export function RavHomeScreen({ navigation }: Props) {
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
   const religious = seed.religiousDate(new Date());
-  // Maassers des 14 derniers jours pas encore remerciés : le responsable envoie un mot au fidèle.
-  const toThank = donations.filter((d) => d.type === 'maasser' && !d.thankedAt && (d.congregationId ?? congregationId) === congregationId && daysSince(d.date) <= 14);
+  // Dons des 14 derniers jours pas encore remerciés : le responsable réagit (like, mot, audio, vidéo).
+  const congDonations = donations.filter((d) => (d.congregationId ?? congregationId) === congregationId);
+  const toThank = congDonations.filter((d) => !d.thankedAt && daysSince(d.date) <= 14).sort((a, b) => b.date.localeCompare(a.date));
   const [thanking, setThanking] = useState<string | null>(null);
-  const [thankText, setThankText] = useState('');
   const donorName = (d: (typeof donations)[number]) => members.find((m) => m.id === d.uid)?.name ?? d.dedication ?? seed.user.name;
+  // Palier du donateur sur 12 mois : un gros donateur se reconnaît tout de suite.
+  const since12m = isoDaysAgo(todayISO(), 365);
+  const tierOf = (d: (typeof donations)[number]) => {
+    const key = d.uid ?? d.dedication ?? 'inconnu';
+    const total = congDonations.filter((x) => x.date >= since12m && (x.uid ?? x.dedication ?? 'inconnu') === key).reduce((s, x) => s + x.amount, 0);
+    return donorTier(total, seed.currency);
+  };
+  const kindOf = (d: (typeof donations)[number]) => (d.streakRepair ? 'Rachat de série' : d.type === 'maasser' ? seed.tithe?.name ?? 'Maasser' : d.type === 'engagement' ? 'Promesse réglée' : seed.alms.name);
+  // Ligue : vainqueur de la quinzaine écoulée à féliciter.
+  const winner = league.pendingWinner;
+  const [congratsText, setCongratsText] = useState('');
+  const [showCongrats, setShowCongrats] = useState(false);
   const current = currentOf(congregation);
   const group = groupOf(congregation);
 
@@ -82,6 +101,14 @@ export function RavHomeScreen({ navigation }: Props) {
       title: 'Fidèles engagés',
       sub: 'Les plus assidus et les plus généreux du mois, pour les remercier',
       color: '#B45309',
+    },
+    {
+      key: 'RavFunds',
+      perm: 'donations',
+      icon: 'wallet',
+      title: 'Caisses, chaînes et jours doublés',
+      sub: `${funds.length} caisse${funds.length > 1 ? 's' : ''} · ${campaigns.length} chaîne${campaigns.length > 1 ? 's' : ''} · ${boostsThisYear}/${RULES.boostMaxPerYear} jours doublés`,
+      color: '#0F766E',
     },
     {
       key: 'RavAssociations',
@@ -137,30 +164,68 @@ export function RavHomeScreen({ navigation }: Props) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Ionicons name="notifications" size={28} color={c.secondary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontSize: 19, fontWeight: '900' }}>{toThank.length} {seed.tithe?.name ?? 'don'}{toThank.length > 1 ? 's' : ''} à remercier</Text>
-              <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Un mot personnel compte beaucoup : il arrive dans la conversation du fidèle.</Text>
+              <Text style={{ color: c.text, fontSize: 19, fontWeight: '900' }}>{toThank.length} don{toThank.length > 1 ? 's' : ''} à remercier</Text>
+              <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Un like, un mot, un audio ou une vidéo de 5 s : le fidèle le reçoit dans sa messagerie.</Text>
             </View>
           </View>
           {toThank.slice(0, 3).map((d) => (
             <View key={d.id} style={{ marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, paddingTop: 10 }}>
-              <Text style={{ color: c.text, fontWeight: '800', fontSize: BIG.small }}>{donorName(d)} · {d.amount} {seed.currency} · {d.date}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Text style={{ color: c.text, fontWeight: '800', fontSize: BIG.small }}>{donorName(d)} · {kindOf(d)} · {d.amount} {seed.currency} · {d.date}</Text>
+                {tierOf(d) ? <DonorChip tier={tierOf(d)!} small /> : null}
+              </View>
               {thanking === d.id ? (
-                <View style={{ marginTop: 8, gap: 8 }}>
-                  <BigInput value={thankText} onChangeText={setThankText} placeholder="Votre message…" multiline style={{ minHeight: 90 }} />
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <BigButton label="Envoyer" icon="send" disabled={thankText.trim().length < 2} onPress={() => { startConversation(d.uid ?? 'inconnu', donorName(d), thankText.trim()); thankDonation(d.id); setThanking(null); setThankText(''); }} style={{ flex: 1 }} />
-                    <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setThanking(null)} style={{ flex: 1, borderWidth: 1, borderColor: c.border }} />
-                  </View>
+                <View style={{ marginTop: 4 }}>
+                  <ReactionComposer memberUid={d.uid ?? 'inconnu'} memberName={donorName(d)} about={`votre ${kindOf(d).toLowerCase()} de ${d.amount} ${seed.currency}`} onDone={() => { thankDonation(d.id); setThanking(null); }} />
+                  <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setThanking(null)} style={{ borderWidth: 1, borderColor: c.border, marginTop: 8, minHeight: 50, paddingVertical: 12 }} />
                 </View>
               ) : (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                  <BigButton label="Remercier" icon="chatbubble-ellipses" color={c.secondary} textColor={c.primaryDark} onPress={() => { setThanking(d.id); setThankText(`Merci ${donorName(d).split(' ')[0]} pour votre ${(seed.tithe?.name ?? 'don').toLowerCase()} : que cette tsedaka vous apporte bénédiction et réussite.`); }} style={{ flex: 1 }} />
+                  <BigButton label="Remercier" icon="chatbubble-ellipses" color={c.secondary} textColor={c.primaryDark} onPress={() => setThanking(d.id)} style={{ flex: 1 }} />
                   <BigButton label="Déjà fait" color={c.background} textColor={c.textMuted} onPress={() => thankDonation(d.id)} style={{ borderWidth: 1, borderColor: c.border }} />
                 </View>
               )}
             </View>
           ))}
         </RavCard>
+      ) : null}
+
+      {can(role, 'answers') && winner ? (
+        <RavCard style={{ borderColor: '#D4A017', borderWidth: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="trophy" size={30} color="#D4A017" />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: 19, fontWeight: '900' }}>Ligue terminée : {winner.name} a gagné la quinzaine</Text>
+              <Text style={{ color: c.textMuted, fontSize: BIG.small }}>{winner.points} points du {formatLong(winner.period.from)} au {formatLong(winner.period.to)}. Un mot du responsable, c’est ce qui compte le plus.</Text>
+            </View>
+          </View>
+          {showCongrats ? (
+            <View style={{ marginTop: 10, gap: 8 }}>
+              <BigInput value={congratsText} onChangeText={setCongratsText} multiline style={{ minHeight: 100 }} />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <BigButton label="Envoyer" icon="send" disabled={congratsText.trim().length < 2} onPress={() => { congratulateWinner(congratsText.trim()); setShowCongrats(false); }} style={{ flex: 1 }} />
+                <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setShowCongrats(false)} style={{ borderWidth: 1, borderColor: c.border }} />
+              </View>
+            </View>
+          ) : (
+            <BigButton
+              label="Féliciter"
+              icon="sparkles"
+              color="#D4A017"
+              textColor="#111827"
+              style={{ marginTop: 10 }}
+              onPress={() => {
+                setCongratsText(`Mazal tov ${winner.name.split(' ')[0]} ! Vous êtes premier de la ligue de la quinzaine avec ${winner.points} points. Toute la communauté vous salue.`);
+                setShowCongrats(true);
+              }}
+            />
+          )}
+        </RavCard>
+      ) : null}
+      {can(role, 'answers') && league.ranking.length ? (
+        <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 12 }}>
+          Ligue en cours : {league.period.daysLeft} jour{league.period.daysLeft > 1 ? 's' : ''} restant{league.period.daysLeft > 1 ? 's' : ''} · en tête : {league.ranking[0]?.name} ({league.ranking[0]?.points} pts)
+        </Text>
       ) : null}
 
       {can(role, 'live') ? (

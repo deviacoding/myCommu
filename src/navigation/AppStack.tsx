@@ -9,6 +9,7 @@ import { DonateScreen } from '../screens/donations/DonateScreen';
 import { ReceiptScreen } from '../screens/donations/ReceiptScreen';
 import { AttestationScreen } from '../screens/account/AttestationScreen';
 import { LeaderboardScreen } from '../screens/account/LeaderboardScreen';
+import { BadgesScreen } from '../screens/account/BadgesScreen';
 import { JoinCommunityScreen } from '../screens/community/JoinCommunityScreen';
 import { useAuth } from '../state/AuthContext';
 
@@ -27,6 +28,7 @@ export function AppStack() {
       <Stack.Screen name="Receipt" component={ReceiptScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="Attestation" component={AttestationScreen} options={{ presentation: 'modal' }} />
       <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Stack.Screen name="Badges" component={BadgesScreen} />
     </Stack.Navigator>
   );
 }

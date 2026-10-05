@@ -14,6 +14,9 @@ import { EmptyState } from '../../components/EmptyState';
 import { DonationType } from '../../types';
 import { money, formatShort, formatNumeric } from '../../utils/time';
 import { clearStripeReturn, readStripeReturn } from '../../utils/stripe';
+import { StreakCard } from '../../components/StreakCard';
+import { todayISO } from '../../utils/time';
+import { isoDaysAfter } from '../../config/gamification';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Tab = 'tithe' | 'alms' | 'engagements';
@@ -28,7 +31,12 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, ora } = useAppState();
+  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, campaigns, campaignProgress, boosts, boostDays } = useAppState();
+  // Journée à points doublés aujourd'hui ou demain
+  const today = todayISO();
+  const tomorrow = isoDaysAfter(today, 1);
+  const boostToday = boostDays.has(today) ? boosts.find((b) => b.date === today) : undefined;
+  const boostTomorrow = !boostToday && boostDays.has(tomorrow) ? boosts.find((b) => b.date === tomorrow) : undefined;
   const tithe = seed.tithe;
   const alms = seed.alms;
   const cur = seed.currency;
@@ -183,15 +191,48 @@ export function DonationsScreen() {
           </>
         )}
 
-        {tab === 'alms' && (
-          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: ora.tsedakaToday ? c.success : '#F59E0B', borderWidth: 2 }}>
-            <MaterialCommunityIcons name="fire" size={32} color={ora.tsedakaToday ? c.success : '#F59E0B'} />
+        {boostToday || boostTomorrow ? (
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: c.secondary, borderWidth: 2, marginTop: 14 }}>
+            <MaterialCommunityIcons name="star-four-points" size={30} color={c.secondary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>Série : {ora.tsedakaStreak} jour{ora.tsedakaStreak > 1 ? 's' : ''}{ora.tsedakaToday ? ' · don du jour fait' : ''}</Text>
-              <Muted>{ora.tsedakaToday ? 'À demain pour continuer la série.' : ora.tsedakaStreak > 0 ? 'Un don aujourd’hui, même petit, garde la série vivante (+1 point, +10 au 7e jour).' : 'Commencez une série : une tsedaka par jour, le samedi ne compte pas.'}{ora.tsedakaStreakBest > ora.tsedakaStreak ? ` Record : ${ora.tsedakaStreakBest} jour${ora.tsedakaStreakBest > 1 ? "s" : ""}.` : ''}</Muted>
+              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>Points doublés {boostToday ? 'aujourd’hui' : 'demain'}</Text>
+              <Muted>{(boostToday ?? boostTomorrow)?.label} : chaque geste et chaque don comptent double.</Muted>
             </View>
           </Card>
+        ) : null}
+        {tab === 'alms' && (
+          <View style={{ marginTop: 14 }}>
+            <StreakCard onRepair={(r) => navigation.navigate('Donate', { type: 'tsedaka', amount: r.cost, cause: 'Rachat de série', repair: { from: r.from, to: r.to, days: r.missedDays, cost: r.cost } })} />
+          </View>
         )}
+        {tab === 'alms' && campaigns.length > 0 ? (
+          <>
+            <SectionTitle title={`Chaînes de ${alms.name.toLowerCase()}`} />
+            <Muted style={{ marginTop: -6, marginBottom: 10 }}>Lancées par votre responsable : chacun donne, même un peu, et passe le maillon.</Muted>
+            {campaigns.map((ch) => {
+              const p = campaignProgress(ch.id);
+              return (
+                <Card key={ch.id} style={{ gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={[styles.histIcon, { backgroundColor: c.primaryLight, width: 44, height: 44, borderRadius: 14 }]}>
+                      <MaterialCommunityIcons name="link-variant" size={22} color={c.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.text, fontWeight: '800', fontSize: 15 }}>{ch.title}</Text>
+                      {ch.description ? <Muted>{ch.description}</Muted> : null}
+                    </View>
+                  </View>
+                  <ProgressBar progress={ch.target ? p.raised / ch.target : 0} />
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                    <Muted>{money(p.raised)} / {money(ch.target)} · {p.donors} maillon{p.donors > 1 ? 's' : ''}</Muted>
+                    <Muted>jusqu’au {formatNumeric(ch.deadline)}</Muted>
+                  </View>
+                  <Button label="Participer" icon="link" onPress={() => navigation.navigate('Donate', { type: 'tsedaka', campaignId: ch.id })} />
+                </Card>
+              );
+            })}
+          </>
+        ) : null}
         {tab === 'alms' && (
           <>
             <Card style={[styles.hero, { backgroundColor: c.primary, borderColor: c.primary }]}>
