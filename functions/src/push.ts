@@ -158,11 +158,11 @@ export const onEventCreated = onDocumentCreated('agenda/{eventId}', async (event
 });
 
 // ---------------------------------------------------------------------------
-// onDonationCreated : un maasser (ou zakat, dîme) arrive → le responsable et le trésorier sont prévenus pour remercier.
+// onDonationCreated : un don arrive → le responsable et le trésorier sont prévenus pour remercier.
 // ---------------------------------------------------------------------------
 export const onDonationCreated = onDocumentCreated('donations/{donationId}', async (event) => {
   const d = event.data?.data();
-  if (!d || d.type !== 'maasser' || !d.congregationId) return;
+  if (!d || !d.congregationId) return;
   const staff = await db.collection('memberships').where('congregationId', '==', d.congregationId).where('role', 'in', FINANCE_ROLES).get();
   const donor = d.uid ? (await db.doc(`users/${d.uid}`).get()).data()?.name : undefined;
   const congregation = await getCongregation(d.congregationId);
@@ -170,8 +170,8 @@ export const onDonationCreated = onDocumentCreated('donations/{donationId}', asy
   await Promise.all(
     staff.docs.map((m) =>
       sendToUser(m.data().uid, {
-        title: 'Nouveau maasser reçu',
-        body: `${donor ?? 'Un fidèle'} vient de verser ${amount}. Un mot de remerciement ?`,
+        title: d.type === 'maasser' ? 'Nouveau maasser reçu' : d.streakRepair ? 'Rachat de série' : 'Nouveau don reçu',
+        body: `${donor ?? 'Un fidèle'} vient de verser ${amount}${d.cause ? ` · ${d.cause}` : ''}. Un mot de remerciement ?`,
         data: { type: 'donation', id: event.params.donationId, congregationId: d.congregationId },
       }).catch((e) => logger.warn('push maasser', e))
     )

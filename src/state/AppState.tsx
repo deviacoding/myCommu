@@ -5,6 +5,10 @@ import {
   ActivityEvent,
   AgendaEvent,
   Association,
+  Boost,
+  Campaign,
+  Fund,
+  League,
   CommunityGroup,
   Congregation,
   Course,
@@ -31,18 +35,41 @@ import {
   receiptFormatFor,
 } from '../types';
 import { demoAssociations } from '../seeds/associations';
-import { ActivityType, computeGamification, DAILY_POINTS, demoActivity, GamificationSummary, pointsForLevel } from '../config/gamification';
+import { ActivityType, Badge, computeGamification, DAILY_POINTS, demoActivity, GamificationSummary, leaguePeriod, LeaguePeriod, pointsForLevel, pointsInWindow, RULES, isoDaysAfter, isoDaysAgo } from '../config/gamification';
+import { jewishQuietDays } from '../utils/hebcal';
 import { Member } from '../mocks/members';
 import { ReligionSeed } from '../seeds/types';
 import { setCurrency, todayISO } from '../utils/time';
-import { uploadImage } from '../utils/images';
+import { uploadImage, uploadFile } from '../utils/images';
 import { useAuth } from './AuthContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { chunks, Db, demoDb, FIELD_DELETE, FIELD_INCREMENT, firebaseDb, listenMerged } from '../data/db';
 import { firebaseConfigured, getDb } from '../firebase/app';
 
+export interface LeagueView {
+  period: LeaguePeriod;
+  myPoints: number;
+  myRank: number;
+  ranking: { uid: string; name: string; points: number }[];
+  previous: League | null; // résultat enregistré de la quinzaine précédente
+  pendingWinner: { uid: string; name: string; points: number; period: LeaguePeriod } | null; // à féliciter
+}
+
+export interface ReactionInput {
+  memberUid: string;
+  memberName: string;
+  kind: 'like' | 'text' | 'audio' | 'video';
+  text?: string;
+  mediaUri?: string;
+  durationMs?: number;
+  about?: string; // ce que le responsable salue (« votre maasser », « 7 jours de série »)
+}
+
 interface DonateInput {
   associationId?: string;
+  fundId?: string;
+  campaignId?: string;
+  streakRepair?: { from: string; to: string; days: number };
   type: DonationType;
   amount: number;
   cause: string;
@@ -200,6 +227,27 @@ interface AppStateValue {
   replyToQuestion: (id: string, text: string) => void; // le fidèle poursuit la conversation
   startConversation: (memberUid: string, memberName: string, text: string) => Question; // le responsable écrit à un fidèle
   thankDonation: (donationId: string) => void;
+  // Caisses, chaînes de tsedaka, journées doublées, ligues
+  funds: Fund[]; // caisses actives de la communauté affichée (vide : le don va à l'établissement, sans question)
+  campaigns: Campaign[]; // chaînes en cours
+  boosts: Boost[];
+  leagues: League[];
+  boostDays: Set<string>;
+  quietDays: Set<string>; // Chabbat et fêtes (communautés juives) : série en pause, pas de rappel
+  addFund: (input: { name: string; description?: string; associationId?: string }) => Fund;
+  updateFund: (id: string, patch: Partial<Fund>) => void;
+  addCampaign: (input: { title: string; description?: string; fundId?: string; target: number; deadline: string }) => Campaign;
+  closeCampaign: (id: string) => void;
+  campaignProgress: (id: string) => { raised: number; donors: number };
+  boostsThisYear: number; // journées doublées posées sur 365 jours glissants
+  addBoost: (date: string, label: string) => boolean; // false : quota atteint ou date déjà prise
+  removeBoost: (id: string) => void;
+  league: LeagueView;
+  congratulateWinner: (text: string) => void; // le responsable félicite le vainqueur de la quinzaine écoulée
+  reactToMember: (input: ReactionInput) => Promise<void>; // like, texte, audio, vidéo envoyés à un fidèle
+  badges: Badge[];
+  newBadges: Badge[]; // obtenus et pas encore fêtés
+  markBadgesSeen: () => void;
   activity: ActivityEvent[];
   communityActivity: ActivityEvent[]; // équipe : activité des fidèles de la communauté
   recordActivity: (type: ActivityType) => number; // points gagnés (0 si déjà compté aujourd'hui)
@@ -240,17 +288,35 @@ interface AppStateValue {
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
 
+// Démo : caisses à partir des causes de la confession, une chaîne en cours, une journée doublée, une ligue à féliciter.
+function demoFunds(seed: ReligionSeed): Fund[] {
+  return seed.causes.slice(0, 4).map((c, i) => ({ id: `fund_${c.id}`, congregationId: seed.defaultCongregation, name: c.name, description: c.description, icon: c.icon, createdAt: isoDaysAgo(todayISO(), 60 + i) }));
+}
+function demoCampaigns(seed: ReligionSeed): Campaign[] {
+  const today = todayISO();
+  return [{ id: 'chain_demo', congregationId: seed.defaultCongregation, title: `Chaîne de ${seed.alms.name.toLowerCase()} : ${seed.causes[0]?.name ?? 'la communauté'}`, description: 'Chacun donne, même un peu, et passe le maillon à un proche.', fundId: seed.causes[0] ? `fund_${seed.causes[0].id}` : undefined, target: seed.currency === '₪' ? 8000 : 2000, deadline: isoDaysAfter(today, 18), createdAt: isoDaysAgo(today, 3) }];
+}
+function demoBoosts(seed: ReligionSeed): Boost[] {
+  const date = isoDaysAfter(todayISO(), 2);
+  return [{ id: `${seed.defaultCongregation}_${date}`, congregationId: seed.defaultCongregation, date, label: 'Journée à points doublés', createdAt: todayISO() }];
+}
+function demoLeagues(_seed: ReligionSeed): League[] {
+  return [];
+}
+
 // Classement de démo : les fidèles de la communauté avec des scores plausibles, l'utilisateur inclus.
-function demoScores(seed: ReligionSeed, points: number, assiduity: number, generosity: number, level: number): Score[] {
+function demoScores(seed: ReligionSeed, points: number, assiduity: number, generosity: number, level: number, myPeriod = 0, myPrev = 0): Score[] {
+  const period = leaguePeriod(todayISO());
+  const prev = leaguePeriod(todayISO(), -1);
   const others = seed.members.filter((m) => m.name !== seed.user.name).map((m, i) => {
     const a = 20 + ((i * 37) % 160);
     const g = (i * 53) % 140;
     const p = a + g + 7;
     let lv = 0;
     while (((lv + 1) * (lv + 10)) / 2 <= p) lv++;
-    return { id: `demo_${m.id}`, uid: m.id, congregationId: seed.defaultCongregation, name: m.name, points: p, assiduityPoints: a, generosityPoints: g, level: lv, updatedAt: '' };
+    return { id: `demo_${m.id}`, uid: m.id, congregationId: seed.defaultCongregation, name: m.name, points: p, assiduityPoints: a, generosityPoints: g, level: lv, updatedAt: '', periodKey: period.key, periodPoints: (i * 29) % 70 + 5, prevPeriodKey: prev.key, prevPeriodPoints: (i * 31) % 80 + 10 };
   });
-  return [...others, { id: `demo_${seed.user.id}`, uid: seed.user.id, congregationId: seed.defaultCongregation, name: seed.user.name, points, assiduityPoints: assiduity, generosityPoints: generosity, level, updatedAt: '' }];
+  return [...others, { id: `demo_${seed.user.id}`, uid: seed.user.id, congregationId: seed.defaultCongregation, name: seed.user.name, points, assiduityPoints: assiduity, generosityPoints: generosity, level, updatedAt: '', periodKey: period.key, periodPoints: myPeriod, prevPeriodKey: prev.key, prevPeriodPoints: myPrev }];
 }
 
 // Découpe un texte libre en sections : une ligne seule courte devient un titre de section.
@@ -404,6 +470,16 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   // Activité de tous les fidèles des communautés où l'on est responsable (vue « fidèles engagés »).
   const [communityActivity] = useLiveList<ActivityEvent>(real, [], seed, () => staffQueries('activity', leaderIds), leaderIds.join(','));
   const [scores, setScores] = useLiveList<Score>(real, [], seed, () => (congregationId ? [query(col('scores'), where('congregationId', '==', congregationId))] : []), congregationId);
+  const byCong = (name: string) => () => (congregationId ? [query(col(name), where('congregationId', '==', congregationId))] : []);
+  const [funds, setFunds] = useLiveList<Fund>(real, demoFunds(seed), seed, byCong('funds'), congregationId);
+  const [campaigns, setCampaigns] = useLiveList<Campaign>(real, demoCampaigns(seed), seed, byCong('campaigns'), congregationId);
+  const [boosts, setBoosts] = useLiveList<Boost>(real, demoBoosts(seed), seed, byCong('boosts'), congregationId);
+  const [leagues, setLeagues] = useLiveList<League>(real, demoLeagues(seed), seed, byCong('leagues'), congregationId);
+  const [seenBadgesDemo, setSeenBadgesDemo] = useState<string[]>([]);
+  // Jours neutres : Chabbat et fêtes pour les communautés juives (série en pause, aucun rappel).
+  const congCountry = allCongregations.find((c) => c.id === congregationId)?.country;
+  const quietDays = useMemo(() => (religion === 'jewish' ? jewishQuietDays(todayISO(), congCountry) : new Set<string>()), [religion, congCountry]);
+  const boostDays = useMemo(() => new Set(boosts.map((b) => b.date)), [boosts]);
   const clearLastGain = useCallback(() => setLastGain(null), []);
   const [demoAssos, setDemoAssos] = useState<Association[]>(() => demoAssociations(religion, seed.congregations, seed.defaultCongregation));
   const [donations, setDonations] = useLiveList<Donation>(real, seed.donations, seed, () => [...staffQueries('donations', financeIds), query(col('donations'), where('uid', '==', uid ?? '-'))], `${financeIds.join(',')}|${uid}`);
@@ -744,9 +820,9 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
 
   // ---- Dons
   const donate = useCallback(
-    ({ type, amount, cause, dedication, pledgeId, paymentLinkId, associationId }: DonateInput) => {
+    ({ type, amount, cause, dedication, pledgeId, paymentLinkId, associationId, fundId, campaignId, streakRepair }: DonateInput) => {
       const id = db.newId('d');
-      const d: Donation = { id, congregationId, associationId, uid: uid ?? undefined, type, amount, cause, dedication, date: todayISO(), pledgeId: pledgeId, paymentLinkId } as Donation;
+      const d: Donation = { id, congregationId, associationId, uid: uid ?? undefined, type, amount, cause, dedication, date: todayISO(), pledgeId: pledgeId, paymentLinkId, fundId, campaignId, streakRepair } as Donation;
       setDonations((list) => [d, ...list]);
       db.set('donations', id, d);
       if (pledgeId) {
@@ -1097,7 +1173,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       setActivity((list) => (list.some((x) => x.id === id) ? list : [...list, e]));
       db.set('activity', id, e);
       const pts = DAILY_POINTS[type];
-      const label = type === 'open' ? 'Ouverture du jour' : type === 'schedule' ? 'Horaires consultés' : 'Agenda consulté';
+      const label = type === 'open' ? 'Ouverture du jour' : type === 'schedule' ? 'Horaires consultés' : type === 'agenda' ? 'Agenda consulté' : type === 'course' ? 'Cours lu' : 'Réponse lue';
       setLastGain({ points: pts, label, at: Date.now() });
       return pts;
     },
@@ -1109,8 +1185,113 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   useEffect(() => {
     if (!entered) return;
     recordActivity('open');
+    if (real && uid) {
+      // Heure habituelle d'utilisation : médiane des 14 dernières ouvertures (heure locale), et son équivalent UTC.
+      const now = new Date();
+      const hours = [...(user.usageHours ?? []), now.getHours()].slice(-14);
+      const sorted = [...hours].sort((a, b) => a - b);
+      const usualHour = sorted[Math.floor(sorted.length / 2)];
+      const offset = Math.round(now.getTimezoneOffset() / 60); // minutes → heures (positif à l'ouest de Greenwich)
+      const usualHourUtc = ((usualHour + offset) % 24 + 24) % 24;
+      let tz = 'Europe/Paris';
+      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || tz; } catch { /* appareil sans Intl */ }
+      updateUser({ usageHours: hours, usualHour, usualHourUtc, tz, lastOpenAt: now.toISOString() } as Partial<typeof user>);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entered, uid]);
+
+  // ---- Caisses, chaînes, journées doublées
+  const addFund = useCallback(
+    (input: { name: string; description?: string; associationId?: string }) => {
+      const id = db.newId('f');
+      const fund: Fund = { id, congregationId, name: input.name.trim(), description: input.description?.trim() || undefined, associationId: input.associationId, createdAt: new Date().toISOString() };
+      setFunds((list) => [...list, fund]);
+      db.set('funds', id, fund);
+      return fund;
+    },
+    [db, congregationId, setFunds]
+  );
+  const updateFund = useCallback(
+    (id: string, patch: Partial<Fund>) => {
+      setFunds((list) => list.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+      db.update('funds', id, patch);
+    },
+    [db, setFunds]
+  );
+  const addCampaign = useCallback(
+    (input: { title: string; description?: string; fundId?: string; target: number; deadline: string }) => {
+      const id = db.newId('ch');
+      const campaign: Campaign = { id, congregationId, title: input.title.trim(), description: input.description?.trim() || undefined, fundId: input.fundId, target: input.target, deadline: input.deadline, createdAt: new Date().toISOString() };
+      setCampaigns((list) => [campaign, ...list]);
+      db.set('campaigns', id, campaign);
+      return campaign;
+    },
+    [db, congregationId, setCampaigns]
+  );
+  const closeCampaign = useCallback(
+    (id: string) => {
+      setCampaigns((list) => list.map((x) => (x.id === id ? { ...x, closed: true } : x)));
+      db.update('campaigns', id, { closed: true });
+    },
+    [db, setCampaigns]
+  );
+  const campaignProgress = useCallback(
+    (id: string) => {
+      const list = donations.filter((d) => d.campaignId === id);
+      return { raised: list.reduce((s, d) => s + d.amount, 0), donors: new Set(list.map((d) => d.uid ?? d.id)).size };
+    },
+    [donations]
+  );
+  const boostsThisYear = useMemo(() => {
+    const since = isoDaysAgo(todayISO(), 365);
+    return boosts.filter((b) => b.date >= since).length;
+  }, [boosts]);
+  const addBoost = useCallback(
+    (date: string, label: string) => {
+      if (boostsThisYear >= RULES.boostMaxPerYear || boosts.some((b) => b.date === date)) return false;
+      const id = `${congregationId}_${date}`;
+      const boost: Boost = { id, congregationId, date, label: label.trim() || 'Journée à points doublés', createdAt: new Date().toISOString() };
+      setBoosts((list) => [...list, boost]);
+      db.set('boosts', id, boost);
+      return true;
+    },
+    [db, congregationId, boosts, boostsThisYear, setBoosts]
+  );
+  const removeBoost = useCallback(
+    (id: string) => {
+      setBoosts((list) => list.filter((b) => b.id !== id));
+      db.remove('boosts', id);
+    },
+    [db, setBoosts]
+  );
+
+  // Réaction du responsable à un fidèle : like, texte, audio ou vidéo, dans la conversation du fidèle.
+  const reactToMember = useCallback(
+    async ({ memberUid, memberName, kind, text, mediaUri, durationMs, about }: ReactionInput) => {
+      let mediaUrl: string | undefined;
+      if (mediaUri && (kind === 'audio' || kind === 'video')) {
+        mediaUrl = real ? await uploadFile(`reactions/${congregationId}/${Date.now()}.${kind === 'audio' ? 'm4a' : 'mp4'}`, mediaUri, kind === 'audio' ? 'audio/mp4' : 'video/mp4') : mediaUri;
+      }
+      const ravName = findCongregation(congregationId).rav.name;
+      const date = todayISO();
+      const body = kind === 'like' ? `👍 ${ravName} salue ${about ?? 'votre engagement'}.` : kind === 'text' ? (text ?? '').trim() : kind === 'audio' ? `🎙️ Message audio de ${ravName}${about ? ` · ${about}` : ''}` : `🎬 Message vidéo de ${ravName}${about ? ` · ${about}` : ''}`;
+      const existing = latestQuestions.current.find((q) => q.kind === 'message' && q.askerUid === memberUid && (q.congregationId ?? congregationId) === congregationId);
+      const msg: Question['messages'][number] = { id: `m${Date.now()}`, author: 'rav', name: ravName, text: body, date, kind: kind === 'text' ? 'text' : kind, mediaUrl, durationMs };
+      if (existing) {
+        const next: Question = { ...existing, status: 'answered', date, messages: [...existing.messages, msg] };
+        latestQuestions.current = latestQuestions.current.map((x) => (x.id === existing.id ? next : x));
+        setQuestions(latestQuestions.current);
+        db.update('questions', existing.id, { status: 'answered', date, messages: next.messages });
+      } else {
+        const id = db.newId('q');
+        const q: Question = { id, congregationId, askerUid: memberUid, kind: 'message', subject: `Message de ${ravName}`, category: 'Message', status: 'answered', askedBy: memberName, anonymous: false, isPublic: false, date, messages: [{ ...msg, id: `${id}-a1` }] };
+        latestQuestions.current = [q, ...latestQuestions.current];
+        setQuestions(latestQuestions.current);
+        db.set('questions', id, q);
+      }
+    },
+    [db, real, congregationId, findCongregation, setQuestions]
+  );
 
   const sendReminder = useCallback(
     (id: string) => {
@@ -1141,8 +1322,34 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       currency: seed.currency,
       levels,
       today: todayISO(),
+      quietDays,
+      boostDays,
+      leagueWins: leagues.filter((l) => l.winnerUid === (uid ?? user.id)).length,
     });
     const points = ora.points;
+    const me = uid ?? user.id;
+    // ---- Ligue de la quinzaine
+    const period = leaguePeriod(todayISO());
+    const prevPeriod = leaguePeriod(todayISO(), -1);
+    const windowInput = { activity, donations: myDonations, questions: myAsked, currency: seed.currency, boostDays };
+    const myPoints = pointsInWindow(windowInput, period.from, period.to);
+    const myPrevPoints = pointsInWindow(windowInput, prevPeriod.from, prevPeriod.to);
+    const scoreList = real ? scores : demoScores(seed, ora.points, ora.assiduityPoints, ora.generosityPoints, ora.level, myPoints, myPrevPoints);
+    const ranking = scoreList
+      .filter((s) => s.uid === me || s.periodKey === period.key)
+      .map((s) => ({ uid: s.uid, name: s.name, points: s.uid === me ? myPoints : s.periodPoints ?? 0 }))
+      .sort((a, b) => b.points - a.points);
+    if (!ranking.some((r) => r.uid === me)) ranking.push({ uid: me, name: user.name, points: myPoints });
+    ranking.sort((a, b) => b.points - a.points);
+    const previous = leagues.find((l) => l.periodKey === prevPeriod.key) ?? null;
+    let pendingWinner: LeagueView['pendingWinner'] = null;
+    if (!previous) {
+      const candidates = scoreList.filter((s) => s.prevPeriodKey === prevPeriod.key && (s.prevPeriodPoints ?? 0) > 0).sort((a, b) => (b.prevPeriodPoints ?? 0) - (a.prevPeriodPoints ?? 0));
+      if (candidates[0]) pendingWinner = { uid: candidates[0].uid, name: candidates[0].name, points: candidates[0].prevPeriodPoints ?? 0, period: prevPeriod };
+    }
+    const league: LeagueView = { period, myPoints, myRank: ranking.findIndex((r) => r.uid === me) + 1, ranking, previous, pendingWinner };
+    const seen = real ? user.seenBadges ?? [] : seenBadgesDemo;
+    const newBadges = ora.badges.filter((b) => b.earned && !seen.includes(b.id));
     const level = ora.tier;
     const levelIndex = ora.tierIndex;
     // « Niveau suivant » au sens de l'ancien écran : le prochain palier nommé (tous les 10 niveaux).
@@ -1224,10 +1431,41 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       levelProgress,
       streakMonths,
       ora,
-      scores: real ? scores : demoScores(seed, ora.points, ora.assiduityPoints, ora.generosityPoints, ora.level),
+      scores: scoreList,
       replyToQuestion,
       startConversation,
       thankDonation,
+      funds: funds.filter((x) => !x.archived),
+      campaigns: campaigns.filter((x) => !x.closed && x.deadline >= todayISO()),
+      boosts,
+      leagues,
+      boostDays,
+      quietDays,
+      addFund,
+      updateFund,
+      addCampaign,
+      closeCampaign,
+      campaignProgress,
+      boostsThisYear,
+      addBoost,
+      removeBoost,
+      league,
+      congratulateWinner: (text: string) => {
+        if (!pendingWinner) return;
+        startConversation(pendingWinner.uid, pendingWinner.name, text);
+        const id = `${congregationId}_${pendingWinner.period.key}`;
+        const doc: League = { id, congregationId, periodKey: pendingWinner.period.key, from: pendingWinner.period.from, to: pendingWinner.period.to, winnerUid: pendingWinner.uid, winnerName: pendingWinner.name, points: pendingWinner.points, congratulatedAt: todayISO(), createdAt: new Date().toISOString() };
+        setLeagues((list) => [...list.filter((l) => l.id !== id), doc]);
+        db.set('leagues', id, doc);
+      },
+      reactToMember,
+      badges: ora.badges,
+      newBadges,
+      markBadgesSeen: () => {
+        const ids = ora.badges.filter((b) => b.earned).map((b) => b.id);
+        if (real) updateUser({ seenBadges: ids });
+        else setSeenBadgesDemo(ids);
+      },
       activity,
       communityActivity: real ? communityActivity.filter((e) => e.congregationId === congregationId) : activity,
       recordActivity,
@@ -1321,6 +1559,24 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     replyToQuestion,
     startConversation,
     thankDonation,
+    funds,
+    campaigns,
+    boosts,
+    leagues,
+    boostDays,
+    quietDays,
+    addFund,
+    updateFund,
+    addCampaign,
+    closeCampaign,
+    campaignProgress,
+    boostsThisYear,
+    addBoost,
+    removeBoost,
+    setLeagues,
+    reactToMember,
+    seenBadgesDemo,
+    updateUser,
     recordActivity,
     lastGain,
     clearLastGain,
@@ -1361,12 +1617,18 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   ]);
 
   // Classement : chaque fidèle publie son propre score dans sa communauté (lecture par les membres).
-  const scoreKey = `${value.ora.points}|${value.ora.assiduityPoints}|${value.ora.generosityPoints}|${value.ora.level}|${congregationId}|${uid}`;
+  const scoreKey = `${value.ora.points}|${value.ora.assiduityPoints}|${value.ora.generosityPoints}|${value.ora.level}|${value.league.myPoints}|${value.league.period.key}|${value.ora.streak.days}|${value.ora.badgesEarned}|${congregationId}|${uid}`;
   useEffect(() => {
     if (!real || !uid || !congregationId || !myCongregations.includes(congregationId)) return;
     const o = value.ora;
     const t = setTimeout(() => {
-      db.set('scores', `${congregationId}_${uid}`, { uid, congregationId, name: user.name, points: o.points, assiduityPoints: o.assiduityPoints, generosityPoints: o.generosityPoints, level: o.level, updatedAt: new Date().toISOString() });
+      const prev = leaguePeriod(todayISO(), -1);
+      const prevPoints = pointsInWindow({ activity, donations: donations.filter((d) => d.uid === uid), questions: questions.filter((q) => q.askerUid === uid), currency: seed.currency, boostDays }, prev.from, prev.to);
+      db.set('scores', `${congregationId}_${uid}`, {
+        uid, congregationId, name: user.name, points: o.points, assiduityPoints: o.assiduityPoints, generosityPoints: o.generosityPoints, level: o.level, updatedAt: new Date().toISOString(),
+        periodKey: value.league.period.key, periodPoints: value.league.myPoints, prevPeriodKey: prev.key, prevPeriodPoints: prevPoints,
+        streakDays: o.streak.days, badges: o.badgesEarned, donorTier: o.donorTier?.tier ?? 'none',
+      });
     }, 2000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

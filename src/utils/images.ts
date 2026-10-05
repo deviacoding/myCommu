@@ -1,6 +1,6 @@
 import { ImageSourcePropType } from 'react-native';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { getDownloadURL, ref, uploadString } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytes, uploadString } from 'firebase/storage';
 import { getStorageBucket } from '../firebase/app';
 
 // Les photos (rabbin, logo) sont réduites en JPEG (≈ 40 à 80 Ko) avant d'être envoyées
@@ -31,6 +31,19 @@ export async function uploadImage(path: string, uri: string): Promise<string> {
   } catch (e) {
     console.warn('[storage] envoi impossible, photo conservée en data URL :', path, (e as Error)?.message ?? e);
     return dataUrl;
+  }
+}
+
+// Envoie un fichier (audio, vidéo) vers Storage et renvoie son URL ; à défaut, l'URI locale (démo, hors ligne).
+export async function uploadFile(path: string, uri: string, contentType: string): Promise<string> {
+  try {
+    const blob = await (await fetch(uri)).blob();
+    const fileRef = ref(getStorageBucket(), path);
+    await uploadBytes(fileRef, blob, { contentType });
+    return await getDownloadURL(fileRef);
+  } catch (e) {
+    console.warn('[storage] envoi impossible :', path, (e as Error)?.message ?? e);
+    return uri;
   }
 }
 

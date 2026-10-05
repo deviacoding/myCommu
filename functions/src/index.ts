@@ -15,3 +15,6 @@ export {
   onDonationCreated,
   pledgeReminders,
 } from './push';
+
+// Rappels d'engagement (heure habituelle, jours doublés)
+export { engagementReminders } from './reminders';

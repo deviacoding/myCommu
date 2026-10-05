@@ -172,6 +172,29 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == uid();
     }
 
+    // ---- Caisses, chaînes de tsedaka, journées doublées : lues par les membres, gérées par le responsable (et le trésorier pour les caisses).
+    match /funds/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']) && (request.method == 'delete' || sameCong());
+    }
+    match /campaigns/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && hasRole(newCongOf(), ['leader', 'deputy', 'treasurer']);
+      allow update, delete: if signedIn() && hasRole(congOf(), ['leader', 'deputy', 'treasurer']) && (request.method == 'delete' || sameCong());
+    }
+    match /boosts/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create: if signedIn() && isLeader(newCongOf()) && id == newCongOf() + '_' + request.resource.data.date;
+      allow delete: if signedIn() && isLeader(congOf());
+    }
+    // ---- Ligues : le résultat d'une quinzaine, écrit par le responsable quand il félicite le vainqueur.
+    match /leagues/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create, update: if signedIn() && isLeader(newCongOf()) && id == newCongOf() + '_' + request.resource.data.periodKey;
+      allow delete: if false;
+    }
+
     // ---- Direct : un document par communauté.
     match /lives/{congId} {
       allow read: if signedIn() && isMember(congOf());

@@ -116,6 +116,23 @@ export function jewishSuggestions({ lat, lng, country, weeks = 4, from = new Dat
   return out;
 }
 
+// Jours où la série est en pause et où aucun rappel ne part : Chabbat et fêtes (yom tov), selon le pays.
+export function jewishQuietDays(today: string, country?: string): Set<string> {
+  const out = new Set<string>();
+  const start = new Date(today + 'T12:00:00');
+  start.setDate(start.getDate() - 400);
+  const end = new Date(today + 'T12:00:00');
+  end.setDate(end.getDate() + 60);
+  for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) if (d.getDay() === 6) out.add(localISO(d));
+  try {
+    const events = HebrewCalendar.calendar({ start, end, il: country === 'IL', mask: flags.CHAG, noModern: true });
+    for (const ev of events) if (ev.getFlags() & flags.CHAG) out.add(localISO(ev.getDate().greg()));
+  } catch {
+    // calendrier indisponible : seuls les samedis sont neutres
+  }
+  return out;
+}
+
 export const SUGGESTION_LABELS: Record<SuggestionKind, string> = {
   candles: 'Allumage',
   havdalah: 'Sortie',

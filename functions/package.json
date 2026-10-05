@@ -16,6 +16,8 @@
     "logs": "firebase functions:log"
   },
   "dependencies": {
+    "@hebcal/core": "^5.10.1",
+    "expo-video": "~3.0.16",
     "firebase-admin": "^13.0.0",
     "firebase-functions": "^6.0.0",
     "stripe": "^17.0.0"

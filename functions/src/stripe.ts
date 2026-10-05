@@ -129,9 +129,12 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   const pledgeId: string | undefined = typeof data.pledgeId === 'string' && data.pledgeId ? data.pledgeId : undefined;
   const type: string = typeof data.type === 'string' && data.type ? data.type : pledgeId ? 'engagement' : 'tsedaka';
 
-  const amount = Number(data.amount);
-  if (!Number.isInteger(amount) || amount <= 0 || amount > MAX_AMOUNT) {
-    throw new HttpsError('invalid-argument', `Montant invalide (entier entre 1 et ${MAX_AMOUNT}).`);
+  // Montant au centime près (rachat de série : 0,10 par jour), au-dessus du minimum Stripe (0,50 € / 2 ₪).
+  const amount = Math.round(Number(data.amount) * 100) / 100;
+  const currencyCode = typeof data.currency === 'string' && data.currency === '₪' ? 'ils' : 'eur';
+  const minimum = currencyCode === 'ils' ? 2 : 0.5;
+  if (!Number.isFinite(amount) || amount < minimum || amount > MAX_AMOUNT) {
+    throw new HttpsError('invalid-argument', `Montant invalide (entre ${minimum} et ${MAX_AMOUNT}).`);
   }
 
   await requireRole(uid, congregationId, 'any');
@@ -163,6 +166,10 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   if (associationId) metadata.associationId = associationId;
   if (dedication) metadata.dedication = dedication;
   if (pledgeId) metadata.pledgeId = pledgeId;
+  // Caisse, chaîne de tsedaka, rachat de série : repris tels quels dans le don écrit par le webhook.
+  if (typeof data.fundId === 'string' && data.fundId) metadata.fundId = data.fundId;
+  if (typeof data.campaignId === 'string' && data.campaignId) metadata.campaignId = data.campaignId;
+  if (data.streakRepair && typeof data.streakRepair.from === 'string' && typeof data.streakRepair.to === 'string') metadata.streakRepair = JSON.stringify({ from: data.streakRepair.from, to: data.streakRepair.to, days: Number(data.streakRepair.days) || 0 });
 
   // Paiement « direct » (choix Connect : les communautés encaissent directement) : la session est créée
   // sur le compte connecté de la communauté ; les fonds n'arrivent jamais sur le compte de la plateforme.
@@ -176,7 +183,7 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
         quantity: 1,
         price_data: {
           currency,
-          unit_amount: amount * 100, // euros → centimes, shekels → agorot
+          unit_amount: Math.round(amount * 100), // euros → centimes, shekels → agorot
           product_data: { name: `${cause} — ${congregation.name}`, description: dedication },
         },
       },
@@ -271,7 +278,7 @@ async function recordDonation(session: Stripe.Checkout.Session): Promise<void> {
   const donationRef = db.doc(`donations/${donationId}`);
   if ((await donationRef.get()).exists) return; // événement déjà traité
 
-  const amount = Math.round((session.amount_total ?? 0) / 100);
+  const amount = Math.round(session.amount_total ?? 0) / 100; // centimes → unité, décimales conservées (rachat de série à 0,50)
   const paymentIntent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
   const pledgeId = m.pledgeId || undefined;
 
@@ -292,6 +299,9 @@ async function recordDonation(session: Stripe.Checkout.Session): Promise<void> {
   if (m.dedication) donation.dedication = m.dedication;
   if (m.associationId) donation.associationId = m.associationId;
   if (pledgeId) donation.pledgeId = pledgeId;
+  if (m.fundId) donation.fundId = m.fundId;
+  if (m.campaignId) donation.campaignId = m.campaignId;
+  if (m.streakRepair) { try { donation.streakRepair = JSON.parse(m.streakRepair); } catch { /* métadonnée illisible : don simple */ } }
   if (paymentIntent) donation.paymentIntent = paymentIntent;
 
   const batch = db.batch();

@@ -8,6 +8,13 @@ export interface UserProfile {
   needsSetup?: boolean; // première connexion (Google) : la confession n'a pas encore été choisie
   lang?: string;
   readCourses?: string[];
+  seenBadges?: string[]; // badges déjà fêtés
+  usageHours?: number[]; // heures locales des dernières ouvertures (pour le rappel « ravive ton aura »)
+  usualHour?: number; // heure locale habituelle
+  usualHourUtc?: number; // la même en UTC, pour la fonction de rappel
+  tz?: string;
+  reminderOptOut?: boolean;
+  lastOpenAt?: string;
   maasserInput?: { salary: number; school: number; talmudTorah: number; other: number };
   name: string;
   hebrewName?: string;
@@ -100,6 +107,9 @@ export interface QaMessage {
   text: string;
   sources?: string[];
   date: string;
+  kind?: 'text' | 'like' | 'audio' | 'video'; // réaction du responsable : un like, un audio, une vidéo de 5 s
+  mediaUrl?: string; // audio / vidéo (Storage ou data URL)
+  durationMs?: number;
 }
 
 export type QuestionCategory = string; // catégories propres à chaque confession (voir seeds)
@@ -127,7 +137,10 @@ export interface Donation {
   associationId?: string; // association bénéficiaire (reçu fiscal correspondant)
   uid?: string; // donateur
   paymentLinkId?: string;
-  thankedAt?: string; // le responsable a remercié le donateur (maasser)
+  thankedAt?: string; // le responsable a remercié le donateur
+  fundId?: string; // caisse choisie (si la communauté en a créé)
+  campaignId?: string; // chaîne de tsedaka
+  streakRepair?: { from: string; to: string; days: number }; // rachat de série : jours manqués couverts
   type: DonationType;
   amount: number;
   cause: string;
@@ -318,6 +331,61 @@ export interface Score {
   generosityPoints: number;
   level: number;
   updatedAt: string;
+  periodKey?: string; // ligue en cours (quinzaine)
+  periodPoints?: number;
+  prevPeriodKey?: string;
+  prevPeriodPoints?: number;
+  streakDays?: number;
+  badges?: number;
+  donorTier?: string;
+}
+
+// Caisse d'une communauté (destination d'un don). S'il n'y en a aucune, le don va à l'établissement sans question.
+export interface Fund {
+  id: string;
+  congregationId: string;
+  name: string;
+  description?: string;
+  associationId?: string;
+  icon?: string;
+  archived?: boolean;
+  createdAt: string;
+}
+
+// Chaîne de tsedaka lancée par le responsable : un objectif, une échéance, chacun passe le maillon.
+export interface Campaign {
+  id: string;
+  congregationId: string;
+  title: string;
+  description?: string;
+  fundId?: string;
+  target: number;
+  deadline: string; // ISO jour
+  createdAt: string;
+  closed?: boolean;
+}
+
+// Journée à points doublés (30 par an glissant au plus).
+export interface Boost {
+  id: string;
+  congregationId: string;
+  date: string;
+  label: string;
+  createdAt: string;
+}
+
+// Ligue : résultat d’une quinzaine. Id : congregationId + "_" + periodKey.
+export interface League {
+  id: string;
+  congregationId: string;
+  periodKey: string;
+  from: string;
+  to: string;
+  winnerUid: string;
+  winnerName: string;
+  points: number;
+  congratulatedAt?: string;
+  createdAt: string;
 }
 
 // Action quotidienne d'un fidèle (une fois par jour et par type). Id : `${uid}_${date}_${type}`.
@@ -325,7 +393,7 @@ export interface ActivityEvent {
   id: string;
   uid: string;
   congregationId?: string;
-  type: 'open' | 'schedule' | 'agenda';
+  type: 'open' | 'schedule' | 'agenda' | 'course' | 'answer';
   date: string; // ISO jour
 }
 
