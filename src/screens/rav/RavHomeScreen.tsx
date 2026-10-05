@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,13 +10,15 @@ import { useI18n } from '../../i18n';
 import { Avatar } from '../../components/Avatar';
 import { AiBanner } from '../../components/AiAssist';
 import { LanguagePicker } from '../../components/LanguagePicker';
-import { RavScreen, BigButton, RavCard, BIG } from './RavUi';
+import { RavScreen, BigButton, BigInput, RavCard, BIG } from './RavUi';
 import { daysUntil } from '../../components/MyDates';
 import { can, Permission, roleLabel, StaffRole } from '../../config/roles';
 import { useReligion } from '../../state/useReligion';
 import { paymentProvider } from '../../config/paymentProviders';
 import { countryName } from '../../utils/countries';
 import { capitalize, formatLong, todayISO } from '../../utils/time';
+
+const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000);
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavHome'>;
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -35,6 +37,10 @@ export function RavHomeScreen({ navigation }: Props) {
     myStaff,
     myPaymentLinks,
     myAssociations,
+    donations,
+    thankDonation,
+    startConversation,
+    members,
     myQuestions: questions,
     myCourses: courses,
     myPledges: pledges,
@@ -54,6 +60,11 @@ export function RavHomeScreen({ navigation }: Props) {
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
   const religious = seed.religiousDate(new Date());
+  // Maassers des 14 derniers jours pas encore remerciés : le responsable envoie un mot au fidèle.
+  const toThank = donations.filter((d) => d.type === 'maasser' && !d.thankedAt && (d.congregationId ?? congregationId) === congregationId && daysSince(d.date) <= 14);
+  const [thanking, setThanking] = useState<string | null>(null);
+  const [thankText, setThankText] = useState('');
+  const donorName = (d: (typeof donations)[number]) => members.find((m) => m.id === d.uid)?.name ?? d.dedication ?? seed.user.name;
   const current = currentOf(congregation);
   const group = groupOf(congregation);
 
@@ -119,6 +130,37 @@ export function RavHomeScreen({ navigation }: Props) {
             <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>{t('rav.treasurerBanner', { leader: r('leader') })}</Text>
           </View>
         </View>
+      ) : null}
+
+      {can(role, 'donations') && toThank.length ? (
+        <RavCard style={{ borderColor: c.secondary, borderWidth: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="notifications" size={28} color={c.secondary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: 19, fontWeight: '900' }}>{toThank.length} {seed.tithe?.name ?? 'don'}{toThank.length > 1 ? 's' : ''} à remercier</Text>
+              <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Un mot personnel compte beaucoup : il arrive dans la conversation du fidèle.</Text>
+            </View>
+          </View>
+          {toThank.slice(0, 3).map((d) => (
+            <View key={d.id} style={{ marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, paddingTop: 10 }}>
+              <Text style={{ color: c.text, fontWeight: '800', fontSize: BIG.small }}>{donorName(d)} · {d.amount} {seed.currency} · {d.date}</Text>
+              {thanking === d.id ? (
+                <View style={{ marginTop: 8, gap: 8 }}>
+                  <BigInput value={thankText} onChangeText={setThankText} placeholder="Votre message…" multiline style={{ minHeight: 90 }} />
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <BigButton label="Envoyer" icon="send" disabled={thankText.trim().length < 2} onPress={() => { startConversation(d.uid ?? 'inconnu', donorName(d), thankText.trim()); thankDonation(d.id); setThanking(null); setThankText(''); }} style={{ flex: 1 }} />
+                    <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setThanking(null)} style={{ flex: 1, borderWidth: 1, borderColor: c.border }} />
+                  </View>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                  <BigButton label="Remercier" icon="chatbubble-ellipses" color={c.secondary} textColor={c.primaryDark} onPress={() => { setThanking(d.id); setThankText(`Merci ${donorName(d).split(' ')[0]} pour votre ${(seed.tithe?.name ?? 'don').toLowerCase()} : que cette tsedaka vous apporte bénédiction et réussite.`); }} style={{ flex: 1 }} />
+                  <BigButton label="Déjà fait" color={c.background} textColor={c.textMuted} onPress={() => thankDonation(d.id)} style={{ borderWidth: 1, borderColor: c.border }} />
+                </View>
+              )}
+            </View>
+          ))}
+        </RavCard>
       ) : null}
 
       {can(role, 'live') ? (

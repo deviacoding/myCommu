@@ -18,6 +18,11 @@ export const RULES = {
   almsPerBracket: 4, // tsedaka, sadaqa, offrande, dana, promesse réglée : par tranche
   tithePerBracket: 10, // maasser, zakat, dîme : par tranche
   monthlyDonorBonus: 15, // 3 mois d'affilée avec au moins un don
+  // Série de tsedaka : un don (même petit) chaque jour ; le jour de repos ne casse pas la série.
+  tsedakaStreakDay: 1, // chaque jour de série au-delà du premier
+  tsedakaStreak7: 10,
+  tsedakaStreak30: 40,
+  tsedakaStreak100: 150,
   firstCommunity: 5,
   profileComplete: 2,
 };
@@ -73,6 +78,10 @@ export interface GamificationSummary {
   tier: SoulLevel; // palier nommé
   tierIndex: number; // 0..levels.length-1 (pour l'aura)
   streakDays: number; // jours d'ouverture consécutifs (hors jours sans application)
+  tsedakaStreak: number; // jours consécutifs avec une tsedaka
+  tsedakaStreakBest: number;
+  tsedakaStreakPoints: number;
+  tsedakaToday: boolean;
   activeDays12m: number;
   coursesRead: number;
   questionsAsked: number;
@@ -152,6 +161,33 @@ export function computeGamification(input: GamificationInput): GamificationSumma
     mprev = m;
   }
 
+  // ---- Série de tsedaka : un don par jour (le samedi est neutre : il ne compte ni ne casse).
+  const almsDays = new Set(donations.filter((d) => d.type !== 'maasser').map((d) => d.date));
+  const skip = (iso: string) => new Date(iso + 'T12:00:00').getDay() === 6;
+  const prevDay = (iso: string) => { let p = isoDaysAgo(iso, 1); while (skip(p)) p = isoDaysAgo(p, 1); return p; };
+  let tsedakaStreakPoints = 0;
+  let tsedakaStreakBest = 0;
+  const almsSorted = [...almsDays].sort();
+  let arun = 0;
+  let aprev: string | null = null;
+  for (const d of almsSorted) {
+    if (skip(d)) continue;
+    arun = aprev && prevDay(d) === aprev ? arun + 1 : 1;
+    if (arun > 1) tsedakaStreakPoints += RULES.tsedakaStreakDay;
+    if (arun === 7) tsedakaStreakPoints += RULES.tsedakaStreak7;
+    if (arun === 30) tsedakaStreakPoints += RULES.tsedakaStreak30;
+    if (arun === 100) tsedakaStreakPoints += RULES.tsedakaStreak100;
+    tsedakaStreakBest = Math.max(tsedakaStreakBest, arun);
+    aprev = d;
+  }
+  generosity += tsedakaStreakPoints;
+  // Série en cours : en remontant depuis aujourd'hui (ou le dernier jour comptable).
+  let tsedakaStreak = 0;
+  let cur = skip(today) ? prevDay(today) : today;
+  if (!almsDays.has(cur)) cur = prevDay(cur);
+  while (almsDays.has(cur)) { tsedakaStreak++; cur = prevDay(cur); }
+  const tsedakaToday = almsDays.has(today);
+
   // ---- Départ
   const start = (input.joinedCommunity ? RULES.firstCommunity : 0) + (input.profileComplete ? RULES.profileComplete : 0);
 
@@ -178,7 +214,8 @@ export function computeGamification(input: GamificationInput): GamificationSumma
   const streakDays = streakFrom(openDays, today);
   const missing = nextLevelPoints - points;
   let nextStep: string;
-  if (!openDays.has(today)) nextStep = `Ouvrez l’application aujourd’hui pour garder votre série (${streakDays} jour${streakDays > 1 ? 's' : ''}).`;
+  if (tsedakaStreak > 0 && !tsedakaToday) nextStep = `Une tsedaka aujourd’hui, même petite, et votre série passe à ${tsedakaStreak + 1} jour${tsedakaStreak + 1 > 1 ? 's' : ''} (+${RULES.tsedakaStreakDay}${tsedakaStreak + 1 === 7 ? ', +' + RULES.tsedakaStreak7 + ' au 7e jour' : ''}).`;
+  else if (!openDays.has(today)) nextStep = `Ouvrez l’application aujourd’hui pour garder votre série (${streakDays} jour${streakDays > 1 ? 's' : ''}).`;
   else if (streakDays > 0 && streakDays % 7 >= 5) nextStep = `Encore ${7 - (streakDays % 7)} jour${7 - (streakDays % 7) > 1 ? 's' : ''} de suite pour le bonus de série (+${RULES.streak7}).`;
   else if (missing <= RULES.courseRead) nextStep = `Un cours lu en entier (+${RULES.courseRead}) et vous passez au niveau ${level + 1}.`;
   else nextStep = `Il manque ${missing} point${missing > 1 ? 's' : ''} pour le niveau ${level + 1} : un cours lu (+${RULES.courseRead}), une question (+${RULES.questionAsked}), ou un don.`;
@@ -195,6 +232,10 @@ export function computeGamification(input: GamificationInput): GamificationSumma
     tier,
     tierIndex,
     streakDays,
+    tsedakaStreak,
+    tsedakaStreakBest,
+    tsedakaStreakPoints,
+    tsedakaToday,
     activeDays12m,
     coursesRead: readCourses.length,
     questionsAsked: questions.length,

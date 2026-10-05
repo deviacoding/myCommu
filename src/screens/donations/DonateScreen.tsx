@@ -8,6 +8,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAppState } from '../../state/AppState';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { Aura } from '../../components/Aura';
+import { Celebration } from '../../components/Celebration';
 import { Card, Chip, Muted, Button } from '../../components/ui';
 import { money } from '../../utils/time';
 import { useI18n } from '../../i18n';
@@ -23,7 +24,7 @@ export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { type, pledgeId } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations } = useAppState();
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations, ora } = useAppState();
   // Association bénéficiaire : celle par défaut, modifiable s'il y en a plusieurs. Les moyens de paiement suivent l'association.
   const [associationId, setAssociationId] = useState<string | undefined>(() => (myAssociations.find((a) => a.isDefault) ?? myAssociations[0])?.id);
   const association = myAssociations.find((a) => a.id === associationId);
@@ -79,19 +80,30 @@ export function DonateScreen({ route, navigation }: Props) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: c.background }]} edges={['top']}>
         <ScrollView contentContainerStyle={[styles.content, { alignItems: 'center', paddingTop: 30 }]}>
-          <Aura levelIndex={levelIndex} progress={levelProgress} size={200} />
-          <Text style={{ color: c.text, fontSize: 22, fontWeight: '800', marginTop: 18 }}>Merci pour votre don</Text>
+          <Celebration size={240}>
+            <Aura levelIndex={levelIndex} progress={levelProgress} size={200} />
+          </Celebration>
+          <Text style={{ color: c.text, fontSize: 22, fontWeight: '800', marginTop: 8 }}>Merci pour votre don</Text>
           <Text style={{ color: c.primary, fontSize: 30, fontWeight: '900', marginTop: 4 }}>{money(done)}</Text>
           <Muted style={{ textAlign: 'center', marginTop: 8, maxWidth: 320 }}>
             {cause}
             {dedication.trim() ? ` · ${dedication.trim()}` : ''}
           </Muted>
-          <Card style={{ marginTop: 24, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {type !== 'maasser' ? (
+            <Card style={{ marginTop: 18, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: '#F59E0B', borderWidth: 2 }}>
+              <MaterialCommunityIcons name="fire" size={30} color="#F59E0B" />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '800' }}>Série de {seed.alms.name.toLowerCase()} : {ora.tsedakaStreak} jour{ora.tsedakaStreak > 1 ? 's' : ''}</Text>
+                <Muted>{ora.tsedakaStreak >= 7 ? 'Bravo, vous tenez la série ! ' : ''}Un don chaque jour, même petit, fait grandir la série : +1 point par jour, +10 au 7e jour, +40 au 30e, +150 au 100e.{ora.tsedakaStreakBest > ora.tsedakaStreak ? ` Votre record : ${ora.tsedakaStreakBest} jour${ora.tsedakaStreakBest > 1 ? "s" : ""}.` : ''}</Muted>
+              </View>
+            </Card>
+          ) : null}
+          <Card style={{ marginTop: 12, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <MaterialCommunityIcons name="creation" size={28} color={c.secondary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontWeight: '700' }}>+{done} points ({seed.gamification.name})</Text>
+              <Text style={{ color: c.text, fontWeight: '700' }}>{points - pointsBefore > 0 ? `+${points - pointsBefore} points (${seed.gamification.name})` : `Votre ${seed.gamification.name} grandit`}</Text>
               <Muted>
-                {pointsBefore} → {points} · niveau {level.name}
+                {points - pointsBefore > 0 ? `${pointsBefore} → ${points} · ` : `${points} points · `}niveau {level.name}
                 {nextLevel ? ` · prochain : ${nextLevel.name} à ${nextLevel.min}` : ''}
               </Muted>
             </View>

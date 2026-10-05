@@ -26,6 +26,7 @@ import {
   Question,
   QuestionCategory,
   ReligiousCurrent,
+  Score,
   SoulLevel,
   receiptFormatFor,
 } from '../types';
@@ -195,6 +196,10 @@ interface AppStateValue {
   streakMonths: number;
   // « L'ora qui grandit »
   ora: GamificationSummary;
+  scores: Score[]; // classement de la communauté affichée (les fidèles qui ont publié leur score)
+  replyToQuestion: (id: string, text: string) => void; // le fidèle poursuit la conversation
+  startConversation: (memberUid: string, memberName: string, text: string) => Question; // le responsable écrit à un fidèle
+  thankDonation: (donationId: string) => void;
   activity: ActivityEvent[];
   communityActivity: ActivityEvent[]; // équipe : activité des fidèles de la communauté
   recordActivity: (type: ActivityType) => number; // points gagnés (0 si déjà compté aujourd'hui)
@@ -234,6 +239,19 @@ interface AppStateValue {
 }
 
 const AppStateContext = createContext<AppStateValue | undefined>(undefined);
+
+// Classement de démo : les fidèles de la communauté avec des scores plausibles, l'utilisateur inclus.
+function demoScores(seed: ReligionSeed, points: number, assiduity: number, generosity: number, level: number): Score[] {
+  const others = seed.members.filter((m) => m.name !== seed.user.name).map((m, i) => {
+    const a = 20 + ((i * 37) % 160);
+    const g = (i * 53) % 140;
+    const p = a + g + 7;
+    let lv = 0;
+    while (((lv + 1) * (lv + 10)) / 2 <= p) lv++;
+    return { id: `demo_${m.id}`, uid: m.id, congregationId: seed.defaultCongregation, name: m.name, points: p, assiduityPoints: a, generosityPoints: g, level: lv, updatedAt: '' };
+  });
+  return [...others, { id: `demo_${seed.user.id}`, uid: seed.user.id, congregationId: seed.defaultCongregation, name: seed.user.name, points, assiduityPoints: assiduity, generosityPoints: generosity, level, updatedAt: '' }];
+}
 
 // Découpe un texte libre en sections : une ligne seule courte devient un titre de section.
 function textToSections(text: string): Course['sections'] {
@@ -385,6 +403,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   const [lastGain, setLastGain] = useState<{ points: number; label: string; at: number } | null>(null);
   // Activité de tous les fidèles des communautés où l'on est responsable (vue « fidèles engagés »).
   const [communityActivity] = useLiveList<ActivityEvent>(real, [], seed, () => staffQueries('activity', leaderIds), leaderIds.join(','));
+  const [scores, setScores] = useLiveList<Score>(real, [], seed, () => (congregationId ? [query(col('scores'), where('congregationId', '==', congregationId))] : []), congregationId);
   const clearLastGain = useCallback(() => setLastGain(null), []);
   const [demoAssos, setDemoAssos] = useState<Association[]>(() => demoAssociations(religion, seed.congregations, seed.defaultCongregation));
   const [donations, setDonations] = useLiveList<Donation>(real, seed.donations, seed, () => [...staffQueries('donations', financeIds), query(col('donations'), where('uid', '==', uid ?? '-'))], `${financeIds.join(',')}|${uid}`);
@@ -1017,6 +1036,56 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     [db, setMemberDates]
   );
 
+  // Le fidèle ajoute un message à sa propre conversation (question ou message du responsable).
+  const replyToQuestion = useCallback(
+    (id: string, text: string) => {
+      const q = latestQuestions.current.find((x) => x.id === id);
+      if (!q) return;
+      const msg = { id: `${id}-m${Date.now()}`, author: 'member' as const, name: q.anonymous ? 'Anonyme' : user.name, text, date: todayISO() };
+      const next: Question = { ...q, status: 'pending', messages: [...q.messages, msg] };
+      latestQuestions.current = latestQuestions.current.map((x) => (x.id === id ? next : x));
+      setQuestions(latestQuestions.current);
+      db.update('questions', id, { status: 'pending', messages: next.messages });
+    },
+    [db, setQuestions, user.name]
+  );
+
+  // Le responsable écrit à un fidèle (remerciement pour un maasser, suivi) : une conversation privée.
+  const startConversation = useCallback(
+    (memberUid: string, memberName: string, text: string) => {
+      const id = db.newId('q');
+      const date = todayISO();
+      const ravName = findCongregation(congregationId).rav.name;
+      const q: Question = {
+        id,
+        congregationId,
+        askerUid: memberUid,
+        kind: 'message',
+        subject: `Message de ${ravName}`,
+        category: 'Message',
+        status: 'answered',
+        askedBy: memberName,
+        anonymous: false,
+        isPublic: false,
+        date,
+        messages: [{ id: `${id}-a1`, author: 'rav', name: ravName, text, date }],
+      };
+      latestQuestions.current = [q, ...latestQuestions.current];
+      setQuestions(latestQuestions.current);
+      db.set('questions', id, q);
+      return q;
+    },
+    [db, congregationId, findCongregation, setQuestions]
+  );
+
+  const thankDonation = useCallback(
+    (donationId: string) => {
+      setDonations((list) => list.map((d) => (d.id === donationId ? { ...d, thankedAt: todayISO() } : d)));
+      db.update('donations', donationId, { thankedAt: todayISO() });
+    },
+    [db, setDonations]
+  );
+
   // Action quotidienne : une seule fois par jour et par type (l'id du document l'impose aussi en base).
   const recordActivity = useCallback(
     (type: ActivityType) => {
@@ -1155,6 +1224,10 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       levelProgress,
       streakMonths,
       ora,
+      scores: real ? scores : demoScores(seed, ora.points, ora.assiduityPoints, ora.generosityPoints, ora.level),
+      replyToQuestion,
+      startConversation,
+      thankDonation,
       activity,
       communityActivity: real ? communityActivity.filter((e) => e.congregationId === congregationId) : activity,
       recordActivity,
@@ -1244,6 +1317,10 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     categories,
     activity,
     communityActivity,
+    scores,
+    replyToQuestion,
+    startConversation,
+    thankDonation,
     recordActivity,
     lastGain,
     clearLastGain,
@@ -1282,6 +1359,18 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     addMemberDate,
     removeMemberDate,
   ]);
+
+  // Classement : chaque fidèle publie son propre score dans sa communauté (lecture par les membres).
+  const scoreKey = `${value.ora.points}|${value.ora.assiduityPoints}|${value.ora.generosityPoints}|${value.ora.level}|${congregationId}|${uid}`;
+  useEffect(() => {
+    if (!real || !uid || !congregationId || !myCongregations.includes(congregationId)) return;
+    const o = value.ora;
+    const t = setTimeout(() => {
+      db.set('scores', `${congregationId}_${uid}`, { uid, congregationId, name: user.name, points: o.points, assiduityPoints: o.assiduityPoints, generosityPoints: o.generosityPoints, level: o.level, updatedAt: new Date().toISOString() });
+    }, 2000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoreKey]);
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
 }

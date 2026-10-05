@@ -82,7 +82,7 @@ export function QuestionsScreen() {
               </View>
               <Text style={[styles.subject, { color: c.text }]}>{q.subject}</Text>
               <Muted style={{ marginTop: 4 }}>
-                {q.askedBy}{firstText ? ` · « ${firstText.length > 90 ? firstText.slice(0, 90).trimEnd() + '…' : firstText} »` : ''}
+                {q.kind === 'message' ? q.messages[0]?.name ?? q.askedBy : q.askedBy}{firstText ? ` · « ${firstText.length > 90 ? firstText.slice(0, 90).trimEnd() + '…' : firstText} »` : ''}
               </Muted>
               {answer ? (
                 <View style={[styles.answer, { backgroundColor: c.primaryLight }]}>

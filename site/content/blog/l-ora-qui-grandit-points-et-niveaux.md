@@ -99,3 +99,11 @@ D'un geste, le fidèle imprime une **attestation** pour l'année écoulée : jou
 ## Pour le responsable
 
 Vous n'avez rien à configurer : le barème est le même pour toutes les communautés, avec le vocabulaire et le symbole de votre confession. Dans votre espace, vous voyez chaque mois qui a été le plus présent et le plus généreux, de quoi remercier, proposer une montée ou une lecture, ou simplement prendre des nouvelles de quelqu'un qui s'éloigne. Les fidèles, eux, voient leur propre lumière grandir, et rien d'autre.
+
+## Mise à jour : séries, remerciements et classement
+
+Trois ajouts depuis la publication de cet article :
+
+- **La série de tsedaka.** Comme une série d'apprentissage, une tsedaka chaque jour, même d'un shekel, fait grandir une flamme : +1 point par jour à partir du deuxième, +10 au septième jour, +40 au trentième, +150 au centième. Le samedi ne compte pas et ne casse rien. À chaque don, un petit carillon et des éclats autour de l'aura.
+- **Le maasser remercié.** Quand un fidèle verse son maasser, le responsable et le trésorier reçoivent une notification. D'un geste, le responsable envoie un mot personnel, qui arrive dans la messagerie du fidèle, dans l'onglet Questions : le fidèle peut répondre, et la conversation continue.
+- **Le classement de la communauté.** Dans Mon ora, chacun voit sa place parmi les fidèles de sa communauté, par points et par assiduité, avec un podium pour chaque. Prénoms et initiales seulement, jamais de montants.

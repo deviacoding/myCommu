@@ -28,7 +28,7 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations } = useAppState();
+  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, ora } = useAppState();
   const tithe = seed.tithe;
   const alms = seed.alms;
   const cur = seed.currency;
@@ -183,6 +183,15 @@ export function DonationsScreen() {
           </>
         )}
 
+        {tab === 'alms' && (
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: ora.tsedakaToday ? c.success : '#F59E0B', borderWidth: 2 }}>
+            <MaterialCommunityIcons name="fire" size={32} color={ora.tsedakaToday ? c.success : '#F59E0B'} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>Série : {ora.tsedakaStreak} jour{ora.tsedakaStreak > 1 ? 's' : ''}{ora.tsedakaToday ? ' · don du jour fait' : ''}</Text>
+              <Muted>{ora.tsedakaToday ? 'À demain pour continuer la série.' : ora.tsedakaStreak > 0 ? 'Un don aujourd’hui, même petit, garde la série vivante (+1 point, +10 au 7e jour).' : 'Commencez une série : une tsedaka par jour, le samedi ne compte pas.'}{ora.tsedakaStreakBest > ora.tsedakaStreak ? ` Record : ${ora.tsedakaStreakBest} jour${ora.tsedakaStreakBest > 1 ? "s" : ""}.` : ''}</Muted>
+            </View>
+          </Card>
+        )}
         {tab === 'alms' && (
           <>
             <Card style={[styles.hero, { backgroundColor: c.primary, borderColor: c.primary }]}>

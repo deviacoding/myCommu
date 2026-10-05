@@ -127,8 +127,10 @@ service cloud.firestore {
     // ---- Questions : l'auteur et l'équipe ; publiques une fois partagées par le responsable.
     match /questions/{id} {
       allow read: if signedIn() && (resource.data.askerUid == uid() || resource.data.isPublic == true || isLeader(congOf()));
-      allow create: if signedIn() && request.resource.data.askerUid == uid() && isMember(newCongOf());
-      allow update: if signedIn() && isLeader(congOf()) && sameCong();
+      // Le fidèle crée sa question ; le responsable peut ouvrir une conversation (« message ») avec un fidèle.
+      allow create: if signedIn() && isMember(newCongOf()) && (request.resource.data.askerUid == uid() || (isLeader(newCongOf()) && request.resource.data.kind == 'message'));
+      // Le responsable modifie tout ; le fidèle ne peut qu'ajouter des messages à sa propre conversation.
+      allow update: if signedIn() && sameCong() && (isLeader(congOf()) || (resource.data.askerUid == uid() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messages', 'status'])));
       allow delete: if signedIn() && (resource.data.askerUid == uid() || isLeader(congOf()));
     }
 
@@ -161,6 +163,13 @@ service cloud.firestore {
       allow read: if signedIn() && (resource.data.uid == uid() || isStaff(resource.data.congregationId));
       allow create, update: if signedIn() && request.resource.data.uid == uid() && id == uid() + '_' + request.resource.data.date + '_' + request.resource.data.type;
       allow delete: if false;
+    }
+
+    // ---- Classement : chaque fidèle publie son score ; les membres de la communauté le lisent.
+    match /scores/{id} {
+      allow read: if signedIn() && isMember(congOf());
+      allow create, update: if signedIn() && request.resource.data.uid == uid() && id == newCongOf() + '_' + uid() && isMember(newCongOf());
+      allow delete: if signedIn() && resource.data.uid == uid();
     }
 
     // ---- Direct : un document par communauté.

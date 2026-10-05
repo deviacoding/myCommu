@@ -112,6 +112,7 @@ export interface Question {
   status: 'answered' | 'pending';
   askedBy: string;
   askerUid?: string;
+  kind?: 'question' | 'message'; // message : conversation ouverte par le responsable (remerciement, suivi)
   anonymous?: boolean;
   isPublic?: boolean; // visible par toute la communauté (après anonymisation par le Rav)
   date: string;
@@ -126,6 +127,7 @@ export interface Donation {
   associationId?: string; // association bénéficiaire (reçu fiscal correspondant)
   uid?: string; // donateur
   paymentLinkId?: string;
+  thankedAt?: string; // le responsable a remercié le donateur (maasser)
   type: DonationType;
   amount: number;
   cause: string;
@@ -303,6 +305,19 @@ export interface PaymentLink {
   status?: 'pending' | 'active'; // Stripe réel : inscription en cours, ou compte prêt à encaisser
   chargesEnabled?: boolean;
   payoutsEnabled?: boolean;
+}
+
+// Score publié d'un fidèle dans sa communauté (classement). Id : `${congregationId}_${uid}`.
+export interface Score {
+  id: string;
+  uid: string;
+  congregationId: string;
+  name: string; // prénom + initiale si le fidèle préfère rester discret
+  points: number;
+  assiduityPoints: number;
+  generosityPoints: number;
+  level: number;
+  updatedAt: string;
 }
 
 // Action quotidienne d'un fidèle (une fois par jour et par type). Id : `${uid}_${date}_${type}`.

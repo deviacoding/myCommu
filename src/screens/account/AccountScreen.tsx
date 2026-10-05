@@ -74,7 +74,7 @@ export function AccountScreen() {
           <Button label={t('auth.leaderSpace')} icon="ribbon-outline" variant="secondary" onPress={() => switchRole(staffMembership.role === 'treasurer' ? 'treasurer' : staffMembership.role === 'organizer' ? 'organizer' : 'rav')} style={{ marginBottom: 12 }} />
         ) : null}
 
-        <OraCard onDonate={() => navigation.navigate('Donate', { type: 'tsedaka' })} onAttestation={() => navigation.navigate('Attestation')} />
+        <OraCard onDonate={() => navigation.navigate('Donate', { type: 'tsedaka' })} onAttestation={() => navigation.navigate('Attestation')} onLeaderboard={() => navigation.navigate('Leaderboard')} />
 
         <View style={styles.stats}>
           <Stat icon="hand-heart" label="Total donné" value={money(totalGiven)} />

@@ -19,7 +19,11 @@ export const amountLabels: Record<number, string> = {
   52: '2 × 26',
 };
 
+// Date relative : la démo montre toujours un maasser récent à remercier côté responsable.
+const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+
 export const initialDonations: Donation[] = [
+  { id: 'd0', type: 'maasser', amount: 920, cause: 'Synagogue Beth Yaacov', date: daysAgo(1) },
   { id: 'd1', type: 'engagement', amount: 36, cause: 'Kapparot', date: '2026-09-18' },
   { id: 'd2', type: 'tsedaka', amount: 36, cause: 'Familles dans le besoin', date: '2026-09-18', dedication: 'Refoua chelema pour Rivka bat Sarah' },
   { id: 'd3', type: 'engagement', amount: 120, cause: 'Places de Yom Kippour', date: '2026-09-15' },

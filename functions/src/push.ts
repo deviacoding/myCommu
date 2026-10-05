@@ -6,7 +6,7 @@ import { onDocumentWritten, onDocumentUpdated, onDocumentCreated } from 'firebas
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import type { Message, MulticastMessage } from 'firebase-admin/messaging';
-import { db, messaging, FieldValue, getCongregation, currencyOf, formatAmount, todayISO, addDays, topicOf, requireString } from './shared';
+import { db, messaging, FieldValue, FINANCE_ROLES, getCongregation, currencyOf, formatAmount, todayISO, addDays, topicOf, requireString } from './shared';
 
 // Codes d'erreur FCM qui signifient « jeton mort » : on le retire du profil.
 const DEAD_TOKEN_CODES = new Set([
@@ -155,6 +155,27 @@ export const onEventCreated = onDocumentCreated('agenda/{eventId}', async (event
     body: `${data.title ?? 'Événement'}${when ? ` · ${when}` : ''}${where}`,
     data: { type: 'agenda', eventId: event.params.eventId, congregationId },
   });
+});
+
+// ---------------------------------------------------------------------------
+// onDonationCreated : un maasser (ou zakat, dîme) arrive → le responsable et le trésorier sont prévenus pour remercier.
+// ---------------------------------------------------------------------------
+export const onDonationCreated = onDocumentCreated('donations/{donationId}', async (event) => {
+  const d = event.data?.data();
+  if (!d || d.type !== 'maasser' || !d.congregationId) return;
+  const staff = await db.collection('memberships').where('congregationId', '==', d.congregationId).where('role', 'in', FINANCE_ROLES).get();
+  const donor = d.uid ? (await db.doc(`users/${d.uid}`).get()).data()?.name : undefined;
+  const congregation = await getCongregation(d.congregationId);
+  const amount = formatAmount(Number(d.amount) || 0, currencyOf(congregation.religion).symbol);
+  await Promise.all(
+    staff.docs.map((m) =>
+      sendToUser(m.data().uid, {
+        title: 'Nouveau maasser reçu',
+        body: `${donor ?? 'Un fidèle'} vient de verser ${amount}. Un mot de remerciement ?`,
+        data: { type: 'donation', id: event.params.donationId, congregationId: d.congregationId },
+      }).catch((e) => logger.warn('push maasser', e))
+    )
+  );
 });
 
 // ---------------------------------------------------------------------------

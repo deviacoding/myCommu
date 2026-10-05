@@ -29,6 +29,7 @@ export type Coll =
   | 'paymentLinks'
   | 'associations'
   | 'activity'
+  | 'scores'
   | 'courses'
   | 'questions'
   | 'dayEntries'

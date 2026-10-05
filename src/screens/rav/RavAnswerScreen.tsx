@@ -37,7 +37,8 @@ export function RavAnswerScreen({ navigation, route }: Props) {
   }
   const messages = q.messages ?? [];
   const question = messages[0];
-  const existing = messages.filter((m) => m.author === 'rav');
+  // Le fil complet après le premier message : réponses du responsable et relances du fidèle.
+  const existing = messages.slice(1);
 
   const toggleSource = (s: string) => setSources((list) => (list.includes(s) ? list.filter((x) => x !== s) : [...list, s]));
   const addCustom = () => {
@@ -76,8 +77,8 @@ export function RavAnswerScreen({ navigation, route }: Props) {
       {existing.map((m) => (
         <RavCard key={m.id} style={{ backgroundColor: c.primaryLight }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Avatar source={rav.photo} name={rav.name} size={40} />
-            <Text style={{ color: c.primary, fontWeight: '800', fontSize: 17 }}>Votre réponse du {formatLong(m.date)}</Text>
+            {m.author === 'rav' ? <Avatar source={rav.photo} name={rav.name} size={40} /> : <Avatar name={m.name} size={40} />}
+            <Text style={{ color: m.author === 'rav' ? c.primary : c.text, fontWeight: '800', fontSize: 17 }}>{m.author === 'rav' ? `Votre réponse du ${formatLong(m.date)}` : `${m.name} · ${formatLong(m.date)}`}</Text>
           </View>
           <Text style={{ color: c.text, fontSize: 18, lineHeight: 27, marginTop: 8 }}>{m.text}</Text>
         </RavCard>
