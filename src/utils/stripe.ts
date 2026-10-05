@@ -26,6 +26,7 @@ export interface CheckoutInput {
   fundId?: string;
   campaignId?: string;
   streakRepair?: { from: string; to: string; days: number };
+  box?: { coins: number; from: string; to: string; dates: string[] }; // vidage de la boîte : le webhook vide la boîte du profil
 }
 
 export async function startStripeCheckout(input: CheckoutInput): Promise<{ url: string; sessionId: string }> {

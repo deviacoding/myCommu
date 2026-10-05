@@ -31,7 +31,7 @@ export function AccountScreen() {
   const staffMembership = memberships.find((m) => m.role !== 'member');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ name: user.name, phone: user.phone ?? '', city: user.city ?? '' });
-  const { ora, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed } = useAppState();
+  const { ora, totalGiven, givenThisMonth, streakMonths, readCourses, questions, congregations, myCongregations, congregation, setCongregation, seed, repairStreak } = useAppState();
   const g = seed.gamification;
   const mine = congregations.filter((k) => myCongregations.includes(k.id));
   const [notif, setNotif] = useState(true);
@@ -79,7 +79,8 @@ export function AccountScreen() {
           onAttestation={() => navigation.navigate('Attestation')}
           onLeaderboard={(mode) => navigation.navigate('Leaderboard', mode ? { mode } : undefined)}
           onBadges={() => navigation.navigate('Badges')}
-          onRepair={(r) => navigation.navigate('Donate', { type: 'tsedaka', amount: r.cost, cause: 'Rachat de série', repair: { from: r.from, to: r.to, days: r.missedDays, cost: r.cost } })}
+          onRepair={(r) => repairStreak(r)}
+          onBox={() => navigation.navigate('Donate', { type: 'tsedaka', box: true })}
         />
 
         <View style={styles.stats}>

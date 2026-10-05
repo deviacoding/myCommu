@@ -17,7 +17,7 @@ import { paymentProvider } from '../../config/paymentProviders';
 import { openStripeUrl, startStripeCheckout, stripeErrorMessage } from '../../utils/stripe';
 import { countryName } from '../../utils/countries';
 import { ProgressBar } from '../../components/ProgressBar';
-import { streakRepairUnit } from '../../config/gamification';
+import { RULES, streakRepairUnit } from '../../config/gamification';
 
 type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -31,7 +31,8 @@ export function DonateScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { type, pledgeId, campaignId, repair } = route.params;
-  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations, ora, funds, campaigns, campaignProgress, congregation, newBadges, markBadgesSeen } = useAppState();
+  const emptying = !!route.params.box;
+  const { donate, pledges, levelIndex, levelProgress, level, nextLevel, points, seed, myPaymentLinks: allLinks, backendMode, congregationId, myAssociations, ora, funds, campaigns, campaignProgress, congregation, newBadges, markBadgesSeen, box } = useAppState();
   // Chaîne de tsedaka (maillon) et caisse : si la communauté n'a créé aucune caisse, on ne pose pas la question.
   const campaign = campaigns.find((x) => x.id === campaignId);
   const campaignState = campaign ? campaignProgress(campaign.id) : null;
@@ -54,10 +55,10 @@ export function DonateScreen({ route, navigation }: Props) {
   };
   const pledge = pledges.find((p) => p.id === pledgeId);
 
-  const [amount, setAmount] = useState<number>(repair ? repair.cost : route.params.amount ?? seed.alms.amounts[2] ?? 18);
+  const [amount, setAmount] = useState<number>(emptying ? box.balance : repair ? repair.cost : route.params.amount ?? seed.alms.amounts[2] ?? 18);
   const [custom, setCustom] = useState('');
   const [fundId, setFundId] = useState<string | undefined>(repair ? undefined : defaultFund?.id);
-  const [cause, setCause] = useState(pledge ? pledge.label : repair ? 'Rachat de série' : route.params.cause ?? defaultFund?.name ?? congregation.name);
+  const [cause, setCause] = useState(pledge ? pledge.label : emptying ? `Boîte de ${seed.alms.name.toLowerCase()}` : repair ? 'Rachat de série' : route.params.cause ?? defaultFund?.name ?? congregation.name);
   const [dedication, setDedication] = useState('');
   const [done, setDone] = useState<number | null>(null);
   const [pointsBefore] = useState(points);
@@ -69,7 +70,8 @@ export function DonateScreen({ route, navigation }: Props) {
   const stripeReady = !stripeReal || payLink?.status === 'active';
   // Rachat payé par Stripe : le montant envoyé respecte le minimum Stripe.
   const minimum = stripeMinimum(seed.currency);
-  const roundedUp = stripeReal && repair && amount < minimum;
+  const roundedUp = stripeReal && (repair || emptying) && amount < minimum;
+  const boxInfo = emptying && box.coins.length ? { coins: box.coins.length, from: box.coins[0].date, to: box.coins[box.coins.length - 1].date, dates: box.coins.map((x) => x.date) } : undefined;
   const sendAmount = roundedUp ? minimum : amount;
   const streakRepair = repair ? { from: repair.from, to: repair.to, days: repair.days } : undefined;
 
@@ -79,7 +81,7 @@ export function DonateScreen({ route, navigation }: Props) {
       setPaying(true);
       setPayError(null);
       try {
-        const r = await startStripeCheckout({ congregationId, associationId, amount: sendAmount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type, fundId, campaignId: campaign?.id, streakRepair });
+        const r = await startStripeCheckout({ congregationId, associationId, amount: sendAmount, currency: seed.currency, cause, dedication: dedication.trim() || undefined, pledgeId, type, fundId, campaignId: campaign?.id, streakRepair, box: boxInfo });
         await openStripeUrl(r.url);
       } catch (e) {
         setPayError(stripeErrorMessage(e));
@@ -88,7 +90,7 @@ export function DonateScreen({ route, navigation }: Props) {
       }
       return;
     }
-    const gained = donate({ type, amount: sendAmount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id, associationId, fundId, campaignId: campaign?.id, streakRepair });
+    const gained = donate({ type, amount: sendAmount, cause, dedication: dedication.trim() || undefined, pledgeId, paymentLinkId: payLink?.id, associationId, fundId, campaignId: campaign?.id, streakRepair, box: emptying });
     setDone(gained);
   };
 
@@ -105,6 +107,15 @@ export function DonateScreen({ route, navigation }: Props) {
             {cause}
             {dedication.trim() ? ` · ${dedication.trim()}` : ''}
           </Muted>
+          {emptying ? (
+            <Card style={{ marginTop: 18, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: c.success, borderWidth: 2 }}>
+              <MaterialCommunityIcons name="gift-open" size={30} color={c.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '800' }}>Boîte vidée : +{RULES.boxEmptied} points</Text>
+                <Muted>Les pièces de chaque jour sont maintenant un vrai don. La boîte repart à zéro : à demain pour la prochaine pièce.</Muted>
+              </View>
+            </Card>
+          ) : null}
           {repair ? (
             <Card style={{ marginTop: 18, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: c.success, borderWidth: 2 }}>
               <MaterialCommunityIcons name="fire" size={30} color={c.success} />
@@ -139,7 +150,7 @@ export function DonateScreen({ route, navigation }: Props) {
               ))}
             </Card>
           ) : null}
-          {type !== 'maasser' && !repair ? (
+          {type !== 'maasser' && !repair && !emptying ? (
             <Card style={{ marginTop: 18, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 12, borderColor: '#F59E0B', borderWidth: 2 }}>
               <MaterialCommunityIcons name="fire" size={30} color="#F59E0B" />
               <View style={{ flex: 1 }}>
@@ -192,6 +203,19 @@ export function DonateScreen({ route, navigation }: Props) {
           </Card>
         ) : null}
 
+        {emptying ? (
+          <Card style={{ borderColor: c.success, borderWidth: 2, gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <MaterialCommunityIcons name="gift" size={28} color={c.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '800', fontSize: 16 }}>Vider ma boîte de {seed.alms.name.toLowerCase()}</Text>
+                <Muted>{box.coins.length} pièce{box.coins.length > 1 ? 's' : ''}{box.repairs.some((r) => !r.paid) ? ' + rachat de série' : ''} · un seul paiement, +{RULES.boxEmptied} points</Muted>
+              </View>
+              <Text style={{ color: c.primary, fontWeight: '900', fontSize: 22 }}>{money(amount)}</Text>
+            </View>
+            {roundedUp ? <Muted style={{ color: c.warning }}>Stripe demande au moins {minimum} {seed.currency} : le don sera de {minimum} {seed.currency}.</Muted> : null}
+          </Card>
+        ) : null}
         {repair ? (
           <Card style={{ borderColor: '#F59E0B', borderWidth: 2, gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>

@@ -26,6 +26,8 @@ import {
   Membership,
   StaffMember,
   PaymentLink,
+  TsedakaBox,
+  BoxRepair,
   Pledge,
   Question,
   QuestionCategory,
@@ -35,7 +37,7 @@ import {
   receiptFormatFor,
 } from '../types';
 import { demoAssociations } from '../seeds/associations';
-import { ActivityType, Badge, computeGamification, DAILY_POINTS, demoActivity, GamificationSummary, leaguePeriod, LeaguePeriod, pointsForLevel, pointsInWindow, RULES, isoDaysAfter, isoDaysAgo } from '../config/gamification';
+import { ActivityType, Badge, computeGamification, DAILY_POINTS, demoActivity, GamificationSummary, leaguePeriod, LeaguePeriod, pointsForLevel, pointsInWindow, RULES, isoDaysAfter, isoDaysAgo, STREAK_TYPES, StreakRepair, emptyBox, DEFAULT_COIN, BOX_THRESHOLD } from '../config/gamification';
 import { jewishQuietDays } from '../utils/hebcal';
 import { Member } from '../mocks/members';
 import { ReligionSeed } from '../seeds/types';
@@ -70,6 +72,7 @@ interface DonateInput {
   fundId?: string;
   campaignId?: string;
   streakRepair?: { from: string; to: string; days: number };
+  box?: boolean; // vidage de la boîte de tsedaka : les pièces en attente sont réglées par ce don
   type: DonationType;
   amount: number;
   cause: string;
@@ -245,6 +248,11 @@ interface AppStateValue {
   league: LeagueView;
   congratulateWinner: (text: string) => void; // le responsable félicite le vainqueur de la quinzaine écoulée
   reactToMember: (input: ReactionInput) => Promise<void>; // like, texte, audio, vidéo envoyés à un fidèle
+  // Boîte de tsedaka
+  box: TsedakaBox;
+  putCoin: (amount?: number) => number; // met la pièce du jour ; renvoie le montant (0 si déjà mise)
+  setBoxSettings: (patch: { coinAmount?: number; autoCoin?: boolean }) => void;
+  repairStreak: (repair: StreakRepair) => void; // le rachat va dans la boîte, la série reprend tout de suite
   badges: Badge[];
   newBadges: Badge[]; // obtenus et pas encore fêtés
   markBadgesSeen: () => void;
@@ -476,6 +484,50 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   const [boosts, setBoosts] = useLiveList<Boost>(real, demoBoosts(seed), seed, byCong('boosts'), congregationId);
   const [leagues, setLeagues] = useLiveList<League>(real, demoLeagues(seed), seed, byCong('leagues'), congregationId);
   const [seenBadgesDemo, setSeenBadgesDemo] = useState<string[]>([]);
+  // Boîte de tsedaka : une par communauté, dans le profil (démo comprise).
+  const box = useMemo<TsedakaBox>(() => user.tsedakaBoxes?.[congregationId] ?? emptyBox(congregationId), [user.tsedakaBoxes, congregationId]);
+  const boxRef = useRef(box);
+  boxRef.current = box;
+  const saveBox = useCallback(
+    (next: TsedakaBox) => {
+      updateUser({ tsedakaBoxes: { ...(user.tsedakaBoxes ?? {}), [congregationId]: { ...next, updatedAt: new Date().toISOString() } } } as Partial<typeof user>);
+    },
+    [updateUser, user.tsedakaBoxes, congregationId]
+  );
+  const putCoin = useCallback(
+    (amount?: number) => {
+      const b = boxRef.current;
+      const date = todayISO();
+      if (b.coins.some((x) => x.date === date) || b.history.includes(date)) return 0;
+      const value = amount ?? b.coinAmount ?? DEFAULT_COIN(seed.currency);
+      const next: TsedakaBox = { ...b, congregationId, coins: [...b.coins, { date, amount: value }], balance: Math.round((b.balance + value) * 100) / 100 };
+      boxRef.current = next;
+      saveBox(next);
+      setLastGain({ points: RULES.tsedakaStreakDay, label: 'Pièce dans la boîte', at: Date.now() });
+      return value;
+    },
+    [saveBox, seed.currency, congregationId]
+  );
+  const setBoxSettings = useCallback((patch: { coinAmount?: number; autoCoin?: boolean }) => saveBox({ ...boxRef.current, congregationId, ...patch }), [saveBox, congregationId]);
+  const repairStreak = useCallback(
+    (repair: StreakRepair) => {
+      const b = boxRef.current;
+      if (b.repairs.some((r) => r.from === repair.from && r.to === repair.to)) return;
+      const r: BoxRepair = { from: repair.from, to: repair.to, days: repair.missedDays, amount: repair.cost, date: todayISO() };
+      const next: TsedakaBox = { ...b, congregationId, repairs: [...b.repairs, r], balance: Math.round((b.balance + repair.cost) * 100) / 100 };
+      boxRef.current = next;
+      saveBox(next);
+      setLastGain({ points: 0, label: `Série rachetée : ${repair.cost} ${seed.currency} dans la boîte`, at: Date.now() });
+    },
+    [saveBox, seed.currency, congregationId]
+  );
+  // Vidage : les pièces passent dans l'historique, la boîte repart à zéro (en base, le webhook Stripe fait de même).
+  const clearBox = useCallback(() => {
+    const b = boxRef.current;
+    const next: TsedakaBox = { ...b, congregationId, balance: 0, coins: [], repairs: b.repairs.map((r) => ({ ...r, paid: true })), history: [...b.history, ...b.coins.map((x) => x.date)].slice(-400), emptied: b.emptied + 1 };
+    boxRef.current = next;
+    saveBox(next);
+  }, [saveBox, congregationId]);
   // Jours neutres : Chabbat et fêtes pour les communautés juives (série en pause, aucun rappel).
   const congCountry = allCongregations.find((c) => c.id === congregationId)?.country;
   const quietDays = useMemo(() => (religion === 'jewish' ? jewishQuietDays(todayISO(), congCountry) : new Set<string>()), [religion, congCountry]);
@@ -820,9 +872,12 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
 
   // ---- Dons
   const donate = useCallback(
-    ({ type, amount, cause, dedication, pledgeId, paymentLinkId, associationId, fundId, campaignId, streakRepair }: DonateInput) => {
+    ({ type, amount, cause, dedication, pledgeId, paymentLinkId, associationId, fundId, campaignId, streakRepair, box: emptyingBox }: DonateInput) => {
       const id = db.newId('d');
-      const d: Donation = { id, congregationId, associationId, uid: uid ?? undefined, type, amount, cause, dedication, date: todayISO(), pledgeId: pledgeId, paymentLinkId, fundId, campaignId, streakRepair } as Donation;
+      const coins = boxRef.current.coins;
+      const boxInfo = emptyingBox && coins.length ? { coins: coins.length, from: coins[0].date, to: coins[coins.length - 1].date } : undefined;
+      const d: Donation = { id, congregationId, associationId, uid: uid ?? undefined, type, amount, cause, dedication, date: todayISO(), pledgeId: pledgeId, paymentLinkId, fundId, campaignId, streakRepair, box: boxInfo } as Donation;
+      if (emptyingBox) clearBox();
       setDonations((list) => [d, ...list]);
       db.set('donations', id, d);
       if (pledgeId) {
@@ -831,7 +886,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       }
       return amount;
     },
-    [db, congregationId, uid, setDonations, setPledges]
+    [db, congregationId, uid, setDonations, setPledges, clearBox]
   );
 
   const askQuestion = useCallback(
@@ -1172,12 +1227,14 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       const e: ActivityEvent = { id, uid: me, congregationId: congregationId || undefined, type, date };
       setActivity((list) => (list.some((x) => x.id === id) ? list : [...list, e]));
       db.set('activity', id, e);
+      // Pièce automatique : un jour d'utilisation met la pièce du jour dans la boîte.
+      if (boxRef.current.autoCoin && STREAK_TYPES.includes(type)) setTimeout(() => putCoin(), 0);
       const pts = DAILY_POINTS[type];
       const label = type === 'open' ? 'Ouverture du jour' : type === 'schedule' ? 'Horaires consultés' : type === 'agenda' ? 'Agenda consulté' : type === 'course' ? 'Cours lu' : 'Réponse lue';
       setLastGain({ points: pts, label, at: Date.now() });
       return pts;
     },
-    [uid, user.id, activity, congregationId, db, setActivity]
+    [uid, user.id, activity, congregationId, db, setActivity, putCoin]
   );
 
   // Ouverture de l'application : comptée dès qu'un utilisateur (réel ou démo) est entré.
@@ -1325,6 +1382,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       quietDays,
       boostDays,
       leagueWins: leagues.filter((l) => l.winnerUid === (uid ?? user.id)).length,
+      box,
     });
     const points = ora.points;
     const me = uid ?? user.id;
@@ -1459,6 +1517,10 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
         db.set('leagues', id, doc);
       },
       reactToMember,
+      box,
+      putCoin,
+      setBoxSettings,
+      repairStreak,
       badges: ora.badges,
       newBadges,
       markBadgesSeen: () => {
@@ -1577,6 +1639,10 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     reactToMember,
     seenBadgesDemo,
     updateUser,
+    box,
+    putCoin,
+    setBoxSettings,
+    repairStreak,
     recordActivity,
     lastGain,
     clearLastGain,

@@ -73,7 +73,7 @@ export function StreakCard({ compact, onRepair, onAct }: { compact?: boolean; on
             </Text>
           </View>
           <Muted style={{ marginTop: 4 }}>
-            Rachetez-la avec une {seed.alms.name.toLowerCase()} de {s.repairable.cost} {seed.currency} : la série reprend là où elle s’était arrêtée.
+            Rachetez-la pour {s.repairable.cost} {seed.currency} : la somme va dans votre boîte de {seed.alms.name.toLowerCase()} (payée quand la boîte sera pleine) et la série reprend tout de suite.
           </Muted>
           <Button label="Racheter ma série" icon="refresh" onPress={() => onRepair(s.repairable!)} style={{ marginTop: 10 }} />
         </View>

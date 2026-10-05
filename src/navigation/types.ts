@@ -45,7 +45,7 @@ export type AppStackParamList = {
   CourseDetail: { courseId: string };
   QuestionDetail: { questionId: string };
   AskQuestion: undefined;
-  Donate: { type: DonationType; amount?: number; pledgeId?: string; cause?: string; campaignId?: string; repair?: { from: string; to: string; days: number; cost: number } };
+  Donate: { type: DonationType; amount?: number; pledgeId?: string; cause?: string; campaignId?: string; repair?: { from: string; to: string; days: number; cost: number }; box?: boolean };
   Receipt: { format: ReceiptFormat; year: number; associationId?: string };
   Attestation: undefined;
   Leaderboard: { mode?: 'points' | 'assiduity' | 'league' } | undefined;

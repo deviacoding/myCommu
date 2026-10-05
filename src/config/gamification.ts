@@ -1,4 +1,4 @@
-import { ActivityEvent, Donation, Question, SoulLevel } from '../types';
+import { ActivityEvent, Donation, Question, SoulLevel, TsedakaBox } from '../types';
 
 // « L'ora qui grandit » : barème, niveaux infinis, titres, série unique avec gels et rachat, badges, ligues.
 // Tout part d'événements (activity), de dons confirmés et de contenus lus ; les points se recalculent à
@@ -41,7 +41,14 @@ export const RULES = {
   boostMultiplier: 2, // journée à points doublés
   boostMaxPerYear: 30, // 30 journées sur 365 jours glissants
   leagueWin: 30, // victoire de ligue (quinzaine)
+  boxEmptied: 10, // vider la boîte de tsedaka (en plus des points du don)
 };
+
+// Boîte de tsedaka : seuil de vidage entre le minimum Stripe (2 ₪ / 0,50 €) et celui de Grow (≈ 5 ₪) ; pièce du jour par défaut.
+export const BOX_THRESHOLD = (currency: string) => (currency === '₪' ? 3 : 1);
+export const DEFAULT_COIN = (currency: string) => (currency === '₪' ? 0.5 : 0.2);
+export const COIN_CHOICES = (currency: string) => (currency === '₪' ? [0.1, 0.25, 0.5, 1, 2] : [0.1, 0.2, 0.5, 1]);
+export const emptyBox = (congregationId: string): TsedakaBox => ({ congregationId, balance: 0, coins: [], repairs: [], history: [], emptied: 0, updatedAt: '' });
 
 // Tranches de don selon la devise (10 € / 100 € ; 40 ₪ / 400 ₪).
 export function brackets(currency: string): { alms: number; tithe: number } {
@@ -110,6 +117,7 @@ export interface GamificationInput {
   quietDays?: Set<string>; // Chabbat et fêtes : jours neutres (ne comptent ni ne cassent, pas de notification)
   boostDays?: Set<string>; // journées à points doublés décidées par le responsable
   leagueWins?: number; // victoires de ligue (quinzaines) déjà acquises
+  box?: TsedakaBox | null; // boîte de tsedaka : pièces en attente, rachats, historique
 }
 
 export interface StreakRepair { lostDays: number; missedDays: number; from: string; to: string; cost: number }
@@ -219,13 +227,13 @@ export function computeStreak(activeDays: Set<string>, repairedDays: Set<string>
 }
 
 // Jours couverts par un rachat de série.
-export function repairedDaysOf(donations: Donation[]): Set<string> {
+export function repairedDaysOf(donations: Donation[], box?: TsedakaBox | null): Set<string> {
   const out = new Set<string>();
-  for (const d of donations) {
-    if (!d.streakRepair) continue;
-    let day = d.streakRepair.from;
+  const ranges: { from: string; to: string }[] = [...donations.filter((d) => d.streakRepair).map((d) => d.streakRepair!), ...(box?.repairs ?? [])];
+  for (const r of ranges) {
+    let day = r.from;
     let guard = 0;
-    while (day <= d.streakRepair.to && guard++ < 60) { out.add(day); day = isoDaysAfter(day, 1); }
+    while (day <= r.to && guard++ < 60) { out.add(day); day = isoDaysAfter(day, 1); }
   }
   return out;
 }
@@ -301,6 +309,9 @@ export function computeBadges(s: Omit<GamificationSummary, 'badges' | 'badgesEar
     b('tsedaka7', 'Tsedaka 7 jours', 'Une tsedaka par jour pendant 7 jours', 'hand-coin', flame, 'tsedaka', s.tsedakaStreakBest, 7),
     b('tsedaka30', 'Tsedaka 30 jours', 'Une tsedaka par jour pendant 30 jours', 'hand-coin', '#EA580C', 'tsedaka', s.tsedakaStreakBest, 30),
     b('tsedaka100', 'Tsedaka 100 jours', 'Une tsedaka par jour pendant 100 jours', 'hand-coin', '#DC2626', 'tsedaka', s.tsedakaStreakBest, 100),
+    b('box1', 'Boîte vidée', 'Une première boîte de tsedaka vidée', 'gift', flame, 'tsedaka', input.box?.emptied ?? 0, 1),
+    b('box5', 'Cinq boîtes', '5 boîtes de tsedaka vidées', 'gift', '#EA580C', 'tsedaka', input.box?.emptied ?? 0, 5),
+    b('box20', 'Vingt boîtes', '20 boîtes de tsedaka vidées', 'gift', violet, 'tsedaka', input.box?.emptied ?? 0, 20),
     b('chain', 'Maillon', 'Participation à une chaîne de tsedaka', 'link-variant', blue, 'tsedaka', chains, 1),
     b('chain5', 'Chaîne solide', '5 chaînes de tsedaka', 'link-variant', violet, 'tsedaka', chains, 5),
     b('donorRegular', 'Donateur régulier', `${toCurrency(100, cur)} ${cur} donnés sur 12 mois`, 'hand-heart', blue, 'tsedaka', s.given12m, toCurrency(100, cur)),
@@ -370,7 +381,10 @@ export function computeGamification(input: GamificationInput): GamificationSumma
   const activeDays = new Set<string>();
   for (const t of STREAK_TYPES) for (const d of byType.get(t) ?? []) activeDays.add(d);
   for (const d of donations) if (!d.streakRepair) activeDays.add(d.date);
-  const repaired = repairedDaysOf(donations);
+  // Pièces de la boîte : en attente ou déjà payées, chaque pièce est un jour de tsedaka.
+  const coinDays = new Set<string>([...(input.box?.coins ?? []).map((x) => x.date), ...(input.box?.history ?? [])]);
+  for (const d of coinDays) activeDays.add(d);
+  const repaired = repairedDaysOf(donations, input.box);
   const streak = computeStreak(activeDays, repaired, quiet, today, currency);
   // Bonus de série : toutes les séries passées, par tranches de 7 et 30 jours (gels et rachats inclus).
   let streakBonus = 0;
@@ -409,9 +423,10 @@ export function computeGamification(input: GamificationInput): GamificationSumma
     mprev = m;
   }
   generosity += (input.leagueWins ?? 0) * RULES.leagueWin;
+  generosity += (input.box?.emptied ?? 0) * RULES.boxEmptied;
 
   // ---- Série de tsedaka : un don par jour (jours neutres : ni comptés ni cassants).
-  const almsDays = new Set(donations.filter((d) => d.type !== 'maasser').map((d) => d.date));
+  const almsDays = new Set([...donations.filter((d) => d.type !== 'maasser').map((d) => d.date), ...coinDays]);
   const skip = (iso: string) => quiet.has(iso) || new Date(iso + 'T12:00:00').getDay() === 6;
   const prevDay = (iso: string) => { let p = isoDaysAgo(iso, 1); while (skip(p)) p = isoDaysAgo(p, 1); return p; };
   let tsedakaStreakPoints = 0;
@@ -473,10 +488,11 @@ export function computeGamification(input: GamificationInput): GamificationSumma
   // ---- Prochain pas : la suggestion la plus utile aujourd'hui (jamais une angoisse : un seul geste suffit)
   const missing = nextLevelPoints - points;
   let nextStep: string;
-  if (streak.repairable) nextStep = `Votre série de ${streak.repairable.lostDays} jours s’est arrêtée : rachetez-la avec une tsedaka de ${streak.repairable.cost} ${currency} (${streak.repairable.missedDays} jour${streak.repairable.missedDays > 1 ? 's' : ''} manqué${streak.repairable.missedDays > 1 ? 's' : ''}).`;
+  if (streak.repairable) nextStep = `Votre série de ${streak.repairable.lostDays} jours s’est arrêtée : rachetez-la pour ${streak.repairable.cost} ${currency} dans votre boîte de tsedaka (${streak.repairable.missedDays} jour${streak.repairable.missedDays > 1 ? 's' : ''} manqué${streak.repairable.missedDays > 1 ? 's' : ''}).`;
+  else if (input.box && input.box.balance >= BOX_THRESHOLD(currency)) nextStep = `Votre boîte de tsedaka est pleine (${input.box.balance} ${currency}) : videz-la en un geste, +${RULES.boxEmptied} points.`;
   else if (streak.todayQuiet) nextStep = `Jour de repos : la série est en pause, rien à faire aujourd’hui.`;
   else if (!streak.todayDone && streak.days > 0) nextStep = `Un seul geste aujourd’hui (horaires, un cours, une réponse, un don) et la série passe à ${streak.days + 1} jours${streak.freezes > 0 ? ` · ${streak.freezes} gel${streak.freezes > 1 ? 's' : ''} en réserve` : ''}.`;
-  else if (tsedakaStreak > 0 && !tsedakaToday) nextStep = `Une tsedaka aujourd’hui, même petite, et votre série de tsedaka passe à ${tsedakaStreak + 1} jour${tsedakaStreak + 1 > 1 ? 's' : ''}.`;
+  else if (tsedakaStreak > 0 && !tsedakaToday) nextStep = `Une pièce dans la boîte aujourd’hui, et votre série de tsedaka passe à ${tsedakaStreak + 1} jour${tsedakaStreak + 1 > 1 ? 's' : ''}.`;
   else if (!streak.todayDone) nextStep = `Consultez les horaires ou lisez un cours : votre série commence aujourd’hui.`;
   else if (streak.days > 0 && streak.nextFreezeIn <= 2) nextStep = `Encore ${streak.nextFreezeIn} jour${streak.nextFreezeIn > 1 ? 's' : ''} et vous gagnez un gel de série (+${RULES.streak7} points au 7e jour).`;
   else if (missing <= RULES.courseRead) nextStep = `Un cours lu en entier (+${RULES.courseRead}) et vous passez au niveau ${level + 1}.`;

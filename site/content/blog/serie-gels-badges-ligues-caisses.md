@@ -15,6 +15,10 @@ La série compte les jours où l'application a servi à quelque chose : consulte
 - **Le repos.** Dans une communauté juive, le Chabbat et les jours de fête ne comptent pas et ne cassent rien : la série est en pause.
 - **Le rachat.** Une série cassée depuis moins de trente jours se rachète par une tsedaka : **10 agorot (ou 10 centimes) par jour manqué**. Cinq jours manqués, cinquante agorot, et la série reprend là où elle s'était arrêtée. La tsedaka répare.
 
+## La boîte de tsedaka
+
+Les prestataires de paiement refusent les très petits montants (Stripe demande au moins 2 ₪ ou 0,50 €, Grow davantage). Alors on ne paie pas chaque jour : on **met une pièce dans la boîte** — 50 agorot par défaut, le montant se règle, et une pièce automatique peut tomber chaque jour où l'application sert. La pièce compte tout de suite pour la série de tsedaka ; l'argent, lui, attend. Le rachat d'une série va dans la même boîte. Quand elle atteint **3 ₪ (ou 1 €)**, elle est pleine : un seul geste la vide, en un seul paiement, et ce vidage rapporte **10 points** en plus des points du don. Puis la boîte repart à zéro.
+
 La série de tsedaka (un don chaque jour) continue d'exister à côté, avec ses bonus au 7e, 30e et 100e jour.
 
 ## Des badges pour tout

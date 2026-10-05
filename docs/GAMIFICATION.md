@@ -69,3 +69,10 @@ Paliers nommés tous les 10 niveaux, avec les noms de la confession (`seed.gamif
 - **Caisses** (`funds`) : si la communauté en a créé, le fidèle choisit au moment du don ; sinon aucune question, le don va à l'établissement. **Chaînes de tsedaka** (`campaigns`) : lancées par le responsable (objectif, échéance, caisse), progression partagée, chaque don porte `campaignId`.
 - **Réactions du responsable** (`reactToMember`) : like, texte, audio (expo-audio), vidéo de 5 s (expo-image-picker) → message `kind` + `mediaUrl` (Storage `reactions/{cong}/…`) dans la conversation du fidèle (onglet Questions).
 - **Notifications** : tout don → push aux rôles finance (`onDonationCreated`). Heure habituelle d'ouverture (`users.usualHourUtc`, médiane des 14 dernières ouvertures) → rappel « Ravive ton aura » / « Sauvegarde ta série » une heure avant, s'il n'y a rien eu dans la journée ; jamais le Chabbat ni les fêtes ; un par jour au plus (`engagementReminders`, toutes les heures).
+
+### La boîte de tsedaka (`TsedakaBox`, dans `users/{uid}.tsedakaBoxes[congregationId]`)
+
+- Les prestataires refusent les très petits paiements (Stripe : 2 ₪ / 0,50 € ; Grow ≈ 5 ₪). Plutôt que payer chaque jour, le fidèle **met une pièce dans la boîte** (0,50 ₪ ou 0,20 € par défaut, réglable, « pièce automatique » possible à chaque jour d'utilisation). La pièce compte tout de suite pour la série de tsedaka et la série d'utilisation ; aucun paiement n'est déclenché.
+- **Rachat de série** : le montant (0,10 × jours manqués) est mis dans la boîte et la série reprend immédiatement.
+- **Seuil** `BOX_THRESHOLD` : 3 ₪ / 1 € (entre Stripe et Grow). Boîte pleine → « Vider la boîte » : un seul don (`Donation.box = { coins, from, to }`, cause « Boîte de tsedaka ») par Stripe ou enregistrement ; **+10 points** (`RULES.boxEmptied`) en plus des points du don ; badges Boîte vidée 1 / 5 / 20.
+- Après vidage, les dates des pièces passent dans `history` (400 dernières), `balance` et `coins` repartent à zéro, `emptied` + 1. En paiement Stripe, c'est le webhook (`metadata.box`) qui vide la boîte du profil.

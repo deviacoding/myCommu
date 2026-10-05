@@ -10,13 +10,14 @@ import { money } from '../utils/time';
 import { useAuth } from '../state/AuthContext';
 import { rankIn, shortName } from '../screens/account/LeaderboardScreen';
 import { StreakCard } from './StreakCard';
+import { TsedakaBoxCard } from './TsedakaBoxCard';
 import { StreakRepair } from '../config/gamification';
 
 type MciName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 // Carte « Mon ora » : un niveau qui grandit sans fin, deux jauges (assiduité, générosité),
 // les titres obtenus et le prochain pas pour gagner des points aujourd'hui.
-export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard, onBadges, onRepair }: { onDonate: () => void; onAttestation: () => void; onLearn?: () => void; onLeaderboard?: (mode?: 'points' | 'assiduity' | 'league') => void; onBadges?: () => void; onRepair?: (repair: StreakRepair) => void }) {
+export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard, onBadges, onRepair, onBox }: { onDonate: () => void; onAttestation: () => void; onLearn?: () => void; onLeaderboard?: (mode?: 'points' | 'assiduity' | 'league') => void; onBadges?: () => void; onRepair?: (repair: StreakRepair) => void; onBox?: () => void }) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { ora, seed, scores, league, badges } = useAppState();
@@ -65,6 +66,7 @@ export function OraCard({ onDonate, onAttestation, onLearn, onLeaderboard, onBad
           sub={`${ora.activeDays12m} jours actifs sur 12 mois · ${ora.coursesRead} cours lu${ora.coursesRead > 1 ? 's' : ''} · ${ora.questionsAsked} question${ora.questionsAsked > 1 ? 's' : ''}`}
         />
         <StreakCard compact onRepair={(r) => onRepair?.(r)} />
+        <TsedakaBoxCard compact onEmpty={() => onBox?.()} />
         <Gauge
           icon="hand-heart"
           color={c.secondary}

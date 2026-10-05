@@ -169,6 +169,7 @@ export const createDonationCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, a
   // Caisse, chaîne de tsedaka, rachat de série : repris tels quels dans le don écrit par le webhook.
   if (typeof data.fundId === 'string' && data.fundId) metadata.fundId = data.fundId;
   if (typeof data.campaignId === 'string' && data.campaignId) metadata.campaignId = data.campaignId;
+  if (data.box && typeof data.box.coins === 'number' && Array.isArray(data.box.dates)) metadata.box = JSON.stringify({ coins: data.box.coins, from: String(data.box.from), to: String(data.box.to), dates: data.box.dates.slice(0, 40).map(String) });
   if (data.streakRepair && typeof data.streakRepair.from === 'string' && typeof data.streakRepair.to === 'string') metadata.streakRepair = JSON.stringify({ from: data.streakRepair.from, to: data.streakRepair.to, days: Number(data.streakRepair.days) || 0 });
 
   // Paiement « direct » (choix Connect : les communautés encaissent directement) : la session est créée
@@ -302,10 +303,22 @@ async function recordDonation(session: Stripe.Checkout.Session): Promise<void> {
   if (m.fundId) donation.fundId = m.fundId;
   if (m.campaignId) donation.campaignId = m.campaignId;
   if (m.streakRepair) { try { donation.streakRepair = JSON.parse(m.streakRepair); } catch { /* métadonnée illisible : don simple */ } }
+  let boxDates: string[] = [];
+  if (m.box) {
+    try {
+      const b = JSON.parse(m.box);
+      donation.box = { coins: b.coins, from: b.from, to: b.to };
+      boxDates = Array.isArray(b.dates) ? b.dates : [];
+    } catch { /* métadonnée illisible */ }
+  }
   if (paymentIntent) donation.paymentIntent = paymentIntent;
 
   const batch = db.batch();
   batch.set(donationRef, donation);
+  // Vidage de la boîte de tsedaka : la boîte du profil repart à zéro, les pièces passent dans l'historique.
+  if (m.box && uid) {
+    batch.set(db.doc(`users/${uid}`), { tsedakaBoxes: { [congregationId]: { balance: 0, coins: [], emptied: FieldValue.increment(1), history: FieldValue.arrayUnion(...(boxDates.length ? boxDates : ['-'])), updatedAt: new Date().toISOString() } } }, { merge: true });
+  }
   if (pledgeId) {
     batch.set(db.doc(`pledges/${pledgeId}`), { status: 'paid', settledAt: todayISO(), donationId }, { merge: true });
   }

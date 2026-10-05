@@ -15,6 +15,7 @@ export interface UserProfile {
   tz?: string;
   reminderOptOut?: boolean;
   lastOpenAt?: string;
+  tsedakaBoxes?: Record<string, TsedakaBox>; // une boîte par communauté
   maasserInput?: { salary: number; school: number; talmudTorah: number; other: number };
   name: string;
   hebrewName?: string;
@@ -141,6 +142,7 @@ export interface Donation {
   fundId?: string; // caisse choisie (si la communauté en a créé)
   campaignId?: string; // chaîne de tsedaka
   streakRepair?: { from: string; to: string; days: number }; // rachat de série : jours manqués couverts
+  box?: { coins: number; from: string; to: string }; // vidage de la boîte de tsedaka : pièces regroupées
   type: DonationType;
   amount: number;
   cause: string;
@@ -338,6 +340,21 @@ export interface Score {
   streakDays?: number;
   badges?: number;
   donorTier?: string;
+}
+
+// Boîte de tsedaka : les pièces du jour s'accumulent sans paiement ; la boîte se vide en un seul don.
+export interface BoxCoin { date: string; amount: number }
+export interface BoxRepair { from: string; to: string; days: number; amount: number; date: string; paid?: boolean }
+export interface TsedakaBox {
+  congregationId: string;
+  balance: number;
+  coins: BoxCoin[]; // pièces en attente
+  repairs: BoxRepair[]; // rachats de série (comptés dès qu'ils sont mis dans la boîte)
+  history: string[]; // dates des pièces déjà payées (400 dernières)
+  emptied: number; // nombre de vidages
+  coinAmount?: number;
+  autoCoin?: boolean;
+  updatedAt: string;
 }
 
 // Caisse d'une communauté (destination d'un don). S'il n'y en a aucune, le don va à l'établissement sans question.

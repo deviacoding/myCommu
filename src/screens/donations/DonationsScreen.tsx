@@ -15,6 +15,7 @@ import { DonationType } from '../../types';
 import { money, formatShort, formatNumeric } from '../../utils/time';
 import { clearStripeReturn, readStripeReturn } from '../../utils/stripe';
 import { StreakCard } from '../../components/StreakCard';
+import { TsedakaBoxCard } from '../../components/TsedakaBoxCard';
 import { todayISO } from '../../utils/time';
 import { isoDaysAfter } from '../../config/gamification';
 
@@ -31,7 +32,7 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, campaigns, campaignProgress, boosts, boostDays } = useAppState();
+  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, campaigns, campaignProgress, boosts, boostDays, repairStreak } = useAppState();
   // Journée à points doublés aujourd'hui ou demain
   const today = todayISO();
   const tomorrow = isoDaysAfter(today, 1);
@@ -202,7 +203,8 @@ export function DonationsScreen() {
         ) : null}
         {tab === 'alms' && (
           <View style={{ marginTop: 14 }}>
-            <StreakCard onRepair={(r) => navigation.navigate('Donate', { type: 'tsedaka', amount: r.cost, cause: 'Rachat de série', repair: { from: r.from, to: r.to, days: r.missedDays, cost: r.cost } })} />
+            <TsedakaBoxCard onEmpty={() => navigation.navigate('Donate', { type: 'tsedaka', box: true })} />
+            <StreakCard onRepair={(r) => repairStreak(r)} />
           </View>
         )}
         {tab === 'alms' && campaigns.length > 0 ? (
