@@ -12,5 +12,6 @@ export {
   onLiveStarted,
   onQuestionAnswered,
   onEventCreated,
+  onDonationCreated,
   pledgeReminders,
 } from './push';
