@@ -114,6 +114,20 @@ export function RavCrmScreen({ navigation }: Props) {
     });
     return list.sort((a, b) => b.given12m - a.given12m || b.presence - a.presence);
   }, [members, congDonations, activity, scores, myMemberDates, pending, since12m, since30, seed.currency]);
+  // Donateur du mois : celui qui a donné le plus ce mois-ci (tous types de dons).
+  const donorOfMonth = useMemo(() => {
+    const map = new Map<string, { amount: number; count: number; sample: Donation }>();
+    for (const d of monthDonations) {
+      const key = d.uid ?? d.dedication ?? 'inconnu';
+      const cur = map.get(key) ?? { amount: 0, count: 0, sample: d };
+      cur.amount += d.amount;
+      cur.count += 1;
+      map.set(key, cur);
+    }
+    const best = [...map.values()].sort((a, b) => b.amount - a.amount)[0];
+    return best ? { name: donorName(best.sample), amount: best.amount, count: best.count, tier: tierOf(best.sample) } : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthDonations.length, congDonations]);
   const shown = people.filter((p) => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()));
   const fading = people.filter((p) => p.lastSeen && p.lastSeen < isoDaysAgo(today, 14) && p.presence > 0).length;
 
@@ -199,6 +213,33 @@ export function RavCrmScreen({ navigation }: Props) {
     </Card>
   );
 
+  // Podium : or, argent, bronze. Les trois premiers d'un classement, à remercier ou à citer.
+  const MEDALS = ['#D4A017', '#9CA3AF', '#B87333'];
+  const podium = (rows: { id: string; name: string; value: string; sub: string; tier?: ReturnType<typeof donorTier> }[], icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'], color: string, empty: string) =>
+    rows.length === 0 ? (
+      <EmptyState compact icon="trophy-outline" title={empty} />
+    ) : (
+      <Card>
+        {rows.map((r, i) => (
+          <View key={r.id} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border }]}>
+            <View style={[styles.medal, { backgroundColor: MEDALS[i] }]}>
+              <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>{i + 1}</Text>
+            </View>
+            <Avatar name={r.name} size={40} />
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <Text style={{ color: c.text, fontWeight: '800', fontSize: 15 }}>{r.name}</Text>
+                {r.tier ? <DonorChip tier={r.tier} small /> : null}
+              </View>
+              <Text style={{ color: c.textMuted, fontSize: 13 }}>{r.sub}</Text>
+            </View>
+            <Text style={{ color: c.text, fontWeight: '900', fontSize: 16 }}>{r.value}</Text>
+            <MaterialCommunityIcons name={icon} size={20} color={color} />
+          </View>
+        ))}
+      </Card>
+    );
+
   // Appelé comme fonction (pas comme composant) : le composeur de réaction garde son texte quand l'écran se rafraîchit.
   const personRow = (p: (typeof people)[number]) => (
     <View key={p.id} style={{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, paddingVertical: 10 }}>
@@ -247,6 +288,47 @@ export function RavCrmScreen({ navigation }: Props) {
             <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }} numberOfLines={2}>{k.sub}</Text>
           </Card>
         ))}
+      </View>
+
+      {donorOfMonth ? (
+        <Card style={{ borderColor: '#D4A017', borderWidth: 2, marginTop: 18, marginBottom: 0 }} onPress={() => { setSection('members'); setSearch(donorOfMonth.name); }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <View style={[styles.iconBox, { backgroundColor: '#D4A01722', width: 46, height: 46 }]}>
+              <MaterialCommunityIcons name="crown" size={26} color="#D4A017" />
+            </View>
+            <Avatar name={donorOfMonth.name} size={46} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 }}>Donateur du mois · {MONTHS[Number(month.slice(5, 7)) - 1]} {month.slice(0, 4)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                <Text style={{ color: c.text, fontSize: 20, fontWeight: '900' }}>{donorOfMonth.name}</Text>
+                {donorOfMonth.tier ? <DonorChip tier={donorOfMonth.tier} small /> : null}
+              </View>
+              <Text style={{ color: c.textMuted, fontSize: 13 }}>{donorOfMonth.count} don{donorOfMonth.count > 1 ? 's' : ''} ce mois-ci · un mot de votre part, c’est ce qui compte le plus</Text>
+            </View>
+            <Text style={{ color: '#D4A017', fontSize: 22, fontWeight: '900' }}>{money(donorOfMonth.amount)}</Text>
+          </View>
+        </Card>
+      ) : null}
+
+      <View style={wide ? styles.cols : undefined}>
+        <View style={wide ? styles.col : undefined}>
+          <H action="Fidèles" onAction={() => setSection('members')}>Podium des donateurs (12 mois)</H>
+          {podium(
+            [...people].filter((p) => p.given12m > 0).sort((a, b) => b.given12m - a.given12m).slice(0, 3).map((p) => ({ id: p.id, name: p.name, value: money(p.given12m), sub: `${p.donations} don${p.donations > 1 ? 's' : ''}`, tier: p.tier })),
+            'hand-heart',
+            c.secondary,
+            'Aucun don sur 12 mois',
+          )}
+        </View>
+        <View style={wide ? styles.col : undefined}>
+          <H action="Fidèles" onAction={() => setSection('members')}>Podium des plus assidus (30 jours)</H>
+          {podium(
+            [...people].filter((p) => p.presence > 0).sort((a, b) => b.presence - a.presence || b.streak - a.streak).slice(0, 3).map((p) => ({ id: p.id, name: p.name, value: `${p.presence} j`, sub: p.streak ? `série de ${p.streak} jours` : 'de présence sur 30' })),
+            'calendar-check',
+            c.primary,
+            'Aucune présence enregistrée',
+          )}
+        </View>
       </View>
 
       <View style={wide ? styles.cols : undefined}>
@@ -559,6 +641,7 @@ const styles = StyleSheet.create({
   col: { flex: 1, minWidth: 0 },
   card: { borderRadius: 16, padding: 14, borderWidth: StyleSheet.hairlineWidth, marginBottom: 12 },
   kpiIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  medal: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   dateBox: { width: 46, height: 46, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   iconBox: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
