@@ -114,20 +114,23 @@ export function RavCrmScreen({ navigation }: Props) {
     });
     return list.sort((a, b) => b.given12m - a.given12m || b.presence - a.presence);
   }, [members, congDonations, activity, scores, myMemberDates, pending, since12m, since30, seed.currency]);
-  // Donateur du mois : celui qui a donné le plus ce mois-ci (tous types de dons).
-  const donorOfMonth = useMemo(() => {
+  // Classement des donateurs sur une liste de dons : calculé sur les dons eux-mêmes (un donateur peut ne pas avoir de fiche).
+  const rankDonors = (list: Donation[]) => {
     const map = new Map<string, { amount: number; count: number; sample: Donation }>();
-    for (const d of monthDonations) {
+    for (const d of list) {
       const key = d.uid ?? d.dedication ?? 'inconnu';
       const cur = map.get(key) ?? { amount: 0, count: 0, sample: d };
       cur.amount += d.amount;
       cur.count += 1;
       map.set(key, cur);
     }
-    const best = [...map.values()].sort((a, b) => b.amount - a.amount)[0];
-    return best ? { name: donorName(best.sample), amount: best.amount, count: best.count, tier: tierOf(best.sample) } : null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthDonations.length, congDonations]);
+    return [...map.entries()].map(([key, v]) => ({ id: key, name: donorName(v.sample), amount: v.amount, count: v.count, tier: tierOf(v.sample) })).sort((a, b) => b.amount - a.amount);
+  };
+  // Donateur du mois : celui qui a donné le plus ce mois-ci (tous types de dons) ; podium sur 12 mois.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const donorOfMonth = useMemo(() => rankDonors(monthDonations)[0] ?? null, [monthDonations.length, congDonations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const topDonors = useMemo(() => rankDonors(congDonations.filter((d) => d.date >= since12m)).slice(0, 3), [congDonations, since12m]);
   const shown = people.filter((p) => !search.trim() || p.name.toLowerCase().includes(search.trim().toLowerCase()));
   const fading = people.filter((p) => p.lastSeen && p.lastSeen < isoDaysAgo(today, 14) && p.presence > 0).length;
 
@@ -314,7 +317,7 @@ export function RavCrmScreen({ navigation }: Props) {
         <View style={wide ? styles.col : undefined}>
           <H action="Fidèles" onAction={() => setSection('members')}>Podium des donateurs (12 mois)</H>
           {podium(
-            [...people].filter((p) => p.given12m > 0).sort((a, b) => b.given12m - a.given12m).slice(0, 3).map((p) => ({ id: p.id, name: p.name, value: money(p.given12m), sub: `${p.donations} don${p.donations > 1 ? 's' : ''}`, tier: p.tier })),
+            topDonors.map((p) => ({ id: p.id, name: p.name, value: money(p.amount), sub: `${p.count} don${p.count > 1 ? 's' : ''}`, tier: p.tier })),
             'hand-heart',
             c.secondary,
             'Aucun don sur 12 mois',
