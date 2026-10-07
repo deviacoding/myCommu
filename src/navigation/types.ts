@@ -12,6 +12,7 @@ export type RavStackParamList = {
   RavStart: undefined;
   RavHome: undefined;
   RavFeed: undefined;
+  RavCrm: undefined;
   RavDvarTorah: undefined;
   RavAnswers: undefined;
   RavAnswer: { questionId: string };

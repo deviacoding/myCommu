@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RavStackParamList } from './types';
 import { RavHomeScreen } from '../screens/rav/RavHomeScreen';
 import { RavFeedScreen } from '../screens/rav/RavFeedScreen';
+import { RavCrmScreen } from '../screens/rav/RavCrmScreen';
 import { RavStartScreen } from '../screens/rav/RavStartScreen';
 import { RavDvarTorahScreen } from '../screens/rav/RavDvarTorahScreen';
 import { RavAnswersScreen } from '../screens/rav/RavAnswersScreen';
@@ -34,6 +35,7 @@ export function RavStack() {
       <Stack.Screen name="RavStart" component={RavStartScreen} />
       <Stack.Screen name="RavHome" component={RavHomeScreen} />
       <Stack.Screen name="RavFeed" component={RavFeedScreen} />
+      <Stack.Screen name="RavCrm" component={RavCrmScreen} />
       <Stack.Screen name="RavDvarTorah" component={RavDvarTorahScreen} />
       <Stack.Screen name="RavAnswers" component={RavAnswersScreen} />
       <Stack.Screen name="RavAnswer" component={RavAnswerScreen} />

@@ -68,6 +68,14 @@ export function RavHomeScreen({ navigation }: Props) {
     : 'Rien à faire : dons remerciés, ligue à jour';
   const allTiles: { key: keyof RavStackParamList; perm: Permission; icon: IoniconName; title: string; sub: string; badge?: number; color: string }[] = [
     { key: 'RavFeed', perm: 'donations', icon: 'newspaper', title: 'Fil d’actualité', sub: feedSub, badge: todo, color: c.secondary },
+    {
+      key: 'RavCrm',
+      perm: 'donations',
+      icon: 'grid',
+      title: 'Vue CRM',
+      sub: `Tableau de bord complet : ${congregation.members} fidèles, dons, cours lus, questions, dates à venir`,
+      color: '#1F2937',
+    },
     { key: 'RavDvarTorah', perm: 'teaching', icon: 'create', title: r('teachingShare'), sub: t('rav.teachingsSub', { count: courses.length }), color: c.primary },
     { key: 'RavAnswers', perm: 'answers', icon: 'chatbubbles', title: t('rav.answers'), sub: pending ? t('rav.answersPending', { count: pending }) : t('rav.answersNone'), badge: pending, color: '#B45309' },
     { key: 'RavSchedule', perm: 'schedule', icon: 'time', title: r('schedule'), sub: t('rav.scheduleSub'), color: '#0F766E' },
