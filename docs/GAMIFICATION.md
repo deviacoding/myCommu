@@ -46,6 +46,7 @@ Paliers nommés tous les 10 niveaux, avec les noms de la confession (`seed.gamif
 
 - **Compte → Mon ora** : niveau, palier, progression, jauge assiduité et jauge générosité, titres, « prochain pas », bouton « Mon attestation ».
 - **Mon attestation** : page imprimable (jours de présence, série, cours lus, questions, dons par association, niveau, titres). Sans valeur fiscale.
+- **Responsable → Fil d'actualité** (`RavFeedScreen`, première case de l'accueil) : d'abord ce qu'il y a à faire (dons à remercier des 14 derniers jours, vainqueur de ligue à féliciter), puis les 30 derniers jours de la communauté (dons remerciés, séries ≥ 7 jours, ≥ 5 badges, nouveaux fidèles, tête de ligue) avec un bouton « Réagir ». La case porte une pastille rouge = nombre de choses à faire (`useRavFeed`, même calcul que l'écran). « Tout marquer comme remercié » dès 3 dons. L'accueil ne contient plus de carte « à faire » : il reste un tableau de bord.
 - **Responsable → Fidèles engagés** : les 10 plus assidus et les 10 plus généreux du mois ou de l'année, visibles par le responsable seul.
 - Un « +1 » discret s'affiche quand une action rapporte des points (`PointsToast`).
 
@@ -53,7 +54,7 @@ Paliers nommés tous les 10 niveaux, avec les noms de la confession (`seed.gamif
 
 - **Série de tsedaka** (`tsedakaStreak`) : un don de tsedaka par jour, le samedi est neutre (il ne compte ni ne casse). Points de série ajoutés à la générosité : +1 par jour à partir du 2e, +10 au 7e jour, +40 au 30e, +150 au 100e. Affichée dans l'onglet Dons (flamme), sur la carte Mon ora et à la fin de chaque don.
 - **Fête du don** : à la confirmation d'un don, carillon (`assets/sounds/tsedaka.wav`, expo-audio) et éclats animés autour de l'aura (`Celebration`).
-- **Maasser → remerciement** : la Cloud Function `onDonationCreated` envoie un push aux rôles finance (responsable, adjoint, trésorier) quand un maasser arrive. Sur l'accueil du responsable, un bandeau « N maasser à remercier » (14 derniers jours, `thankedAt` vide) ouvre un message pré-rempli ; « Envoyer » crée une **conversation** (`questions` avec `kind: 'message'`, privée, `askerUid` = le fidèle) et pose `thankedAt` sur le don.
+- **Maasser → remerciement** : la Cloud Function `onDonationCreated` envoie un push aux rôles finance (responsable, adjoint, trésorier) quand un maasser arrive. Dans le fil d'actualité du responsable, « N dons à remercier » (14 derniers jours, `thankedAt` vide) ouvre une réaction (like, mot, audio, vidéo) ; « Envoyer » crée une **conversation** (`questions` avec `kind: 'message'`, privée, `askerUid` = le fidèle) et pose `thankedAt` sur le don.
 - **Chat dans Questions/Réponses** : le fidèle peut répondre dans le fil de n'importe quelle question ou message (`replyToQuestion`, statut repassé à `pending`), le responsable voit tout le fil et répond à nouveau. Règles : le fidèle ne peut modifier que `messages` et `status` de sa propre conversation ; le responsable peut créer un document `kind == 'message'`.
 - **Classement** : chaque fidèle publie son score dans `scores/{congregationId}_{uid}` (points, assiduité, générosité, niveau ; écriture différée de 2 s après chaque changement). Les membres de la communauté le lisent. Carte Mon ora : rang par points et par assiduité, podiums ; écran **Classement** (`Leaderboard`) : podium, top 20, sa place. Prénoms + initiale, jamais de montants.
 

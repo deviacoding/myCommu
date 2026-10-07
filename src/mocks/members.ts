@@ -2,6 +2,7 @@ export interface Member {
   id: string;
   name: string;
   hebrewName?: string;
+  joinedAt?: string; // date d'arrivée (adhésions en base) : le fil d'actualité du responsable signale les nouveaux
 }
 
 // Fidèles de la communauté (démo).

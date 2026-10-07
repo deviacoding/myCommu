@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,18 +10,15 @@ import { useI18n } from '../../i18n';
 import { Avatar } from '../../components/Avatar';
 import { AiBanner } from '../../components/AiAssist';
 import { LanguagePicker } from '../../components/LanguagePicker';
-import { RavScreen, BigButton, BigInput, RavCard, BIG } from './RavUi';
+import { RavScreen, BigButton, RavCard, BIG } from './RavUi';
 import { daysUntil } from '../../components/MyDates';
-import { can, Permission, roleLabel, StaffRole } from '../../config/roles';
+import { can, Permission, roleLabel } from '../../config/roles';
 import { useReligion } from '../../state/useReligion';
 import { paymentProvider } from '../../config/paymentProviders';
 import { countryName } from '../../utils/countries';
 import { capitalize, formatLong, todayISO } from '../../utils/time';
-import { donorTier, isoDaysAgo, RULES } from '../../config/gamification';
-import { ReactionComposer } from '../../components/ReactionComposer';
-import { DonorChip } from '../../components/DonorChip';
-
-const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000);
+import { RULES } from '../../config/gamification';
+import { useRavFeed } from './useRavFeed';
 
 type Props = NativeStackScreenProps<RavStackParamList, 'RavHome'>;
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -31,23 +28,18 @@ export function RavHomeScreen({ navigation }: Props) {
   const c = theme.colors;
   const { t, rtl } = useI18n();
   const r = (k: string) => t(`religions.${community}.${k}`);
-  const { signOut, switchRole, mode, staffRoleFor, isDemo } = useAuth();
+  const { signOut, switchRole, mode, isDemo } = useAuth();
   const { profile } = useReligion();
-  const { congregationId: currentCongregationId } = useAppState();
-  const role: StaffRole = staffRoleFor(currentCongregationId) ?? (mode === 'treasurer' ? 'treasurer' : mode === 'organizer' ? 'organizer' : 'leader');
+  // Rôle et choses à faire (dons à remercier, vainqueur à féliciter) : même calcul que le fil d'actualité, pour que la pastille soit juste.
+  const { role, toThank, winner, todo } = useRavFeed();
   const isTreasurer = role === 'treasurer';
   const {
     myStaff,
     myPaymentLinks,
     myAssociations,
-    donations,
-    thankDonation,
-    members,
     funds,
     campaigns,
     boostsThisYear,
-    league,
-    congratulateWinner,
     myQuestions: questions,
     myCourses: courses,
     myPledges: pledges,
@@ -67,27 +59,15 @@ export function RavHomeScreen({ navigation }: Props) {
   const due = pledges.filter((p) => p.status === 'due').length;
   const upcoming = agenda.filter((e) => e.date >= todayISO()).length;
   const religious = seed.religiousDate(new Date());
-  // Dons des 14 derniers jours pas encore remerciés : le responsable réagit (like, mot, audio, vidéo).
-  const congDonations = donations.filter((d) => (d.congregationId ?? congregationId) === congregationId);
-  const toThank = congDonations.filter((d) => !d.thankedAt && daysSince(d.date) <= 14).sort((a, b) => b.date.localeCompare(a.date));
-  const [thanking, setThanking] = useState<string | null>(null);
-  const donorName = (d: (typeof donations)[number]) => members.find((m) => m.id === d.uid)?.name ?? d.dedication ?? seed.user.name;
-  // Palier du donateur sur 12 mois : un gros donateur se reconnaît tout de suite.
-  const since12m = isoDaysAgo(todayISO(), 365);
-  const tierOf = (d: (typeof donations)[number]) => {
-    const key = d.uid ?? d.dedication ?? 'inconnu';
-    const total = congDonations.filter((x) => x.date >= since12m && (x.uid ?? x.dedication ?? 'inconnu') === key).reduce((s, x) => s + x.amount, 0);
-    return donorTier(total, seed.currency);
-  };
-  const kindOf = (d: (typeof donations)[number]) => (d.streakRepair ? 'Rachat de série' : d.type === 'maasser' ? seed.tithe?.name ?? 'Maasser' : d.type === 'engagement' ? 'Promesse réglée' : seed.alms.name);
-  // Ligue : vainqueur de la quinzaine écoulée à féliciter.
-  const winner = league.pendingWinner;
-  const [congratsText, setCongratsText] = useState('');
-  const [showCongrats, setShowCongrats] = useState(false);
   const current = currentOf(congregation);
   const group = groupOf(congregation);
 
+  // Première case : le fil d'actualité, avec une pastille rouge = nombre de choses à faire.
+  const feedSub = todo
+    ? [toThank.length ? `${toThank.length} don${toThank.length > 1 ? 's' : ''} à remercier` : '', winner ? `${winner.name} a gagné la ligue : à féliciter` : ''].filter(Boolean).join(' · ')
+    : 'Rien à faire : dons remerciés, ligue à jour';
   const allTiles: { key: keyof RavStackParamList; perm: Permission; icon: IoniconName; title: string; sub: string; badge?: number; color: string }[] = [
+    { key: 'RavFeed', perm: 'donations', icon: 'newspaper', title: 'Fil d’actualité', sub: feedSub, badge: todo, color: c.secondary },
     { key: 'RavDvarTorah', perm: 'teaching', icon: 'create', title: r('teachingShare'), sub: t('rav.teachingsSub', { count: courses.length }), color: c.primary },
     { key: 'RavAnswers', perm: 'answers', icon: 'chatbubbles', title: t('rav.answers'), sub: pending ? t('rav.answersPending', { count: pending }) : t('rav.answersNone'), badge: pending, color: '#B45309' },
     { key: 'RavSchedule', perm: 'schedule', icon: 'time', title: r('schedule'), sub: t('rav.scheduleSub'), color: '#0F766E' },
@@ -157,75 +137,6 @@ export function RavHomeScreen({ navigation }: Props) {
             <Text style={{ color: c.textMuted, fontSize: BIG.small, marginTop: 2 }}>{t('rav.treasurerBanner', { leader: r('leader') })}</Text>
           </View>
         </View>
-      ) : null}
-
-      {can(role, 'donations') && toThank.length ? (
-        <RavCard style={{ borderColor: c.secondary, borderWidth: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Ionicons name="notifications" size={28} color={c.secondary} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontSize: 19, fontWeight: '900' }}>{toThank.length} don{toThank.length > 1 ? 's' : ''} à remercier</Text>
-              <Text style={{ color: c.textMuted, fontSize: BIG.small }}>Un like, un mot, un audio ou une vidéo de 5 s : le fidèle le reçoit dans sa messagerie.</Text>
-            </View>
-          </View>
-          {toThank.slice(0, 3).map((d) => (
-            <View key={d.id} style={{ marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, paddingTop: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <Text style={{ color: c.text, fontWeight: '800', fontSize: BIG.small }}>{donorName(d)} · {kindOf(d)} · {d.amount} {seed.currency} · {d.date}</Text>
-                {tierOf(d) ? <DonorChip tier={tierOf(d)!} small /> : null}
-              </View>
-              {thanking === d.id ? (
-                <View style={{ marginTop: 4 }}>
-                  <ReactionComposer memberUid={d.uid ?? 'inconnu'} memberName={donorName(d)} about={`votre ${kindOf(d).toLowerCase()} de ${d.amount} ${seed.currency}`} onDone={() => { thankDonation(d.id); setThanking(null); }} />
-                  <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setThanking(null)} style={{ borderWidth: 1, borderColor: c.border, marginTop: 8, minHeight: 50, paddingVertical: 12 }} />
-                </View>
-              ) : (
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                  <BigButton label="Remercier" icon="chatbubble-ellipses" color={c.secondary} textColor={c.primaryDark} onPress={() => setThanking(d.id)} style={{ flex: 1 }} />
-                  <BigButton label="Déjà fait" color={c.background} textColor={c.textMuted} onPress={() => thankDonation(d.id)} style={{ borderWidth: 1, borderColor: c.border }} />
-                </View>
-              )}
-            </View>
-          ))}
-        </RavCard>
-      ) : null}
-
-      {can(role, 'answers') && winner ? (
-        <RavCard style={{ borderColor: '#D4A017', borderWidth: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Ionicons name="trophy" size={30} color="#D4A017" />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: c.text, fontSize: 19, fontWeight: '900' }}>Ligue terminée : {winner.name} a gagné la quinzaine</Text>
-              <Text style={{ color: c.textMuted, fontSize: BIG.small }}>{winner.points} points du {formatLong(winner.period.from)} au {formatLong(winner.period.to)}. Un mot du responsable, c’est ce qui compte le plus.</Text>
-            </View>
-          </View>
-          {showCongrats ? (
-            <View style={{ marginTop: 10, gap: 8 }}>
-              <BigInput value={congratsText} onChangeText={setCongratsText} multiline style={{ minHeight: 100 }} />
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <BigButton label="Envoyer" icon="send" disabled={congratsText.trim().length < 2} onPress={() => { congratulateWinner(congratsText.trim()); setShowCongrats(false); }} style={{ flex: 1 }} />
-                <BigButton label="Annuler" color={c.background} textColor={c.textMuted} onPress={() => setShowCongrats(false)} style={{ borderWidth: 1, borderColor: c.border }} />
-              </View>
-            </View>
-          ) : (
-            <BigButton
-              label="Féliciter"
-              icon="sparkles"
-              color="#D4A017"
-              textColor="#111827"
-              style={{ marginTop: 10 }}
-              onPress={() => {
-                setCongratsText(`Mazal tov ${winner.name.split(' ')[0]} ! Vous êtes premier de la ligue de la quinzaine avec ${winner.points} points. Toute la communauté vous salue.`);
-                setShowCongrats(true);
-              }}
-            />
-          )}
-        </RavCard>
-      ) : null}
-      {can(role, 'answers') && league.ranking.length ? (
-        <Text style={{ color: c.textMuted, fontSize: BIG.small, marginBottom: 12 }}>
-          Ligue en cours : {league.period.daysLeft} jour{league.period.daysLeft > 1 ? 's' : ''} restant{league.period.daysLeft > 1 ? 's' : ''} · en tête : {league.ranking[0]?.name} ({league.ranking[0]?.points} pts)
-        </Text>
       ) : null}
 
       {can(role, 'live') ? (

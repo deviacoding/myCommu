@@ -11,6 +11,7 @@ export type AuthStackParamList = {
 export type RavStackParamList = {
   RavStart: undefined;
   RavHome: undefined;
+  RavFeed: undefined;
   RavDvarTorah: undefined;
   RavAnswers: undefined;
   RavAnswer: { questionId: string };

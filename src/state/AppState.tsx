@@ -612,7 +612,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
   const myPaymentLinks = real ? paymentLinks.filter((p) => p.congregationId === congregationId) : demoPayments.filter((p) => p.congregationId === congregationId);
   const allAssociations = real ? associations : demoAssos;
   const myAssociations = allAssociations.filter((a) => a.congregationId === congregationId).sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
-  const members: Member[] = real ? congMembers.filter((m) => m.role === 'member' || true).map((m) => ({ id: m.uid, name: m.name })) : seed.members;
+  const members: Member[] = real ? congMembers.filter((m) => m.role === 'member' || true).map((m) => ({ id: m.uid, name: m.name, joinedAt: m.joinedAt })) : seed.members;
 
   // ---- Communautés : rejoindre, créer, chercher
   const joinCongregation = useCallback(

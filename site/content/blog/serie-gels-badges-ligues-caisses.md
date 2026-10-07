@@ -45,7 +45,7 @@ Veille de Kippour, Pourim, Roch 'Hodech, un anniversaire de la communauté : le 
 
 ## Le rav répond d'un geste
 
-Pour chaque événement de sa communauté — un maasser, une tsedaka, une série de douze jours, une victoire de ligue — le responsable peut envoyer au fidèle **un like, un mot, un message audio ou une vidéo de cinq secondes**, depuis son accueil ou le fil « Fidèles engagés ». Le fidèle le reçoit dans sa messagerie, dans l'onglet Questions, et peut répondre. Le responsable est prévenu de chaque don dès qu'il arrive.
+Pour chaque événement de sa communauté — un maasser, une tsedaka, une série de douze jours, une victoire de ligue — le responsable peut envoyer au fidèle **un like, un mot, un message audio ou une vidéo de cinq secondes**, depuis son fil d'actualité, la première case de son espace, qui porte une pastille rouge tant qu'il reste quelqu'un à remercier ou à féliciter. Le fidèle le reçoit dans sa messagerie, dans l'onglet Questions, et peut répondre. Le responsable est prévenu de chaque don dès qu'il arrive.
 
 ## Un rappel au bon moment, jamais le Chabbat
 
