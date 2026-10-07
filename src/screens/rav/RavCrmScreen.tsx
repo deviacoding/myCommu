@@ -100,7 +100,8 @@ export function RavCrmScreen({ navigation }: Props) {
 
   // Fiche de chaque fidèle : dons, présence, série, dates. C'est le cœur du CRM : connaître chacun.
   const people = useMemo(() => {
-    const keyOf = (d: Donation) => d.uid ?? d.dedication ?? 'inconnu';
+    // Démo : les dons sans uid sont ceux du fidèle de démo, le premier de la liste.
+    const keyOf = (d: Donation) => d.uid ?? (backendMode === 'demo' ? members[0]?.id : d.dedication) ?? 'inconnu';
     const list = members.map((m) => {
       const mine = congDonations.filter((d) => keyOf(d) === m.id);
       const given12m = sum(mine.filter((d) => d.date >= since12m));
@@ -113,7 +114,7 @@ export function RavCrmScreen({ navigation }: Props) {
       return { id: m.id, name: m.name, given12m, total: sum(mine), donations: mine.length, last, presence, lastSeen, streak: score?.streakDays ?? 0, tier: donorTier(given12m, seed.currency), dates: myDates, openQuestions };
     });
     return list.sort((a, b) => b.given12m - a.given12m || b.presence - a.presence);
-  }, [members, congDonations, activity, scores, myMemberDates, pending, since12m, since30, seed.currency]);
+  }, [members, congDonations, activity, scores, myMemberDates, pending, since12m, since30, seed.currency, backendMode]);
   // Classement des donateurs sur une liste de dons : calculé sur les dons eux-mêmes (un donateur peut ne pas avoir de fiche).
   const rankDonors = (list: Donation[]) => {
     const map = new Map<string, { amount: number; count: number; sample: Donation }>();
