@@ -47,7 +47,7 @@ const formatMeta: Record<ReceiptFormat, { title: string; hebrew?: string; subtit
 export function ReceiptScreen({ route, navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
-  const { donations, seed, congregation, associationOf, myAssociations } = useAppState();
+  const { myDonations: donations, seed, congregation, associationOf, myAssociations } = useAppState();
   const association = associationOf(route.params.associationId) ?? myAssociations.find((a) => a.receiptFormat === route.params.format);
   const { user } = useAuth();
   const [format, setFormat] = useState<ReceiptFormat>(route.params.format);

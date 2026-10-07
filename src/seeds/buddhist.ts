@@ -1,5 +1,5 @@
 import { ReligionSeed } from './types';
-import { entriesFromHolidays } from './helpers';
+import { entriesFromHolidays, communityDemoDonations } from './helpers';
 import { lunarDate } from '../utils/religiousDate';
 import { Holiday, Course, Question, AgendaEvent, Pledge, Donation, DonationCategory, DonationCause, SoulLevel, MemberDate, Congregation, UserProfile } from '../types';
 import { Member } from '../mocks/members';
@@ -415,6 +415,6 @@ export const buddhistSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   agenda: buddhistAgenda,
   dayEntries: entriesFromHolidays(buddhistHolidays),
   pledges: buddhistPledges,
-  donations: buddhistDonations,
+  donations: [...buddhistDonations, ...communityDemoDonations('bdc', buddhistMembers, ['Encens, fleurs et lampes', 'Nourriture et soins des moines', 'Bourses de retraite', 'Publications du Dharma', 'Entretien du temple'], 9000, buddhistDonations.reduce((s, d) => s + d.amount, 0))],
   memberDates: buddhistMemberDates,
 };

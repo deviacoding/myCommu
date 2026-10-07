@@ -32,7 +32,7 @@ export function DonationsScreen() {
   const { theme } = useTheme();
   const c = theme.colors;
   const navigation = useNavigation<Nav>();
-  const { seed, donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, campaigns, campaignProgress, boosts, boostDays, repairStreak } = useAppState();
+  const { seed, myDonations: donations, myPledges: pledges, totalGiven, givenThisMonth, maasserGivenThisMonth, maasserInput, setMaasserInput, myAssociations, campaigns, campaignProgress, boosts, boostDays, repairStreak } = useAppState();
   // Journée à points doublés aujourd'hui ou demain
   const today = todayISO();
   const tomorrow = isoDaysAfter(today, 1);

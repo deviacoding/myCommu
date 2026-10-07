@@ -19,7 +19,7 @@ export function AttestationScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const { user } = useAuth();
-  const { ora, seed, congregation, donations, myAssociations } = useAppState();
+  const { ora, seed, congregation, myDonations: donations, myAssociations } = useAppState();
   const [status, setStatus] = useState<string | null>(null);
   const year = new Date().getFullYear();
   const mine = donations.filter((d) => d.date.startsWith(String(year)));

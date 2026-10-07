@@ -1,5 +1,5 @@
 import { ReligionSeed } from './types';
-import { entriesFromHolidays } from './helpers';
+import { entriesFromHolidays, communityDemoDonations } from './helpers';
 import { liturgicalDate } from '../utils/religiousDate';
 import { Holiday, Course, Question, AgendaEvent, Pledge, Donation, DonationCategory, DonationCause, SoulLevel, MemberDate, Congregation, UserProfile } from '../types';
 import { Member } from '../mocks/members';
@@ -436,6 +436,6 @@ export const christianSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   agenda: christianAgenda,
   dayEntries: entriesFromHolidays(christianHolidays),
   pledges: christianPledges,
-  donations: christianDonations,
+  donations: [...christianDonations, ...communityDemoDonations('cdc', christianMembers, ['Quête dominicale', 'Aumône pour les pauvres', 'Entretien de l’église', 'Intentions de messe', 'Denier de l’Église'], 9000, christianDonations.reduce((s, d) => s + d.amount, 0))],
   memberDates: christianMemberDates,
 };

@@ -199,6 +199,7 @@ interface AppStateValue {
   removeStaff: (id: string) => void;
   // Données brutes (toutes communautés)
   donations: Donation[];
+  myDonations: Donation[]; // dons du fidèle connecté (en démo : ceux sans uid)
   pledges: Pledge[];
   questions: Question[];
   courses: Course[];
@@ -1362,7 +1363,8 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
     const mine = ofCongregation(congregationId);
     const month = todayISO().slice(0, 7);
     // Les dons du fidèle : les siens (en base, ceux portant son uid ; en démo, tous).
-    const myDonations = real ? donations.filter((d) => d.uid === uid) : donations;
+    // Démo : les dons du fidèle n'ont pas de uid ; ceux de la communauté (générés) en ont un.
+    const myDonations = real ? donations.filter((d) => d.uid === uid) : donations.filter((d) => !d.uid || d.uid === uid);
     const totalGiven = myDonations.reduce((s, d) => s + d.amount, 0);
     const thisMonth = myDonations.filter((d) => d.date.startsWith(month));
     const givenThisMonth = thisMonth.reduce((s, d) => s + d.amount, 0);
@@ -1479,6 +1481,7 @@ export function AppStateProvider({ children, seed }: { children: ReactNode; seed
       readCourses,
       maasserInput,
       categories: real ? categories.filter(mine) : categories,
+      myDonations,
       totalGiven,
       givenThisMonth,
       maasserGivenThisMonth,

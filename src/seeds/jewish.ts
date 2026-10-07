@@ -6,8 +6,9 @@ import { courses } from '../mocks/courses';
 import { initialQuestions } from '../mocks/questions';
 import { tishreiHolidays, dailyServices, agendaEvents, initialDayEntries } from '../mocks/schedule';
 import { habadAgenda, habadCourses, habadDayEntries, habadPledges, habadQuestions } from '../mocks/habad';
-import { initialDonations, initialPledges, initialCategories, causeDetails, quickAmounts, amountLabels, soulLevels } from '../mocks/donations';
+import { initialDonations, initialPledges, initialCategories, causeDetails, causes, quickAmounts, amountLabels, soulLevels } from '../mocks/donations';
 import { initialMemberDates } from '../mocks/memberDates';
+import { communityDemoDonations } from './helpers';
 import { hebrewDate } from '../utils/religiousDate';
 
 export const jewishSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
@@ -84,6 +85,7 @@ export const jewishSeed: Omit<ReligionSeed, 'currents' | 'groups'> = {
   agenda: [...agendaEvents, ...habadAgenda],
   dayEntries: [...initialDayEntries, ...habadDayEntries],
   pledges: [...initialPledges, ...habadPledges],
-  donations: initialDonations,
+  // Démo : les dons du fidèle (sans uid) + ceux de toute la communauté, 9 000 ₪ récoltés au total.
+  donations: [...initialDonations, ...communityDemoDonations('jd', members, causes, 9000, initialDonations.reduce((s, d) => s + d.amount, 0))],
   memberDates: initialMemberDates,
 };
